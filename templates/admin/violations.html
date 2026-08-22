@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Dashboard Pelanggaran - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .page-header {
+            gap: 1rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filters-bar {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            background:
+                radial-gradient(circle at top right, rgba(99, 102, 241, 0.16), transparent 42%),
+                linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(30, 41, 59, 0.96));
+        }
+
+        .filters-controls {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.35fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(190px, 0.9fr) auto;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .filters-bar .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .filters-bar .form-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .filters-bar .form-control,
+        .filters-bar .btn {
+            border-radius: 0.95rem;
+        }
+
+        .filters-bar .form-control[type="date"] {
+            color-scheme: dark;
+            min-height: 44px;
+        }
+
+        .filters-bar .form-control[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.7);
+            opacity: 0.95;
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .filter-actions .btn {
+            min-height: 44px;
+            padding-inline: 1.25rem;
+            white-space: nowrap;
+            width: 100%;
+            box-shadow: 0 14px 30px rgba(99, 102, 241, 0.24);
+        }
+
+        .filters-meta {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .filters-meta-item {
+            padding: 0.9rem 1rem;
+            border-radius: 0.9rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.18));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .filters-meta-item label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #93c5fd;
+        }
+
+        .filters-meta-item strong {
+            display: block;
+            margin-bottom: 0.15rem;
+            font-size: 0.92rem;
+        }
+
+        .filters-meta-item span {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+            padding: 1rem;
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-title h3 {
+            margin: 0;
+        }
+
+        .section-title p {
+            margin: 0.35rem 0 0;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .summary-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.12);
+            color: #bfdbfe;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .type-card,
+        .offender-item {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(15, 23, 42, 0.92));
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .type-card:last-child,
+        .offender-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .type-header,
+        .offender-header {
+            display: flex;
+            gap: 0.9rem;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .type-header-main,
+        .offender-header-main {
+            display: flex;
+            gap: 0.9rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .violation-type-icon,
+        .offender-rank {
+            width: 46px;
+            height: 46px;
+            border-radius: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+
+        .offender-rank {
+            font-weight: 800;
+            font-size: 0.9rem;
+            background: rgba(148, 163, 184, 0.16);
+            color: #e5e7eb;
+        }
+
+        .offender-rank.top-1 {
+            background: linear-gradient(135deg, #facc15, #f59e0b);
+            color: #111827;
+        }
+
+        .offender-rank.top-2 {
+            background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+            color: #111827;
+        }
+
+        .offender-rank.top-3 {
+            background: linear-gradient(135deg, #fb923c, #c2410c);
+            color: #fff;
+        }
+
+        .violation-type-icon.critical {
+            background: rgba(239, 68, 68, 0.18);
+            color: #fca5a5;
+        }
+
+        .violation-type-icon.high {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fcd34d;
+        }
+
+        .violation-type-icon.medium {
+            background: rgba(59, 130, 246, 0.18);
+            color: #93c5fd;
+        }
+
+        .violation-type-icon.low {
+            background: rgba(16, 185, 129, 0.18);
+            color: #86efac;
+        }
+
+        .type-title,
+        .offender-name {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .type-description,
+        .muted-copy {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .metric-stack {
+            text-align: right;
+            min-width: 98px;
+        }
+
+        .metric-stack strong {
+            display: block;
+            font-size: 1.55rem;
+            line-height: 1;
+            margin-bottom: 0.2rem;
+        }
+
+        .metric-stack span {
+            display: block;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+        }
+
+        .severity-pill,
+        .violation-chip,
+        .exam-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+        }
+
+        .severity-pill.critical,
+        .violation-chip.critical {
+            background: rgba(239, 68, 68, 0.16);
+            color: #fca5a5;
+        }
+
+        .severity-pill.high,
+        .violation-chip.high {
+            background: rgba(245, 158, 11, 0.16);
+            color: #fcd34d;
+        }
+
+        .severity-pill.medium,
+        .violation-chip.medium {
+            background: rgba(59, 130, 246, 0.16);
+            color: #93c5fd;
+        }
+
+        .severity-pill.low,
+        .violation-chip.low {
+            background: rgba(16, 185, 129, 0.16);
+            color: #86efac;
+        }
+
+        .exam-chip {
+            background: rgba(148, 163, 184, 0.12);
+            color: #e5e7eb;
+        }
+
+        .meta-row,
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+        }
+
+        .meta-row span {
+            font-size: 0.79rem;
+            color: var(--text-secondary);
+        }
+
+        .type-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.65rem;
+        }
+
+        .explain-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.48rem 0.8rem;
+            border: 1px solid rgba(96, 165, 250, 0.28);
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.12);
+            color: #dbeafe;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .explain-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(147, 197, 253, 0.42);
+            transform: translateY(-1px);
+        }
+
+        .offender-divider,
+        .type-divider {
+            height: 1px;
+            margin: 0.9rem 0;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .subsection-label {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-bottom: 0.55rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .mini-list {
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .mini-list-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: flex-start;
+            padding: 0.7rem 0.8rem;
+            border-radius: 0.8rem;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .mini-list-item strong {
+            display: block;
+            margin-bottom: 0.15rem;
+        }
+
+        .mini-list-item span {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .mini-list-item .count-badge {
+            flex-shrink: 0;
+            padding: 0.35rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(239, 68, 68, 0.14);
+            color: #fecaca;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .detail-card {
+            margin-top: 1.5rem;
+        }
+
+        .table-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .detail-table-wrapper {
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 920px;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 0.85rem 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .detail-table th {
+            background: rgba(15, 23, 42, 0.92);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #cbd5e1;
+        }
+
+        .detail-table td {
+            font-size: 0.84rem;
+            color: #e5e7eb;
+        }
+
+        .detail-table tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .detail-person strong {
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .detail-person span,
+        .detail-context {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .empty-state {
+            padding: 2.25rem 1.25rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        .summary-mode-note {
+            margin-top: 0.8rem;
+            padding: 0.8rem 0.95rem;
+            border-left: 4px solid #38bdf8;
+            border-radius: 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            color: #bae6fd;
+            font-size: 0.86rem;
+            line-height: 1.55;
+        }
+
+        .violation-explainer-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            background: rgba(2, 6, 23, 0.72);
+            backdrop-filter: blur(10px);
+            z-index: 1200;
+        }
+
+        .violation-explainer-modal.open {
+            display: flex;
+        }
+
+        .violation-explainer-dialog {
+            width: min(760px, 100%);
+            max-height: min(88vh, 820px);
+            overflow-y: auto;
+            border-radius: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background:
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 38%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.98));
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.5);
+        }
+
+        .violation-explainer-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            padding: 1.25rem 1.35rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .violation-explainer-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .violation-explainer-header p {
+            margin: 0.35rem 0 0;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .violation-explainer-close {
+            width: 38px;
+            height: 38px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .violation-explainer-content {
+            padding: 1.2rem 1.35rem 1.35rem;
+            display: grid;
+            gap: 0.95rem;
+        }
+
+        .violation-explainer-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+        }
+
+        .violation-explainer-card {
+            padding: 1rem;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .violation-explainer-card.full {
+            grid-column: 1 / -1;
+        }
+
+        .violation-explainer-card label {
+            display: block;
+            margin-bottom: 0.45rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #93c5fd;
+        }
+
+        .violation-explainer-card strong,
+        .violation-explainer-card p,
+        .violation-explainer-card li {
+            line-height: 1.55;
+        }
+
+        .violation-explainer-card p,
+        .violation-explainer-card ul {
+            margin: 0;
+            color: #e5e7eb;
+        }
+
+        .violation-explainer-card ul {
+            padding-left: 1.1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .section-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-controls {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .filter-actions {
+                grid-column: 1 / -1;
+            }
+
+            .filters-meta {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .filters-bar {
+                padding: 1rem;
+            }
+
+            .filters-controls {
+                width: 100%;
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                width: 100%;
+            }
+
+            .filter-actions .btn {
+                width: 100%;
+            }
+
+            .filters-meta {
+                width: 100%;
+                grid-template-columns: 1fr;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .header-actions .btn {
+                flex: 1 1 180px;
+            }
+
+            .type-header,
+            .offender-header {
+                flex-direction: column;
+            }
+
+            .metric-stack {
+                text-align: left;
+                min-width: 0;
+            }
+
+            .violation-explainer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">
+                    <i class="fas fa-triangle-exclamation" style="color: var(--warning);"></i>
+                    Dashboard Pelanggaran
+                </h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshData()">
+                        <i class="fas fa-rotate"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadViolationsExport()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="card filters-bar">
+                <div class="filters-controls">
+                    <div class="form-group">
+                        <label for="exam-filter">Ujian</label>
+                        <select id="exam-filter" class="form-control">
+                            <option value="">Semua Ujian</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date-from">Dari</label>
+                        <input type="date" id="date-from" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="date-to">Sampai</label>
+                        <input type="date" id="date-to" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="detail-level">Mode Tampilan</label>
+                        <select id="detail-level" class="form-control">
+                            <option value="summary" selected>Ringkas / agregat</option>
+                            <option value="auto">Otomatis sesuai server</option>
+                            <option value="detail">Detail lengkap</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyFilters()">
+                            <i class="fas fa-filter"></i> Terapkan Filter
+                        </button>
+                    </div>
+                </div>
+                <div class="filters-meta" id="filters-meta">
+                    <div class="filters-meta-item">
+                        <label>Filter Aktif</label>
+                        <strong>Memuat data...</strong>
+                        <span>Menyiapkan ringkasan filter.</span>
+                    </div>
+                    <div class="filters-meta-item">
+                        <label>Periode</label>
+                        <strong>-</strong>
+                        <span>Menyiapkan rentang waktu.</span>
+                    </div>
+                    <div class="filters-meta-item">
+                        <label>Data Dibuat</label>
+                        <strong>-</strong>
+                        <span>Menunggu waktu generate.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon pending"><i class="fas fa-circle-exclamation"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-violations">0</h3>
+                        <p>Total Pelanggaran</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon users"><i class="fas fa-user-xmark"></i></div>
+                    <div class="stat-info">
+                        <h3 id="unique-offenders">0</h3>
+                        <p>Pelanggar Unik</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon exams"><i class="fas fa-file-lines"></i></div>
+                    <div class="stat-info">
+                        <h3 id="exams-with-violations">0</h3>
+                        <p>Ujian dengan Pelanggaran</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-info">
+                        <h3 id="avg-per-session">0</h3>
+                        <p>Rata-rata per Sesi</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-grid">
+                <div class="card">
+                    <div class="section-title">
+                        <div>
+                            <h3><i class="fas fa-chart-pie"></i> Jenis Pelanggaran</h3>
+                            <p>Komposisi total pelanggaran dari filter yang sedang aktif.</p>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="types-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title">
+                        <div>
+                            <h3><i class="fas fa-chart-line"></i> Trend Waktu</h3>
+                            <p>Pola kemunculan pelanggaran berdasarkan jam kejadian.</p>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="timeline-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-grid">
+                <div class="card">
+                    <div class="section-title">
+                        <div>
+                            <h3><i class="fas fa-list-alt"></i> Breakdown per Tipe</h3>
+                            <p>Lihat siapa saja yang melakukan tiap jenis pelanggaran, total kasus, dan konteks terbarunya.</p>
+                        </div>
+                        <span class="summary-badge" id="type-summary-badge">
+                            <i class="fas fa-layer-group"></i> 0 jenis
+                        </span>
+                    </div>
+                    <div id="types-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title">
+                        <div>
+                            <h3><i class="fas fa-user-secret"></i> Top Pelanggar</h3>
+                            <p>Peserta dengan pelanggaran terbanyak lengkap dengan breakdown jenis dan riwayat terbaru.</p>
+                        </div>
+                        <span class="summary-badge" id="offender-summary-badge">
+                            <i class="fas fa-users"></i> 0 pelanggar
+                        </span>
+                    </div>
+                    <div id="offenders-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card detail-card">
+                <div class="section-title">
+                    <div>
+                        <h3><i class="fas fa-table-list"></i> Log Pelanggaran Detail</h3>
+                        <p>Log terbaru agar pengawas bisa melihat siapa, kapan, ujian apa, dan konteks pelanggarannya.</p>
+                    </div>
+                    <div class="table-meta" id="details-summary">
+                        Menunggu data...
+                    </div>
+                </div>
+                <div id="details-table-container">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="violation-explainer-modal" id="violation-explainer-modal" aria-hidden="true">
+        <div class="violation-explainer-dialog" role="dialog" aria-modal="true" aria-labelledby="violation-explainer-title">
+            <div class="violation-explainer-header">
+                <div>
+                    <h3 id="violation-explainer-title">Penjelasan Pelanggaran</h3>
+                    <p id="violation-explainer-subtitle">Penjelasan sederhana akan tampil di sini.</p>
+                </div>
+                <button type="button" class="violation-explainer-close" onclick="closeViolationExplanation()" aria-label="Tutup penjelasan">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="violation-explainer-content">
+                <div class="violation-explainer-grid">
+                    <div class="violation-explainer-card">
+                        <label>Artinya Secara Sederhana</label>
+                        <p id="violation-explainer-simple"></p>
+                    </div>
+                    <div class="violation-explainer-card">
+                        <label>Kenapa Sistem Menandai Ini</label>
+                        <p id="violation-explainer-why"></p>
+                    </div>
+                    <div class="violation-explainer-card full">
+                        <label>Analogi Untuk Orang Awam</label>
+                        <p id="violation-explainer-analogy"></p>
+                    </div>
+                    <div class="violation-explainer-card full">
+                        <label>Cara Membaca di Dashboard</label>
+                        <ul id="violation-explainer-guide"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script>
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        let typesChart = null;
+        let timelineChart = null;
+        let dashboardData = null;
+        let dashboardExplanationMap = {};
+
+        const VIOLATION_ICONS = {
+            tab_switch: 'fa-window-restore',
+            copy: 'fa-copy',
+            paste: 'fa-paste',
+            cut: 'fa-scissors',
+            screenshot_attempt: 'fa-camera',
+            screenshot: 'fa-camera',
+            browser_minimize: 'fa-window-minimize',
+            focus_lost: 'fa-eye-slash',
+            devtools_open: 'fa-code',
+            devtools_attempt: 'fa-code',
+            right_click: 'fa-arrow-pointer',
+            clipboard_violation: 'fa-clipboard',
+            copy_paste_attempt: 'fa-clipboard',
+            overlay_app: 'fa-layer-group',
+            screen_recording: 'fa-video',
+            external_display: 'fa-tv',
+            accessibility_risk: 'fa-universal-access',
+            apk_tampering: 'fa-shield-halved',
+            security_warning: 'fa-triangle-exclamation'
+        };
+
+        const VIOLATION_EXPLANATIONS = {
+            tab_switch: {
+                simple: 'Peserta keluar dari halaman ujian atau berpindah ke tab/aplikasi lain saat ujian masih berjalan.',
+                why: 'Karena saat ujian fokus seharusnya tetap di layar ujian. Pindah tab bisa berarti membuka materi lain, chat, atau aplikasi bantuan.',
+                analogy: 'Bayangkan saat ujian di kelas, peserta beberapa kali berdiri lalu melihat catatan di luar ruangan. Belum tentu curang, tapi jelas perlu diperhatikan karena fokusnya keluar dari ruang ujian.',
+                guide: [
+                    'Kalau jumlahnya 1 kali, lihat dulu konteks waktunya apakah sebentar atau berulang.',
+                    'Kalau sering muncul dalam waktu dekat, artinya peserta berulang kali meninggalkan layar ujian.',
+                    'Cocokkan dengan log detail untuk melihat kapan kejadian itu paling sering terjadi.'
+                ]
+            },
+            focus_lost: {
+                simple: 'Layar ujian kehilangan fokus. Ini biasanya terjadi saat peserta menyentuh notifikasi, pindah jendela, atau sistem menampilkan layar lain.',
+                why: 'Fokus hilang berarti aplikasi ujian tidak lagi berada di posisi utama. Ini penting dipantau karena soal sedang tidak menjadi layar aktif.',
+                analogy: 'Seperti pengawas melihat kepala peserta beberapa kali menoleh jauh dari meja ujiannya. Menoleh sekali bisa wajar, tetapi kalau berulang perlu dicatat.',
+                guide: [
+                    'Lihat apakah fokus hilang beriringan dengan tab switch atau minimize.',
+                    'Jika terjadi sesekali, bisa karena gangguan teknis atau notifikasi sistem.',
+                    'Jika sering berulang, perlu dipertanyakan apa yang dibuka saat itu.'
+                ]
+            },
+            browser_minimize: {
+                simple: 'Jendela browser atau aplikasi ujian dikecilkan sehingga tidak lagi tampil penuh.',
+                why: 'Saat jendela dikecilkan, peserta bisa lebih mudah membuka layar lain di belakangnya.',
+                analogy: 'Ibarat lembar soal ditutup sebagian supaya peserta bisa melihat catatan yang disimpan di bawah meja.',
+                guide: [
+                    'Nilai pelanggaran ini lebih ringan, tetapi tetap penting bila sering terjadi.',
+                    'Cek apakah minimize terjadi berdekatan dengan pelanggaran lain.',
+                    'Kalau sering berulang pada peserta yang sama, tandai untuk pengawasan lebih dekat.'
+                ]
+            },
+            copy: {
+                simple: 'Peserta mencoba menyalin teks dari layar ujian.',
+                why: 'Copy sering dipakai untuk memindahkan isi soal atau jawaban ke tempat lain seperti chat, catatan, atau aplikasi bantuan.',
+                analogy: 'Seperti peserta menyalin isi soal ke kertas kecil untuk dibawa keluar ruang ujian.',
+                guide: [
+                    'Lihat siapa yang paling sering melakukan copy dan di ujian mana.',
+                    'Jika disertai tab switch atau overlay app, tingkat risikonya lebih tinggi.',
+                    'Perhatikan waktu kejadian untuk melihat apakah terjadi saat soal tertentu.'
+                ]
+            },
+            paste: {
+                simple: 'Peserta mencoba menempelkan teks ke jawaban atau ke area ujian.',
+                why: 'Paste bisa berarti jawaban berasal dari sumber lain, bukan diketik langsung saat ujian.',
+                analogy: 'Ibarat peserta membawa jawaban jadi dari luar lalu langsung menempelkannya ke lembar jawaban.',
+                guide: [
+                    'Pelanggaran ini biasanya perlu perhatian lebih tinggi daripada tab switch biasa.',
+                    'Jika sering berulang, cek juga log copy atau clipboard.',
+                    'Gunakan log detail untuk melihat konteks waktunya.'
+                ]
+            },
+            cut: {
+                simple: 'Peserta mencoba memotong teks dari area ujian atau jawaban.',
+                why: 'Meskipun tidak selalu curang, aksi cut menunjukkan interaksi clipboard yang seharusnya dibatasi.',
+                analogy: 'Seperti peserta mencabut bagian tulisan dari kertas jawaban untuk dipindah ke tempat lain.',
+                guide: [
+                    'Biasanya tidak seserius paste, tetapi tetap perlu dicatat.',
+                    'Lihat apakah cut muncul bersama copy atau paste.',
+                    'Kalau hanya sekali dan tanpa pola lain, bisa jadi kesalahan penggunaan keyboard.'
+                ]
+            },
+            clipboard_violation: {
+                simple: 'Sistem mendeteksi akses ke clipboard, yaitu area sementara untuk copy dan paste.',
+                why: 'Clipboard adalah jalur utama memindahkan soal atau jawaban ke luar dan memasukkan teks dari luar ke ujian.',
+                analogy: 'Ibarat ada laci kecil di meja yang dipakai bolak-balik untuk menyelundupkan kertas masuk dan keluar.',
+                guide: [
+                    'Cek apakah sistem mencatat detail copy, paste, atau cut di waktu yang sama.',
+                    'Kalau sering muncul, artinya peserta berulang kali menyentuh jalur perpindahan teks.',
+                    'Gunakan data detail untuk melihat sumber dan pola waktunya.'
+                ]
+            },
+            right_click: {
+                simple: 'Peserta menekan klik kanan pada area ujian.',
+                why: 'Klik kanan sendiri belum tentu curang, tetapi sering dipakai untuk membuka menu tambahan, inspect, atau fitur copy.',
+                analogy: 'Seperti peserta mencoba membuka sudut kecil dari meja ujian untuk mencari jalan pintas.',
+                guide: [
+                    'Ini termasuk pelanggaran ringan.',
+                    'Nilainya naik kalau terjadi bersama devtools atau clipboard.',
+                    'Gunakan sebagai sinyal tambahan, bukan bukti tunggal.'
+                ]
+            },
+            devtools_open: {
+                simple: 'Peserta mencoba membuka Developer Tools atau alat inspeksi browser.',
+                why: 'Fitur ini bisa dipakai untuk melihat struktur halaman, mencari celah, atau memanipulasi alur ujian.',
+                analogy: 'Seperti peserta bukan hanya mengerjakan soal, tetapi mencoba membongkar meja ujian untuk melihat mekanisme di dalamnya.',
+                guide: [
+                    'Ini termasuk pelanggaran berat dan harus diprioritaskan pengawasannya.',
+                    'Kalau muncul sekali pun, langsung cek peserta dan waktu kejadiannya.',
+                    'Perhatikan apakah setelah itu ada pelanggaran lain seperti copy atau tab switch.'
+                ]
+            },
+            screenshot_attempt: {
+                simple: 'Peserta mencoba mengambil tangkapan layar soal atau tampilan ujian.',
+                why: 'Screenshot bisa dipakai untuk menyimpan soal, membagikannya, atau meminta bantuan dari luar.',
+                analogy: 'Ibarat peserta memotret lembar soal untuk dikirim keluar ruang ujian.',
+                guide: [
+                    'Semakin sering terjadi, semakin besar risiko soal bocor.',
+                    'Cek apakah terjadi pada peserta yang sama berkali-kali.',
+                    'Gunakan log detail untuk melihat konteks perangkat atau sumber kejadian.'
+                ]
+            },
+            overlay_app: {
+                simple: 'Sistem mendeteksi aplikasi lain yang tampil menumpuk di atas aplikasi ujian, misalnya chat bubble atau tools bantu.',
+                why: 'Aplikasi overlay bisa dipakai untuk membuka bantuan tanpa terlihat jelas jika hanya melihat layar utama ujian.',
+                analogy: 'Seperti peserta menempelkan sticky note transparan di atas lembar soal. Soal tetap terlihat, tetapi ada bantuan tambahan di atasnya.',
+                guide: [
+                    'Ini termasuk pelanggaran berat karena menunjukkan ada aplikasi luar yang ikut aktif.',
+                    'Periksa nama aplikasi pada detail jika tersedia.',
+                    'Jika berulang, peserta perlu ditindak lebih cepat daripada pelanggaran ringan.'
+                ]
+            },
+            screen_recording: {
+                simple: 'Perangkat terdeteksi sedang merekam layar saat ujian berjalan.',
+                why: 'Rekaman layar bisa dipakai untuk menyimpan seluruh soal dan aktivitas ujian untuk dipakai ulang atau dibagikan.',
+                analogy: 'Seperti ada kamera yang terus merekam seluruh isi lembar soal selama ujian berlangsung.',
+                guide: [
+                    'Ini kategori sangat serius karena berisiko pada kebocoran soal.',
+                    'Cek apakah terjadi pada banyak peserta atau hanya satu perangkat tertentu.',
+                    'Jika sering terjadi pada peserta yang sama, prioritaskan penanganannya.'
+                ]
+            },
+            external_display: {
+                simple: 'Perangkat diduga terhubung ke layar eksternal, mirroring, atau tampilan tambahan.',
+                why: 'Display eksternal bisa dipakai untuk membagi tampilan ujian dengan layar lain yang lebih mudah dipantau orang lain.',
+                analogy: 'Ibarat soal ujian ditayangkan ke layar kedua di samping meja agar orang lain juga bisa melihatnya.',
+                guide: [
+                    'Periksa apakah kejadian ini muncul bersama screen recording atau overlay.',
+                    'Jika iya, tingkat risikonya makin tinggi.',
+                    'Gunakan sebagai indikator bahwa perangkat peserta perlu dicek.'
+                ]
+            },
+            accessibility_risk: {
+                simple: 'Sistem mendeteksi layanan aksesibilitas yang berisiko dipakai untuk bantuan otomatis atau pembacaan layar.',
+                why: 'Sebagian layanan aksesibilitas aman, tetapi beberapa bisa dipakai untuk membantu peserta membaca atau mengontrol perangkat secara tidak wajar.',
+                analogy: 'Seperti ada asisten yang berdiri di samping peserta dan sesekali membantu membacakan atau mengarahkan jawaban.',
+                guide: [
+                    'Jangan langsung dianggap curang total; lihat detail layanan yang terdeteksi.',
+                    'Kalau layanan itu memang tidak semestinya aktif saat ujian, baru naikkan kewaspadaan.',
+                    'Cocokkan dengan pelanggaran lain sebelum mengambil kesimpulan.'
+                ]
+            },
+            apk_tampering: {
+                simple: 'Aplikasi ujian di perangkat terdeteksi tidak asli, sudah dimodifikasi, atau tanda tangannya tidak sesuai.',
+                why: 'APK yang dimodifikasi berisiko menghilangkan proteksi, mem-bypass aturan, atau menyisipkan celah.',
+                analogy: 'Seperti peserta datang dengan kalkulator yang casing-nya tampak resmi, tetapi bagian dalamnya sudah diubah supaya bisa menyimpan contekan.',
+                guide: [
+                    'Ini salah satu indikator paling serius.',
+                    'Perlu dicek apakah perangkat memakai aplikasi resmi sekolah atau bukan.',
+                    'Jika berulang, peserta sebaiknya tidak dibiarkan lanjut tanpa verifikasi.'
+                ]
+            },
+            security_warning: {
+                simple: 'Sistem melihat tanda umum bahwa kondisi keamanan perangkat atau sesi tidak ideal.',
+                why: 'Ini bisa muncul dari kombinasi indikator yang tidak cukup spesifik untuk jadi satu jenis pelanggaran tunggal, tetapi tetap patut dicatat.',
+                analogy: 'Seperti alarm pengawas berbunyi karena ada gerak mencurigakan, meski belum jelas persis peserta melakukan apa.',
+                guide: [
+                    'Gunakan ini sebagai alarm awal, bukan kesimpulan akhir.',
+                    'Buka log detail untuk membaca konteks dan waktu kejadiannya.',
+                    'Kalau muncul bersama pelanggaran spesifik lain, prioritaskan pemeriksaan peserta itu.'
+                ]
+            }
+        };
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatDateInputValue(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) + ' WIB';
+        }
+
+        function getFiltersQueryParams() {
+            const params = new URLSearchParams();
+            const examId = document.getElementById('exam-filter').value;
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+
+            if (examId) params.append('exam_id', examId);
+            if (dateFrom) params.append('date_from', `${dateFrom}T00:00:00+07:00`);
+            if (dateTo) params.append('date_to', `${dateTo}T23:59:59+07:00`);
+            return params;
+        }
+
+        function getSelectedDetailLevel() {
+            const selector = document.getElementById('detail-level');
+            const value = selector ? String(selector.value || 'summary').toLowerCase() : 'summary';
+            return ['summary', 'auto', 'detail'].includes(value) ? value : 'summary';
+        }
+
+        function getViolationTypeMeta(type, typeDetails = {}) {
+            const key = String(type || '').replace(/^violation_/, '');
+            const detail = typeDetails[key] || typeDetails[type] || {};
+            return {
+                label: detail.label || key.replace(/_/g, ' ').toUpperCase(),
+                severity: detail.severity || 'medium',
+                category: detail.category || 'other',
+                description: detail.description || 'Pelanggaran terdeteksi.'
+            };
+        }
+
+        function getSeverityClass(severity) {
+            const normalized = String(severity || 'medium').toLowerCase();
+            return ['critical', 'high', 'medium', 'low'].includes(normalized) ? normalized : 'medium';
+        }
+
+        function getViolationIcon(type) {
+            return VIOLATION_ICONS[String(type || '').replace(/^violation_/, '')] || 'fa-triangle-exclamation';
+        }
+
+        async function init() {
+            const today = new Date();
+            document.getElementById('date-to').value = formatDateInputValue(today);
+            document.getElementById('date-from').value = formatDateInputValue(today);
+
+            await loadExams();
+            await loadData();
+        }
+
+        async function loadExams() {
+            try {
+                const exams = await api.getExams();
+                const select = document.getElementById('exam-filter');
+                select.innerHTML = '<option value="">Semua Ujian</option>' +
+                    exams.map((exam) => `<option value="${exam.id}">${escapeHtml(exam.title)}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load exams:', error);
+            }
+        }
+
+        async function loadData() {
+            const params = getFiltersQueryParams();
+
+            try {
+                const data = await api.getViolationsDashboard(
+                    params.get('exam_id'),
+                    params.get('date_from'),
+                    params.get('date_to'),
+                    { detailLevel: getSelectedDetailLevel() }
+                );
+
+                dashboardData = data;
+                dashboardExplanationMap = Object.fromEntries(
+                    (data.type_breakdown || []).map((item) => [
+                        String(item.violation_type || '').replace(/^violation_/, ''),
+                        item.explanation || null
+                    ])
+                );
+                renderStats(data);
+                renderFiltersMeta(data);
+                renderTypesChart(data.by_type || {}, data.type_details || {});
+                renderTimelineChart(data.timeline || {});
+                renderTypesList(data.type_breakdown || [], data.type_details || {});
+                renderOffendersList(data.top_offenders || []);
+                renderDetailsTable(data.violations || []);
+            } catch (error) {
+                let errorMessage = 'Unknown error';
+                if (error instanceof Error) {
+                    errorMessage = error.message;
+                } else if (typeof error === 'string') {
+                    errorMessage = error;
+                } else if (error && typeof error === 'object') {
+                    errorMessage = error.detail || error.message || JSON.stringify(error);
+                }
+                showAlert(`Gagal memuat data: ${errorMessage}`, 'danger');
+                console.error(error);
+            }
+        }
+
+        function renderStats(data) {
+            document.getElementById('total-violations').textContent = data.total_violations || 0;
+            document.getElementById('unique-offenders').textContent = data.unique_offender_count || 0;
+            document.getElementById('exams-with-violations').textContent = data.unique_exam_count || 0;
+            document.getElementById('avg-per-session').textContent = Number(data.average_per_session || 0).toFixed(1);
+            document.getElementById('type-summary-badge').innerHTML =
+                `<i class="fas fa-layer-group"></i> ${Object.keys(data.by_type || {}).length} jenis`;
+            document.getElementById('offender-summary-badge').innerHTML =
+                `<i class="fas fa-users"></i> ${data.unique_offender_count || 0} pelanggar`;
+        }
+
+        function renderFiltersMeta(data) {
+            const filtersMeta = document.getElementById('filters-meta');
+            const selectedExam = data.selected_exam_title || 'Semua ujian';
+            const period = data.date_range_label || '-';
+            const generatedAt = data.generated_at_display || '-';
+            const modeLabel = data.aggregate_only ? 'Ringkas/agregat' : 'Detail lengkap';
+
+            filtersMeta.innerHTML = `
+                <div class="filters-meta-item">
+                    <label>Filter Aktif</label>
+                    <strong>${escapeHtml(selectedExam)}</strong>
+                    <span>Data yang tampil sekarang hanya mengikuti ujian ini.</span>
+                </div>
+                <div class="filters-meta-item">
+                    <label>Periode</label>
+                    <strong>${escapeHtml(period)}</strong>
+                    <span>Semua grafik dan daftar disusun dari rentang waktu ini.</span>
+                </div>
+                <div class="filters-meta-item">
+                    <label>Data Dibuat</label>
+                    <strong>${escapeHtml(generatedAt)}</strong>
+                    <span>Gunakan refresh bila ingin mengambil data terbaru.</span>
+                </div>
+                <div class="filters-meta-item">
+                    <label>Mode</label>
+                    <strong>${escapeHtml(modeLabel)}</strong>
+                    <span>${data.aggregate_only ? 'Log detail tidak dimuat otomatis agar admin ringan saat peak.' : 'Memuat log detail; gunakan seperlunya di luar peak.'}</span>
+                </div>
+            `;
+        }
+
+        function getViolationExplanation(type, meta = {}) {
+            const key = String(type || '').replace(/^violation_/, '');
+            const serverDetail = dashboardExplanationMap[key];
+            if (serverDetail) {
+                return serverDetail;
+            }
+            const detail = VIOLATION_EXPLANATIONS[key];
+            if (detail) {
+                return detail;
+            }
+
+            return {
+                simple: `Ini berarti sistem melihat aktivitas ${meta.label || key} yang dianggap tidak wajar selama ujian.`,
+                why: 'Sistem menandainya karena aktivitas ini berada di luar pola normal peserta yang fokus mengerjakan ujian.',
+                analogy: 'Bayangkan pengawas melihat gerakan yang tidak biasa di ruang ujian. Belum tentu langsung curang, tetapi cukup penting untuk dicatat dan ditinjau.',
+                guide: [
+                    'Lihat jumlah kejadian dan siapa yang paling sering melakukannya.',
+                    'Buka log detail untuk membaca konteks waktunya.',
+                    'Gunakan bersama pelanggaran lain agar kesimpulannya lebih akurat.'
+                ]
+            };
+        }
+
+        function openViolationExplanation(type, meta = {}) {
+            const modal = document.getElementById('violation-explainer-modal');
+            const explanation = getViolationExplanation(type, meta);
+            const severity = getSeverityClass(meta.severity || 'medium');
+
+            document.getElementById('violation-explainer-title').textContent = meta.label || 'Penjelasan Pelanggaran';
+            document.getElementById('violation-explainer-subtitle').innerHTML =
+                `Kategori: <strong>${escapeHtml(meta.category || 'lainnya')}</strong> • Severity <strong>${escapeHtml(String(severity).toUpperCase())}</strong>`;
+            document.getElementById('violation-explainer-simple').textContent = explanation.simple;
+            document.getElementById('violation-explainer-why').textContent = explanation.why;
+            document.getElementById('violation-explainer-analogy').textContent = explanation.analogy;
+            document.getElementById('violation-explainer-guide').innerHTML = (explanation.guide || [])
+                .map((item) => `<li>${escapeHtml(item)}</li>`)
+                .join('');
+
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeViolationExplanation() {
+            const modal = document.getElementById('violation-explainer-modal');
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function renderTypesChart(byType, typeDetails = {}) {
+            const ctx = document.getElementById('types-chart').getContext('2d');
+            if (typesChart) typesChart.destroy();
+
+            const labels = Object.keys(byType).map((key) => getViolationTypeMeta(key, typeDetails).label);
+            const values = Object.values(byType);
+
+            if (labels.length === 0) {
+                typesChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Tidak ada data'],
+                        datasets: [{
+                            data: [1],
+                            backgroundColor: ['rgba(148, 163, 184, 0.35)'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: '#9ca3af', font: { size: 11 } }
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            const colors = [
+                'rgba(239, 68, 68, 0.82)',
+                'rgba(245, 158, 11, 0.82)',
+                'rgba(59, 130, 246, 0.82)',
+                'rgba(16, 185, 129, 0.82)',
+                'rgba(244, 114, 182, 0.82)',
+                'rgba(20, 184, 166, 0.82)',
+                'rgba(168, 85, 247, 0.82)',
+                'rgba(249, 115, 22, 0.82)'
+            ];
+
+            typesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#9ca3af',
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTimelineChart(timeline) {
+            const ctx = document.getElementById('timeline-chart').getContext('2d');
+            if (timelineChart) timelineChart.destroy();
+
+            const sortedKeys = Object.keys(timeline).sort();
+            const labels = sortedKeys.map((key) => {
+                const date = new Date(key);
+                return date.toLocaleDateString('id-ID', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit'
+                });
+            });
+            const values = sortedKeys.map((key) => timeline[key]);
+
+            timelineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['Belum ada data'],
+                    datasets: [{
+                        label: 'Pelanggaran',
+                        data: values.length ? values : [0],
+                        borderColor: 'rgba(239, 68, 68, 0.82)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.08)' },
+                            ticks: { color: '#9ca3af', maxTicksLimit: 8 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.08)' },
+                            ticks: { color: '#9ca3af' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTypesList(typeBreakdown, typeDetails = {}) {
+            const container = document.getElementById('types-list');
+
+            if (!typeBreakdown.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Tidak ada pelanggaran pada filter yang dipilih.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = typeBreakdown.map((item) => {
+                const meta = getViolationTypeMeta(item.violation_type, typeDetails);
+                const severity = getSeverityClass(item.severity || meta.severity);
+                const topOffenders = (item.offenders || []).slice(0, 5);
+                const recentViolations = (item.recent_violations || []).slice(0, 3);
+
+                return `
+                    <div class="type-card">
+                        <div class="type-header">
+                            <div class="type-header-main">
+                                <div class="violation-type-icon ${severity}">
+                                    <i class="fas ${getViolationIcon(item.violation_type)}"></i>
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="type-title">
+                                        <strong>${escapeHtml(item.label || meta.label)}</strong>
+                                        <span class="severity-pill ${severity}">
+                                            ${escapeHtml(String(severity).toUpperCase())}
+                                        </span>
+                                    </div>
+                                    <div class="type-description">
+                                        ${escapeHtml(item.description || meta.description)}
+                                    </div>
+                                    <div class="type-toolbar">
+                                        <button
+                                            type="button"
+                                            class="explain-btn"
+                                            data-violation-type="${escapeHtml(String(item.violation_type || ''))}"
+                                            data-violation-label="${escapeHtml(String(item.label || meta.label || ''))}"
+                                            data-violation-severity="${escapeHtml(String(item.severity || meta.severity || 'medium'))}"
+                                            data-violation-category="${escapeHtml(String(item.category || meta.category || 'other'))}"
+                                        >
+                                            <i class="fas fa-circle-question"></i> Penjelasan Mudah
+                                        </button>
+                                    </div>
+                                    <div class="meta-row">
+                                        <span><i class="fas fa-users"></i> ${item.offender_count || 0} pelanggar unik</span>
+                                        <span><i class="fas fa-folder-tree"></i> Kategori ${escapeHtml(item.category || meta.category)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="metric-stack">
+                                <strong>${item.count || 0}</strong>
+                                <span>kasus</span>
+                            </div>
+                        </div>
+
+                        <div class="type-divider"></div>
+
+                        <div class="subsection-label">
+                            <i class="fas fa-user-group"></i> Peserta yang Melakukan Pelanggaran Ini
+                        </div>
+                        ${topOffenders.length ? `
+                            <div class="mini-list">
+                                ${topOffenders.map((offender) => `
+                                    <div class="mini-list-item">
+                                        <div>
+                                            <strong>${escapeHtml(offender.name)}</strong>
+                                            <span>@${escapeHtml(offender.username)}${offender.class ? ` • ${escapeHtml(offender.class)}` : ''}</span>
+                                            <span>Ujian: ${escapeHtml((offender.exam_titles || []).join(', ') || '-')}</span>
+                                            <span>Terakhir: ${escapeHtml(offender.latest_violation_at_display || formatDateTime(offender.latest_violation_at))}</span>
+                                        </div>
+                                        <span class="count-badge">${offender.count || 0}x</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="muted-copy">Belum ada daftar peserta untuk tipe ini.</div>
+                        `}
+
+                        ${recentViolations.length ? `
+                            <div class="type-divider"></div>
+                            <div class="subsection-label">
+                                <i class="fas fa-clock-rotate-left"></i> Contoh Kejadian Terbaru
+                            </div>
+                            <div class="mini-list">
+                                ${recentViolations.map((violation) => `
+                                    <div class="mini-list-item">
+                                        <div>
+                                            <strong>${escapeHtml(violation.name)}</strong>
+                                            <span>${escapeHtml(violation.exam_title || '-')}</span>
+                                            <span>${escapeHtml(violation.detail_summary || 'Tidak ada konteks tambahan')}</span>
+                                        </div>
+                                        <span class="count-badge">${escapeHtml(violation.created_at_display || formatDateTime(violation.created_at))}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderOffendersList(offenders) {
+            const container = document.getElementById('offenders-list');
+
+            if (!offenders.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-check"></i>
+                        <p>Tidak ada pelanggar pada filter yang dipilih.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = offenders.map((offender, index) => {
+                const typeChips = (offender.type_breakdown || []).slice(0, 6);
+                const recentViolations = (offender.recent_violations || []).slice(0, 3);
+                return `
+                    <div class="offender-item">
+                        <div class="offender-header">
+                            <div class="offender-header-main">
+                                <div class="offender-rank ${index < 3 ? `top-${index + 1}` : ''}">${index + 1}</div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="offender-name">
+                                        <strong>${escapeHtml(offender.name)}</strong>
+                                        ${offender.class ? `<span class="exam-chip">${escapeHtml(offender.class)}</span>` : ''}
+                                    </div>
+                                    <div class="muted-copy">@${escapeHtml(offender.username)}</div>
+                                    <div class="meta-row">
+                                        <span><i class="fas fa-clock"></i> Terakhir: ${escapeHtml(offender.latest_violation_at_display || formatDateTime(offender.latest_violation_at))}</span>
+                                        <span><i class="fas fa-file-lines"></i> Ujian: ${escapeHtml((offender.exam_titles || []).join(', ') || '-')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="metric-stack">
+                                <strong>${offender.count || 0}</strong>
+                                <span>pelanggaran</span>
+                            </div>
+                        </div>
+
+                        <div class="chip-row">
+                            ${typeChips.map((item) => `
+                                <span class="violation-chip ${getSeverityClass(item.severity)}">
+                                    ${escapeHtml(item.label)} (${item.count || 0})
+                                </span>
+                            `).join('')}
+                        </div>
+
+                        <div class="offender-divider"></div>
+
+                        <div class="subsection-label">
+                            <i class="fas fa-list-check"></i> Riwayat Terbaru
+                        </div>
+                        ${recentViolations.length ? `
+                            <div class="mini-list">
+                                ${recentViolations.map((violation) => `
+                                    <div class="mini-list-item">
+                                        <div>
+                                            <strong>${escapeHtml(violation.label)}</strong>
+                                            <span>${escapeHtml(violation.exam_title || '-')}</span>
+                                            <span>${escapeHtml(violation.detail_summary || 'Tidak ada konteks tambahan')}</span>
+                                        </div>
+                                        <span class="count-badge">${escapeHtml(violation.created_at_display || formatDateTime(violation.created_at))}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="muted-copy">Belum ada riwayat detail untuk pelanggar ini.</div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderDetailsTable(violations) {
+            const container = document.getElementById('details-table-container');
+            const summary = document.getElementById('details-summary');
+            const aggregateOnly = Boolean(dashboardData && dashboardData.aggregate_only);
+
+            if (aggregateOnly) {
+                summary.textContent = 'Mode ringkas aktif';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-gauge-high"></i>
+                        <p>Mode ringkas aktif: dashboard hanya memuat agregat pelanggaran.</p>
+                        <div class="summary-mode-note">
+                            Ini mengurangi beban server saat ujian ramai. Jika benar-benar perlu audit detail,
+                            ubah <strong>Mode Tampilan</strong> ke <strong>Detail lengkap</strong> lalu klik Terapkan Filter.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!violations.length) {
+                summary.textContent = '0 log';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-check"></i>
+                        <p>Belum ada log pelanggaran untuk ditampilkan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const rows = violations.slice(0, 25);
+            summary.textContent = `Menampilkan ${rows.length} log terbaru dari total ${violations.length} log`;
+
+            container.innerHTML = `
+                <div class="detail-table-wrapper">
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Peserta</th>
+                                <th>Ujian</th>
+                                <th>Jenis Pelanggaran</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map((violation) => `
+                                <tr>
+                                    <td>${escapeHtml(violation.created_at_display || formatDateTime(violation.created_at))}</td>
+                                    <td>
+                                        <div class="detail-person">
+                                            <strong>${escapeHtml(violation.name)}</strong>
+                                            <span>@${escapeHtml(violation.username)}${violation.class ? ` • ${escapeHtml(violation.class)}` : ''}</span>
+                                        </div>
+                                    </td>
+                                    <td>${escapeHtml(violation.exam_title || '-')}</td>
+                                    <td>
+                                        <span class="violation-chip ${getSeverityClass(violation.severity)}">
+                                            ${escapeHtml(violation.label || violation.violation_type || '-')}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="detail-context">${escapeHtml(violation.detail_summary || violation.description || 'Tidak ada konteks tambahan')}</span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function downloadViolationsExport() {
+            const params = getFiltersQueryParams();
+            const url = `${window.location.origin}/api/monitoring/violations/export?${params.toString()}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: api.getHeaders()
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const errorPayload = await response.json();
+                        errorMessage = errorPayload.detail || errorMessage;
+                    } catch (parseError) {
+                        errorMessage = response.statusText || errorMessage;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const blob = await response.blob();
+                const disposition = response.headers.get('Content-Disposition') || '';
+                const filenameMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
+                const filename = filenameMatch ? filenameMatch[1] : 'violations-report.pdf';
+                const objectUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(objectUrl);
+                showAlert('Export PDF berhasil dibuat.', 'success');
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                showAlert(`Gagal export PDF: ${errorMessage}`, 'danger');
+            }
+        }
+
+        function applyFilters() {
+            loadData();
+        }
+
+        function refreshData() {
+            loadData();
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeViolationExplanation();
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!(event.target instanceof Element)) {
+                return;
+            }
+
+            const explainButton = event.target.closest('.explain-btn');
+            if (!explainButton) {
+                return;
+            }
+
+            openViolationExplanation(
+                explainButton.dataset.violationType || '',
+                {
+                    label: explainButton.dataset.violationLabel || '',
+                    severity: explainButton.dataset.violationSeverity || 'medium',
+                    category: explainButton.dataset.violationCategory || 'other'
+                }
+            );
+        });
+
+        document.getElementById('violation-explainer-modal').addEventListener('click', (event) => {
+            if (event.target.id === 'violation-explainer-modal') {
+                closeViolationExplanation();
+            }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="270"
+        android:endColor="@color/login_end"
+        android:centerColor="@color/login_mid"
+        android:startColor="@color/login_start"
+        android:type="linear" />
+</shape>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Login - Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .circles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .circles li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 20px;
+            height: 20px;
+            background: rgba(99, 102, 241, 0.1);
+            animation: animate 25s linear infinite;
+            bottom: -150px;
+        }
+
+        .circles li:nth-child(1) {
+            left: 25%;
+            width: 80px;
+            height: 80px;
+            animation-delay: 0s;
+        }
+
+        .circles li:nth-child(2) {
+            left: 10%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 2s;
+            animation-duration: 12s;
+        }
+
+        .circles li:nth-child(3) {
+            left: 70%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 4s;
+        }
+
+        .circles li:nth-child(4) {
+            left: 40%;
+            width: 60px;
+            height: 60px;
+            animation-delay: 0s;
+            animation-duration: 18s;
+        }
+
+        .circles li:nth-child(5) {
+            left: 65%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 0s;
+        }
+
+        .circles li:nth-child(6) {
+            left: 75%;
+            width: 110px;
+            height: 110px;
+            animation-delay: 3s;
+        }
+
+        .circles li:nth-child(7) {
+            left: 35%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 7s;
+        }
+
+        .circles li:nth-child(8) {
+            left: 50%;
+            width: 25px;
+            height: 25px;
+            animation-delay: 15s;
+            animation-duration: 45s;
+        }
+
+        .circles li:nth-child(9) {
+            left: 20%;
+            width: 15px;
+            height: 15px;
+            animation-delay: 2s;
+            animation-duration: 35s;
+        }
+
+        .circles li:nth-child(10) {
+            left: 85%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 0s;
+            animation-duration: 11s;
+        }
+
+        @keyframes animate {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+                border-radius: 0;
+            }
+
+            100% {
+                transform: translateY(-1000px) rotate(720deg);
+                opacity: 0;
+                border-radius: 50%;
+            }
+        }
+
+        /* Login Container */
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Header */
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 15px 40px rgba(99, 102, 241, 0.6);
+            }
+        }
+
+        .login-icon i {
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .login-header h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff, #a0aec0);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1rem;
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(160, 174, 192, 0.2);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-control:focus+.input-icon {
+            color: var(--primary);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-password:hover {
+            color: var(--primary);
+        }
+
+        /* Checkbox */
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .remember-me span {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Button */
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Alert */
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-left: 4px solid;
+            animation: slideInRight 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.hiding {
+            animation: slideOutRight 0.3s ease forwards;
+        }
+
+        @keyframes slideOutRight {
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        .toast.toast-success {
+            border-left-color: #22c55e;
+        }
+
+        .toast.toast-danger {
+            border-left-color: #ef4444;
+        }
+
+        .toast i:first-child {
+            font-size: 1.25rem;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .login-icon {
+                width: 70px;
+                height: 70px;
+            }
+
+            .login-icon i {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h1>Ujian Online</h1>
+                <p>Masuk ke sistem manajemen ujian</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="username" name="username" class="form-control"
+                            placeholder="Masukkan username" autocomplete="username" required>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="password" name="password" class="form-control"
+                            placeholder="Masukkan password" autocomplete="current-password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" id="toggle-password" class="toggle-password"
+                            aria-label="Toggle password visibility">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <label class="remember-me" for="remember">
+                    <input type="checkbox" id="remember" name="remember">
+                    <span>Ingat saya</span>
+                </label>
+
+                <!-- CAPTCHA Section (hidden by default) -->
+                <div id="captcha-section" class="form-group" style="display: none;">
+                    <div
+                        style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <i class="fas fa-shield-alt" style="color: #fbbf24;"></i>
+                            <span style="color: #fbbf24; font-weight: 600;">Verifikasi Keamanan</span>
+                        </div>
+                        <p id="captcha-question"
+                            style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">
+                        </p>
+                        <input type="text" id="captcha-answer" name="captcha_answer" class="form-control"
+                            placeholder="Masukkan jawaban" autocomplete="off"
+                            style="background: rgba(15, 23, 42, 0.9); font-size: 1rem; text-align: center; letter-spacing: 0.1em;">
+                        <input type="hidden" id="captcha-id" name="captcha_id">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Masuk</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Background Animation -->
+    <div class="area">
+        <ul class="circles">
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+        </ul>
+    </div>
+
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/auth.js"></script>
+    <script>
+        // CAPTCHA state
+        let captchaRequired = false;
+        let currentChallengeId = null;
+
+        // Show CAPTCHA UI
+        function showCaptcha(challengeId, question) {
+            captchaRequired = true;
+            currentChallengeId = challengeId;
+
+            document.getElementById('captcha-section').style.display = 'block';
+            document.getElementById('captcha-question').textContent = question;
+            document.getElementById('captcha-id').value = challengeId;
+            document.getElementById('captcha-answer').value = '';
+            document.getElementById('captcha-answer').focus();
+        }
+
+        // Hide CAPTCHA UI
+        function hideCaptcha() {
+            captchaRequired = false;
+            currentChallengeId = null;
+            document.getElementById('captcha-section').style.display = 'none';
+        }
+
+        // Check if already logged in
+        if (auth.isLoggedIn() && auth.isTeacher()) {
+            window.location.href = auth.isPengawas() ? '/admin/exams.html' : '/admin/dashboard.html';
+        }
+
+        // Toggle password visibility
+        document.getElementById('toggle-password').addEventListener('click', function () {
+            const password = document.getElementById('password');
+            const icon = this.querySelector('i');
+
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Login form submit with CAPTCHA support
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const username = formData.get('username');
+            const password = formData.get('password');
+
+            const btn = this.querySelector('button[type="submit"]');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            btn.disabled = true;
+
+            try {
+                // Build login payload
+                const loginPayload = {
+                    username: username,
+                    password: password
+                };
+
+                // Add CAPTCHA if required
+                if (captchaRequired) {
+                    const captchaAnswer = formData.get('captcha_answer');
+                    if (!captchaAnswer) {
+                        showAlert('Masukkan jawaban CAPTCHA', 'danger');
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                        return;
+                    }
+                    loginPayload.captcha_id = currentChallengeId;
+                    loginPayload.captcha_answer = captchaAnswer;
+                }
+
+                // Make login request directly (not via api.login to handle 428)
+                // ✅ ADDED: Simple retry logic for 5xx errors or network issues
+                let response;
+                let retries = 1;
+
+                while (retries >= 0) {
+                    try {
+                        response = await fetch(`${window.location.origin}/api/control/auth/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(loginPayload)
+                        });
+
+                        // If 5xx error, throw to trigger retry
+                        if (response.status >= 500) {
+                            throw new Error(`Server error: ${response.status}`);
+                        }
+
+                        // If success or expected client error, break loop
+                        break;
+                    } catch (err) {
+                        console.warn('Login attempt failed, retrying...', err);
+                        retries--;
+                        if (retries < 0) {
+                             // If out of retries, use the last error response or throw original error
+                             if (response) break;
+                             throw err;
+                        }
+                        // Wait 1 second before retry
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                const result = await response.json();
+
+                // Handle 428 - CAPTCHA Required
+                if (response.status === 428) {
+                    const detail = result.detail;
+                    if (detail && (detail.type === 'captcha_required' || detail.type === 'captcha_wrong')) {
+                        showCaptcha(detail.challenge_id, detail.question);
+                        const message = detail.type === 'captcha_wrong'
+                            ? '❌ Jawaban salah. Coba lagi dengan soal baru.'
+                            : '🔐 Verifikasi keamanan diperlukan. Jawab pertanyaan di bawah.';
+                        showAlert(message, 'danger');
+                    } else {
+                        showAlert(detail.message || 'CAPTCHA diperlukan', 'danger');
+                    }
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Handle 423 - Account Locked
+                if (response.status === 423) {
+                    showAlert(result.detail || '🔒 Akun terkunci. Coba lagi dalam 15 menit.', 'danger');
+                    hideCaptcha();
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Handle other errors
+                if (!response.ok) {
+                    const message = typeof result.detail === 'string' ? result.detail :
+                        (result.detail?.message || result.message || 'Username atau password salah');
+                    showAlert(message, 'danger');
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Success - check role
+                if (result.user.role !== 'developer' && result.user.role !== 'admin' && result.user.role !== 'teacher') {
+                    showAlert('Akses ditolak. Anda bukan developer, admin, atau guru.', 'danger');
+                    api.clearToken();
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Save credentials
+                localStorage.setItem('access_token', result.access_token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+
+                hideCaptcha();
+                showAlert('Login berhasil! Mengalihkan...', 'success');
+                setTimeout(() => {
+                    const isPengawas = result.user.role === 'teacher'
+                        && String(result.user.job_title || '').toLowerCase().includes('pengawas');
+                    window.location.href = isPengawas ? '/admin/exams.html' : '/admin/dashboard.html';
+                }, 1000);
+
+            } catch (error) {
+                const message = typeof error === 'string' ? error :
+                    (error.message || error.detail || 'Terjadi kesalahan');
+                showAlert(message, 'danger');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

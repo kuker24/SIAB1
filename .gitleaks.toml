@@ -1,0 +1,21 @@
+title = "SIAB1 gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+    [[rules.allowlists]]
+    description = "APK profile storage marker"
+    condition = "AND"
+    regexTarget = "match"
+    paths = ['''^app/core/apk_profiles\.py$''']
+    regexes = ['''TOKENS_V2:''']
+
+    [[rules.allowlists]]
+    description = "Exam access token alphabet"
+    condition = "AND"
+    regexTarget = "line"
+    paths = ['''^go/internal/persistence/exam_copy\.go$''']
+    regexes = ['''^\s*const accessTokenChars\s*=\s*"ABCDEFGHJKMNPQRSTUVWXYZ23456789"\s*$''']

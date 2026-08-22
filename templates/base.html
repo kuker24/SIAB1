@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block meta_description %}Sistem Ujian Online - Platform ujian berbasis APK resmi/mobile-first dengan monitoring real-time dan anti-cheat; SEB PC tersedia sebagai legacy opsional{% endblock %}">
+    <meta name="keywords" content="ujian online, exam system, safe exam browser, pendidikan, e-learning, online test, tes online">
+    <meta name="author" content="Tim Ujian Online">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="{% block og_title %}{{ title | default('Sistem Ujian Online') }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Platform ujian berbasis web yang aman dan terpercaya{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:site_name" content="Ujian Online System">
+
+    <title>{{ title | default('Sistem Ujian Online') }}</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/exam.css?v=20260418-richtext1">
+
+    <!-- Prevent caching during exams -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+
+<body>
+    {% block content %}{% endblock %}
+
+    <!-- Scripts -->
+    <script src="/static/js/exam-system.js?v=20260418-richtext1"></script>
+    <script src="/static/js/alarm-system.js?v=20260306-phase11"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

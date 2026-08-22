@@ -1,0 +1,132 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+// Load keystore properties
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace "com.example.flutter_client_code"
+    compileSdk = 36  // Updated to SDK 36 for compatibility
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+    
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.school.examapp"
+        minSdkVersion = flutter.minSdkVersion  // Support Android 5.0+ (Lollipop)
+        targetSdk = 35  // Target latest SDK
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        
+        // Multi-dex for backward compatibility
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            // Use release keystore for production
+            signingConfig signingConfigs.release
+            
+            // Code shrinking and obfuscation
+            minifyEnabled true
+            shrinkResources true
+            
+            // Enhanced ProGuard configuration
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Optimize for size (security through obscurity)
+            crunchPngs true
+            
+            // Build optimizations
+            ndk {
+                debugSymbolLevel 'NONE'  // Remove debug symbols
+            }
+        }
+        
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            // Keep debug symbols for development
+        }
+    }
+    
+    // Split APK by architecture - DISABLED to fix Flutter build detection
+    // APK Builder GUI will create a single universal APK for better compatibility
+    splits {
+        abi {
+            enable false  // Disabled - use universal APK
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a'  // Most common architectures
+            universalApk true  // Also create a universal APK for compatibility
+        }
+    }
+    
+    // Lint options
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+        disable 'InvalidPackage'
+    }
+    
+    // Optimize packaging
+    packagingOptions {
+        // Exclude unnecessary files
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/*.kotlin_module'
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
+

@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Hasil Ujian - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <style>
+        .exam-card.selected {
+            background: rgba(99, 102, 241, 0.1) !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+        }
+
+        .exam-card.selected:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
+        }
+
+        /* Fix for export dropdown visibility - POSITION FIXED to escape overflow:hidden */
+        .dropdown-menu.show {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: none !important;
+            background: #1e293b !important;
+            position: fixed !important;
+            z-index: 9999 !important;
+        }
+
+        /* Ensure parent dropdown container has proper positioning */
+        .user-dropdown {
+            position: relative;
+        }
+
+        .review-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .review-filter-btn {
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.35);
+            color: #cbd5e1;
+            border-radius: 999px;
+            padding: 0.35rem 0.8rem;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        .review-filter-btn.active {
+            border-color: rgba(34, 197, 94, 0.55);
+            background: rgba(34, 197, 94, 0.16);
+            color: #bbf7d0;
+        }
+
+        .review-q-card {
+            background: rgba(15, 23, 42, 0.32);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.75rem;
+            padding: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .review-answer-box {
+            background: rgba(2, 6, 23, 0.45);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 0.5rem;
+            padding: 0.55rem 0.65rem;
+            font-size: 0.85rem;
+            min-height: 48px;
+            white-space: pre-wrap;
+            line-height: 1.45;
+        }
+
+        .review-answer-box.key {
+            border-color: rgba(34, 197, 94, 0.38);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .review-mini-kpi {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .review-mini-kpi .item {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.65rem;
+            padding: 0.55rem 0.6rem;
+            background: rgba(15, 23, 42, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar - Loaded via JavaScript -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title"><i class="fas fa-chart-bar" style="color: var(--primary);"></i> Hasil Ujian</h1>
+            </div>
+
+            <div id="alert-container"></div>
+
+
+            <!-- Quick Access Exam Cards -->
+            <div id="exam-cards-section" style="margin-bottom: 1.5rem;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <h3 style="margin: 0; font-size: 1rem; color: var(--text-secondary);">
+                        <i class="fas fa-bolt" style="color: var(--warning);"></i> Pilih Ujian
+                    </h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <!-- Bulk Selection Controls (hidden by default) -->
+                        <div id="bulk-controls" style="display: none; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-sm btn-secondary" onclick="selectAllExams()">
+                                <i class="fas fa-check-double"></i> Pilih Semua
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="deselectAllExams()">
+                                <i class="fas fa-times"></i> Batalkan
+                            </button>
+                            <button class="btn btn-sm btn-danger" id="delete-selected-btn"
+                                onclick="deleteSelectedExams()" disabled>
+                                <i class="fas fa-trash-can"></i> Hapus <span id="selected-exam-count">0</span> Terpilih
+                            </button>
+                        </div>
+
+                        <!-- Toggle Checkbox Mode -->
+                        <button class="btn btn-sm btn-secondary" id="checkbox-mode-btn" onclick="toggleCheckboxMode()">
+                            <i class="fas fa-check-square"></i> Mode Pilih
+                        </button>
+
+                        <div class="search-box" style="width: 250px;">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input type="text" id="exam-search" class="form-control" placeholder="Cari ujian...">
+                        </div>
+                    </div>
+                </div>
+                <div id="exam-cards-container"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem;">
+                    <!-- Exam cards will be rendered here -->
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Exam Info Bar (shows after selection) -->
+            <div id="active-exam-bar" class="card"
+                style="display: none; margin-bottom: 1rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div
+                            style="width: 50px; height: 50px; background: var(--primary); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-file-alt" style="font-size: 1.25rem; color: white;"></i>
+                        </div>
+                        <div>
+                            <h3 id="active-exam-title" style="margin: 0;">-</h3>
+                            <small style="color: var(--text-secondary);">
+                                <span id="active-exam-info">-</span>
+                            </small>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-secondary btn-sm" onclick="clearSelection()">
+                            <i class="fas fa-times"></i> Ganti Ujian
+                        </button>
+                        <button class="btn btn-sm" id="delete-results-btn" onclick="deleteAllResults()"
+                            style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                            <i class="fas fa-trash-can"></i> Hapus Hasil
+                        </button>
+                        <div class="user-dropdown">
+                            <button class="btn btn-secondary btn-sm" id="export-btn"
+                                onclick="toggleExportDropdown(this)"
+                                style="background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;">
+                                <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down"
+                                    style="font-size: 0.6rem;"></i>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="card" id="filter-bar" style="display: none; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <div class="search-box" style="flex: 1; min-width: 200px;">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" class="form-control" placeholder="Cari peserta...">
+                    </div>
+                    <select id="status-filter" class="form-control" style="width: auto;">
+                        <option value="">Semua Status</option>
+                        <option value="passed">✅ Lulus</option>
+                        <option value="failed">❌ Tidak Lulus</option>
+                    </select>
+                    <select id="sort-filter" class="form-control" style="width: auto;">
+                        <option value="score-desc">Nilai Tertinggi</option>
+                        <option value="score-asc">Nilai Terendah</option>
+                        <option value="name-asc">Nama A-Z</option>
+                        <option value="time-desc">Terbaru</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="stats-grid" id="summary-stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-icon users"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-participants">0</h3>
+                        <p>Total Peserta</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-passed">0</h3>
+                        <p>Lulus</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon pending"><i class="fas fa-times-circle"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-failed">0</h3>
+                        <p>Tidak Lulus</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon exams"><i class="fas fa-chart-column"></i></div>
+                    <div class="stat-info">
+                        <h3 id="average-score">0</h3>
+                        <p>Rata-rata Nilai</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="participation-summary-card" style="display: none; margin-bottom: 1rem; border-color: rgba(245, 158, 11, 0.28);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                    <div>
+                        <h3 style="margin: 0 0 0.35rem 0; font-size: 1rem;">
+                            <i class="fas fa-user-check" style="color: var(--warning);"></i> Ringkasan Kehadiran Ujian
+                        </h3>
+                        <p id="participation-summary-text" style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">-</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <div id="participation-summary-badges" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="exportParticipationSummary('csv')" title="Download CSV daftar target, submitted, belum start, dan start belum submit">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="exportParticipationSummary('excel')" title="Download Excel daftar kehadiran">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="exportParticipationSummary('pdf')" title="Download PDF daftar kehadiran">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="exportParticipationSummary('docx')" title="Download Word daftar kehadiran">
+                            <i class="fas fa-file-word"></i> Word
+                        </button>
+                    </div>
+                </div>
+                <div id="participation-summary-warning" style="display: none; margin-top: 0.8rem; color: #fbbf24; font-size: 0.86rem;"></div>
+            </div>
+
+            <div class="card" id="results-card" style="display: none;">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Peserta</th>
+                                <th>Ujian</th>
+                                <th>Nilai</th>
+                                <th>Status</th>
+                                <th>Waktu Selesai</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Detail Hasil</h3>
+                <button class="modal-close" onclick="closeModal('detail-modal')">&times;</button>
+            </div>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+
+    <!-- Review Answer Modal -->
+    <div class="modal-overlay" id="review-modal">
+        <div class="modal" style="max-width: 1040px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-clipboard-check"></i> Review Jawaban Siswa</h3>
+                <button class="modal-close" onclick="closeModal('review-modal')">&times;</button>
+            </div>
+            <div id="review-content"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=20260310-results-review-v1"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script>
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        let allExams = [];
+        let allResults = [];
+        let currentExam = null;
+        let currentParticipationSummary = null;
+        let currentUser = auth.getUser();
+        const isTeacher = currentUser && currentUser.role === 'teacher';
+        const EXPORT_BRANDING = {
+            schoolName: 'MADRASAH ALIYAH NEGERI 1 ROKAN HULU',
+            reportSubtitle: 'Sistem Ujian Online - Dokumen Resmi',
+            logoPath: '/static/uploads/logo-man1.jpeg'
+        };
+        let exportLogoDataUrlPromise = null;
+        const sessionReviewCache = new Map();
+        let activeReviewPayload = null;
+        let activeReviewFilter = 'all';
+        let activeReviewSearch = '';
+        const examBreakdownLoaded = new Set();
+
+        // ========================================
+        // TIMEZONE FORMATTER (WIB - Asia/Jakarta)
+        // ========================================
+        function formatWIB(dateString, options = {}) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const defaultOptions = {
+                timeZone: 'Asia/Jakarta',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleString('id-ID', { ...defaultOptions, ...options });
+        }
+
+        // DEPRECATED: Use formatWIB instead
+        function formatDate(dateString) {
+            return formatWIB(dateString);
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function slugifyFilename(value) {
+            return String(value || 'export')
+                .trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '_')
+                .replace(/_+/g, '_');
+        }
+
+        function formatQuestionTypeLabel(type) {
+            const map = {
+                multiple_choice: 'Pilihan Ganda',
+                multiple_choice_complex: 'PG Kompleks',
+                true_false: 'Benar/Salah',
+                essay: 'Essay',
+                short_answer: 'Isian Singkat'
+            };
+            return map[type] || type || '-';
+        }
+
+        async function getExportLogoDataUrl() {
+            if (!exportLogoDataUrlPromise) {
+                exportLogoDataUrlPromise = (async () => {
+                    try {
+                        const response = await fetch(EXPORT_BRANDING.logoPath, { cache: 'force-cache' });
+                        if (!response.ok) return null;
+                        const blob = await response.blob();
+                        return await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = () => resolve(null);
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (error) {
+                        console.warn('Logo export tidak tersedia:', error);
+                        return null;
+                    }
+                })();
+            }
+            return exportLogoDataUrlPromise;
+        }
+        // ========================================
+
+        // Bulk selection state
+        let checkboxMode = false;
+        let selectedExamIds = new Set();
+
+        // Toggle export dropdown with PORTAL positioning (appended to body)
+        function toggleExportDropdown(btn) {
+            let dropdown = document.getElementById('global-export-dropdown');
+
+            // If open, close it
+            if (dropdown) {
+                closeExportDropdownGlobal();
+                return;
+            }
+
+            // Create new dropdown attached to body
+            dropdown = document.createElement('div');
+            dropdown.id = 'global-export-dropdown';
+            dropdown.className = 'dropdown-menu show';
+            dropdown.style.cssText = `
+                position: fixed;
+                z-index: 99999;
+                display: block;
+                background: #1e293b;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 1rem;
+                padding: 0.5rem;
+                box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
+                min-width: 200px;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+            `;
+
+            // Calculate position
+            const rect = btn.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + 8) + 'px';
+            dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+
+            // Content
+            dropdown.innerHTML = `
+                <a href="#" class="dropdown-item" onclick="exportResults('csv'); closeExportDropdownGlobal();">
+                    <i class="fas fa-file-csv" style="color: #22c55e;"></i> Export CSV
+                </a>
+                <a href="#" class="dropdown-item" onclick="exportResults('excel'); closeExportDropdownGlobal();">
+                    <i class="fas fa-file-excel" style="color: #10b981;"></i> Export Excel
+                </a>
+                <a href="#" class="dropdown-item" onclick="exportResults('pdf'); closeExportDropdownGlobal();">
+                    <i class="fas fa-file-pdf" style="color: #ef4444;"></i> Export PDF
+                </a>
+                <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 0.5rem 0;"></div>
+                <a href="#" class="dropdown-item" onclick="exportSummary(); closeExportDropdownGlobal();">
+                    <i class="fas fa-chart-pie" style="color: #8b5cf6;"></i> Statistik
+                </a>
+                <a href="#" class="dropdown-item" onclick="printResults(); closeExportDropdownGlobal();">
+                    <i class="fas fa-print" style="color: #6366f1;"></i> Print
+                </a>
+                <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 0.5rem 0;"></div>
+                <div style="padding: 0.25rem 1rem; font-size: 0.75rem; color: #64748b; font-weight: 600;">EXPORT SOAL</div>
+                <a href="#" class="dropdown-item" onclick="exportCurrentExamQuestions('pdf'); closeExportDropdownGlobal();">
+                    <i class="fas fa-file-pdf" style="color: #f97316;"></i> Soal PDF
+                </a>
+                <a href="#" class="dropdown-item" onclick="exportCurrentExamQuestions('docx'); closeExportDropdownGlobal();">
+                    <i class="fas fa-file-word" style="color: #3b82f6;"></i> Soal DOCX
+                </a>
+                <a href="#" class="dropdown-item" onclick="exportCurrentExamQuestions('excel'); closeExportDropdownGlobal();">
+                    <i class="fas fa-file-excel" style="color: #22c55e;"></i> Soal Excel
+                </a>
+            `;
+
+            document.body.appendChild(dropdown);
+
+            // Close when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', closeExportDropdownGlobal);
+            }, 10);
+        }
+
+        function closeExportDropdownGlobal(e) {
+            const dropdown = document.getElementById('global-export-dropdown');
+            const btn = document.getElementById('export-btn');
+            // If internal call (e undefined) or click outside
+            if (dropdown && (!e || (!dropdown.contains(e.target) && !btn.contains(e.target)))) {
+                dropdown.remove();
+                document.removeEventListener('click', closeExportDropdownGlobal);
+            }
+        }
+
+        async function loadExams() {
+            try {
+                // Get exams that have results (including deleted/archived exams)
+                let exams = await api.getExamsWithResults();
+
+                // DEBUG: Check if teacher_name is present in API response
+                console.log('[DEBUG-LOAD-EXAMS] 🔍 Total exams loaded:', exams.length);
+                if (exams.length > 0) {
+                    console.log('[DEBUG-LOAD-EXAMS] 📋 First exam sample:', {
+                        id: exams[0].id,
+                        title: exams[0].title,
+                        teacher_name: exams[0].teacher_name,
+                        has_teacher_name: !!exams[0].teacher_name
+                    });
+                }
+
+                allExams = exams;
+                renderExamCards(allExams);
+            } catch (error) {
+                showAlert('Gagal memuat data ujian', 'danger');
+            }
+        }
+
+        function renderExamCards(exams) {
+            const container = document.getElementById('exam-cards-container');
+
+            // Show exams with results (backend now only returns exams with actual results)
+            if (exams.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 0.5rem;"></i>
+                        <p style="color: var(--text-secondary);">Belum ada hasil ujian</p>
+                        <small style="color: var(--text-secondary);">Hasil akan muncul setelah ada siswa yang menyelesaikan ujian</small>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = exams.map(exam => {
+                const status = getExamStatus(exam);
+                const isArchived = exam.is_deleted === true;
+                const isSelected = selectedExamIds.has(exam.id);
+
+                return `
+                    <div class="card exam-card ${isArchived ? 'archived' : ''} ${isSelected ? 'selected' : ''}"
+                         data-exam-id="${exam.id}"
+                         onclick="${checkboxMode ? `toggleExamSelection(${exam.id}, event)` : `selectExam(${exam.id})`}"
+                         style="cursor: pointer; transition: all 0.3s ease;
+                                border: 2px solid ${isSelected ? '#6366f1' : (isArchived ? '#f59e0b' : 'transparent')};
+                                ${isArchived ? 'opacity: 0.9;' : ''}
+                                position: relative;">
+                        ${checkboxMode ? `
+                            <div style="position: absolute; top: 8px; left: 8px; z-index: 10;">
+                                <input type="checkbox"
+                                       ${isSelected ? 'checked' : ''}
+                                       onclick="toggleExamSelection(${exam.id}, event)"
+                                       style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            ${isArchived ?
+                        '<span class="badge badge-warning" style="font-size: 0.7rem;">📦 ARSIP</span>' :
+                        `<span class="badge badge-${status.class}" style="font-size: 0.7rem;">${status.label}</span>`
+                    }
+                            <i class="fas fa-chevron-right" style="color: var(--text-secondary); font-size: 0.75rem;"></i>
+                        </div>
+                        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; line-height: 1.3;">${exam.title}</h4>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            <div><i class="fas fa-clock" style="width: 14px;"></i> ${exam.duration_minutes} menit</div>
+                            <div><i class="fas fa-check-circle" style="width: 14px;"></i> KKM: ${exam.passing_score || 70}</div>
+                            ${isArchived ? '<div style="color: #f59e0b;"><i class="fas fa-archive" style="width: 14px;"></i> Ujian dihapus</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getExamStatus(exam) {
+            const now = new Date();
+            const start = new Date(exam.start_time);
+            const end = new Date(exam.end_time);
+            // Tanpa konversi manual, browser handle timezone
+
+            if (now < start) return { label: 'Mendatang', class: 'warning' };
+            if (now >= start && now <= end) return { label: 'Berlangsung', class: 'success' };
+            return { label: 'Selesai', class: 'primary' };
+        }
+
+        // Exam search filter
+        document.getElementById('exam-search').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            const filtered = allExams.filter(exam => exam.title.toLowerCase().includes(search));
+            renderExamCards(filtered);
+        });
+
+        function selectExam(examId) {
+            loadResults(examId);
+        }
+
+        function clearSelection() {
+            currentExam = null;
+            hideParticipationSummary();
+            document.getElementById('exam-cards-section').style.display = 'block';
+            document.getElementById('active-exam-bar').style.display = 'none';
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('summary-stats').style.display = 'none';
+            document.getElementById('results-card').style.display = 'none';
+        }
+
+        async function loadResults(examId) {
+            const examCardsSection = document.getElementById('exam-cards-section');
+            const activeExamBar = document.getElementById('active-exam-bar');
+            const filterBar = document.getElementById('filter-bar');
+            const resultsCard = document.getElementById('results-card');
+            const summaryStats = document.getElementById('summary-stats');
+
+            if (!examId) {
+                clearSelection();
+                return;
+            }
+
+            // Hide exam cards, show active exam bar and results
+            examCardsSection.style.display = 'none';
+            activeExamBar.style.display = 'block';
+            filterBar.style.display = 'block';
+            resultsCard.style.display = 'block';
+
+            currentExam = allExams.find(e => e.id == examId);
+
+            // Fetch full exam details only when summary metadata is missing.
+            if (!currentExam?.teacher_name || !currentExam?.subject || !currentExam?.exam_type) {
+                try {
+                    const fullExamDetails = await api.getExam(examId);
+                    if (fullExamDetails) {
+                        currentExam = { ...currentExam, ...fullExamDetails };
+                        console.log('[LOAD] Exam details loaded on-demand:', {
+                            id: currentExam.id,
+                            title: currentExam.title,
+                            teacher_name: currentExam.teacher_name,
+                            has_creator: !!currentExam.creator
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch full exam details', e);
+                }
+            }
+
+            // Update active exam bar info with subject and exam_type
+            const isArchived = currentExam?.is_deleted === true;
+            document.getElementById('active-exam-title').innerHTML = `
+                ${currentExam?.title || '-'}
+                ${isArchived ? '<span class="badge badge-warning" style="margin-left: 0.5rem; font-size: 0.7rem;">📦 ARSIP</span>' : ''}
+            `;
+            const subject = currentExam?.subject ? `📚 ${currentExam.subject}` : '';
+            const examType = currentExam?.exam_type ? `📋 ${currentExam.exam_type}` : '';
+            document.getElementById('active-exam-info').innerHTML = `
+                ${subject} ${subject && examType ? '|' : ''} ${examType}
+                ${(subject || examType) ? '|' : ''}
+                <i class="fas fa-clock"></i> ${currentExam?.duration_minutes || 0} menit &nbsp;|&nbsp;
+                <i class="fas fa-check-circle"></i> KKM: ${currentExam?.passing_score || 70}
+            `;
+
+            document.getElementById('results-table').innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>';
+
+            try {
+                // Fetch lightweight results first; score breakdown is loaded on demand.
+                const rawResults = await api.getExamResults(examId, false);
+                examBreakdownLoaded.delete(Number(examId));
+
+                try {
+                    currentParticipationSummary = await api.getExamParticipationSummary(examId);
+                    renderParticipationSummary(currentParticipationSummary);
+                } catch (summaryError) {
+                    console.warn('Gagal memuat ringkasan kehadiran ujian:', summaryError);
+                    hideParticipationSummary();
+                }
+
+                // FIX: Calculate duration_taken (minutes) from duration_seconds (seconds)
+                // This fixes "undefined menit" in detail view and export
+                allResults = rawResults.map(r => ({
+                    ...r,
+                    duration_taken: r.duration_seconds ? Math.round(r.duration_seconds / 60) : 0
+                }));
+
+                // If no results yet, show empty state
+                if (!allResults || allResults.length === 0) {
+                    allResults = [];
+                    renderResults(allResults);
+                    summaryStats.style.display = 'none';
+                    showAlert('Belum ada hasil ujian untuk ujian ini', 'info');
+                    return;
+                }
+
+                renderResults(allResults);
+                updateStats(allResults);
+                summaryStats.style.display = 'grid';
+            } catch (error) {
+                console.error('Error loading results:', error);
+                showAlert('Gagal memuat hasil: ' + (error.message || 'Unknown error'), 'danger');
+                allResults = [];
+                hideParticipationSummary();
+                renderResults(allResults);
+            }
+        }
+
+        // REMOVED: generateMockResults function - now using real API data
+
+        function updateStats(results) {
+            const total = results.length;
+            const passed = results.filter(r => r.passed).length;
+            const failed = total - passed;
+            const avgScore = total > 0 ? (results.reduce((sum, r) => sum + r.score, 0) / total).toFixed(1) : 0;
+
+            document.getElementById('total-participants').textContent = total;
+            document.getElementById('total-passed').textContent = passed;
+            document.getElementById('total-failed').textContent = failed;
+            document.getElementById('average-score').textContent = avgScore;
+        }
+
+        function renderParticipationSummary(summary) {
+            const card = document.getElementById('participation-summary-card');
+            const text = document.getElementById('participation-summary-text');
+            const badges = document.getElementById('participation-summary-badges');
+            const warning = document.getElementById('participation-summary-warning');
+            if (!card || !text || !badges || !warning || !summary) return;
+
+            const target = Number(summary.target_count || 0);
+            const submittedInTarget = Number(summary.submitted_in_target_count || 0);
+            const submittedTotal = Number(summary.submitted_total_count || 0);
+            const notStarted = Number(summary.not_started_count || 0);
+            const startedNotSubmitted = Number(summary.started_not_submitted_count || 0);
+            const outsideTarget = Number(summary.submitted_outside_target_count || 0);
+
+            text.textContent = `Target ${target} siswa, submit valid ${submittedInTarget}, belum start ${notStarted}, sudah start belum submit ${startedNotSubmitted}.`;
+            badges.innerHTML = `
+                <span class="badge badge-success">Submit: ${submittedInTarget}/${target}</span>
+                <span class="badge badge-warning">Belum Start: ${notStarted}</span>
+                <span class="badge badge-danger">Start Belum Submit: ${startedNotSubmitted}</span>
+                ${outsideTarget > 0 ? `<span class="badge badge-danger">Di luar target: ${outsideTarget}</span>` : ''}
+            `;
+
+            const messages = [];
+            if (notStarted > 0) messages.push(`${notStarted} siswa target belum pernah membuat sesi ujian.`);
+            if (startedNotSubmitted > 0) messages.push(`${startedNotSubmitted} siswa sudah punya sesi tetapi belum submitted.`);
+            if (outsideTarget > 0) messages.push(`${outsideTarget} hasil submitted berada di luar target kelas/peserta saat ini.`);
+
+            if (messages.length > 0) {
+                warning.style.display = 'block';
+                warning.innerHTML = `<i class="fas fa-triangle-exclamation"></i> ${messages.join(' ')}`;
+            } else {
+                warning.style.display = 'none';
+                warning.textContent = '';
+            }
+            card.style.display = 'block';
+        }
+
+        function hideParticipationSummary() {
+            const card = document.getElementById('participation-summary-card');
+            if (card) card.style.display = 'none';
+            currentParticipationSummary = null;
+        }
+
+        function renderResults(results) {
+            const tbody = document.getElementById('results-table');
+
+            if (results.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><p>Belum ada hasil ujian</p></div></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = results.map((r, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${r.user.full_name}</strong><br><small style="color: var(--text-secondary);">@${r.user.username}${r.user.student_class ? ` | ${r.user.student_class}` : ''}</small></td>
+                    <td>${r.exam.title}<br><small style="color: var(--text-secondary);">${r.exam.subject || ''} ${r.exam.exam_type ? `(${r.exam.exam_type})` : ''}</small></td>
+                    <td><strong style="font-size: 1.25rem; color: ${r.score >= (r.exam.passing_score || 70) ? 'var(--success)' : 'var(--danger)'};">${r.score}</strong></td>
+                    <td><span class="badge badge-${r.passed ? 'success' : 'danger'}">${r.passed ? 'Lulus' : 'Tidak Lulus'}</span></td>
+                    <td>${formatDate(r.submitted_at)}</td>
+                    <td><button class="btn btn-sm btn-secondary" onclick="showDetail(${r.id})"><i class="fas fa-eye"></i></button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterResults() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const status = document.getElementById('status-filter').value;
+            const sort = document.getElementById('sort-filter').value;
+
+            let filtered = allResults.filter(r => {
+                const matchSearch = r.user.full_name.toLowerCase().includes(search);
+                const matchStatus = !status || (status === 'passed' ? r.passed : !r.passed);
+                return matchSearch && matchStatus;
+            });
+
+            // Apply sorting
+            switch (sort) {
+                case 'score-desc':
+                    filtered.sort((a, b) => b.score - a.score);
+                    break;
+                case 'score-asc':
+                    filtered.sort((a, b) => a.score - b.score);
+                    break;
+                case 'name-asc':
+                    filtered.sort((a, b) => a.user.full_name.localeCompare(b.user.full_name));
+                    break;
+                case 'time-desc':
+                    filtered.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+                    break;
+            }
+
+            renderResults(filtered);
+        }
+
+        document.getElementById('search-input').addEventListener('input', filterResults);
+        document.getElementById('status-filter').addEventListener('change', filterResults);
+        document.getElementById('sort-filter').addEventListener('change', filterResults);
+
+        async function ensureExamBreakdownLoaded(examId) {
+            const normalizedExamId = Number(examId);
+            if (!normalizedExamId || examBreakdownLoaded.has(normalizedExamId)) {
+                return;
+            }
+
+            const fullResults = await api.getExamResults(normalizedExamId, true);
+            const byId = new Map(fullResults.map((item) => [item.id, item]));
+            allResults = allResults.map((item) => {
+                const richer = byId.get(item.id);
+                return richer
+                    ? {
+                        ...richer,
+                        duration_taken: richer.duration_seconds ? Math.round(richer.duration_seconds / 60) : 0
+                    }
+                    : item;
+            });
+            examBreakdownLoaded.add(normalizedExamId);
+        }
+
+        async function showDetail(id) {
+            let result = allResults.find(r => r.id === id);
+            if (!result) return;
+
+            const hasBreakdown = Array.isArray(result?.session_metadata?.score_breakdown)
+                && result.session_metadata.score_breakdown.length > 0;
+            if (!hasBreakdown && currentExam?.id) {
+                try {
+                    await ensureExamBreakdownLoaded(currentExam.id);
+                    result = allResults.find(r => r.id === id) || result;
+                } catch (error) {
+                    console.warn('Gagal memuat rincian soal saat buka detail:', error);
+                }
+            }
+
+            // Render score breakdown if available
+            let breakdownHtml = '';
+            // Check session_metadata (might be nested in result object depending on API)
+            // The API returns ExamSession schema which has session_metadata
+            const metadata = result.session_metadata || {};
+
+            if (metadata.score_breakdown && metadata.score_breakdown.length > 0) {
+                const formatPoints = (value) => {
+                    if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+                    const n = Number(value);
+                    const rounded = Math.round(n * 100) / 100;
+                    return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+                };
+
+                const renderStatus = (q) => {
+                    if (q.status === 'pending') {
+                        return '<span style="color: #f59e0b;">Menunggu</span>';
+                    }
+                    if (q.status === 'partial') {
+                        return '<span style="color: #f59e0b;">Parsial</span>';
+                    }
+                    if (q.status === 'not_answered') {
+                        return '<span style="color: var(--text-secondary);">- Kosong</span>';
+                    }
+                    if (q.status === 'correct' || q.is_correct === true) {
+                        return '<span style="color: var(--success);">✓ Benar</span>';
+                    }
+                    if (q.status === 'incorrect' || q.is_correct === false) {
+                        return '<span style="color: var(--danger);">✗ Salah</span>';
+                    }
+
+                    // Backward-compatibility for old score_breakdown records without `status`
+                    if (q.points_earned === null || q.points_earned === undefined) {
+                        return '<span style="color: #f59e0b;">Menunggu</span>';
+                    }
+                    return q.is_correct
+                        ? '<span style="color: var(--success);">✓ Benar</span>'
+                        : '<span style="color: var(--danger);">✗ Salah</span>';
+                };
+
+                const rows = metadata.score_breakdown.map((q, idx) => `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 8px;">Q${idx + 1} <span style="font-size: 0.8em; color: var(--text-secondary);">(${q.question_type})</span></td>
+                        <td style="padding: 8px; text-align: center;">
+                            ${renderStatus(q)}
+                        </td>
+                        <td style="padding: 8px; text-align: right;">
+                            ${formatPoints(q.points_earned)} <span style="color: var(--text-secondary);">/ ${formatPoints(q.max_points)}</span>
+                        </td>
+                    </tr>
+                `).join('');
+
+                breakdownHtml = `
+                    <div class="card" style="margin-top: 1rem;">
+                        <h4 style="margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+                            Rincian Nilai Per Soal
+                        </h4>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="background: rgba(255,255,255,0.05); text-align: left;">
+                                    <th style="padding: 8px;">Soal</th>
+                                    <th style="padding: 8px; text-align: center;">Status</th>
+                                    <th style="padding: 8px; text-align: right;">Poin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows}
+                            </tbody>
+                            <tfoot>
+                                <tr style="border-top: 1px solid rgba(255,255,255,0.2); font-weight: bold;">
+                                    <td style="padding: 8px;">Total</td>
+                                    <td style="padding: 8px;"></td>
+                                    <td style="padding: 8px; text-align: right;">
+                                        ${result.score} <span style="font-weight: normal; color: var(--text-secondary);">(Skor)</span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+            }
+
+            document.getElementById('detail-content').innerHTML = `
+                <div style="display: grid; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--dark-card); border-radius: 0.5rem;">
+                        <div class="user-avatar" style="width: 60px; height: 60px; font-size: 1.5rem;">${result.user.full_name.charAt(0)}</div>
+                        <div>
+                            <h3>${result.user.full_name}</h3>
+                            <p style="color: var(--text-secondary);">@${result.user.username}</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="card" style="text-align: center;">
+                            <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Nilai</p>
+                            <h2 style="font-size: 2.5rem; color: ${result.score >= (result.exam.passing_score || 70) ? 'var(--success)' : 'var(--danger)'};">${result.score}</h2>
+                        </div>
+                        <div class="card" style="text-align: center;">
+                            <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Status</p>
+                            <span class="badge badge-${result.passed ? 'success' : 'danger'}" style="font-size: 1rem; padding: 0.5rem 1rem;">${result.passed ? 'LULUS' : 'TIDAK LULUS'}</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div><strong>Ujian:</strong></div><div>${result.exam.title}</div>
+                            <div><strong>Bidang Studi:</strong></div><div>${result.exam.subject || '-'}</div>
+                            <div><strong>Tipe Ujian:</strong></div><div>${result.exam.exam_type || '-'}</div>
+                            <div><strong>Kelas:</strong></div><div>${result.user.student_class || '-'}</div>
+                            <div><strong>Passing Score:</strong></div><div>${result.exam.passing_score || 70}</div>
+                            <div><strong>Durasi:</strong></div><div>${result.duration_taken} menit</div>
+                            <div><strong>Selesai:</strong></div><div>${formatDate(result.submitted_at)}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button class="btn btn-primary btn-sm" onclick="openAnswerReview(${result.id})">
+                            <i class="fas fa-clipboard-check"></i> Review Jawaban
+                        </button>
+                    </div>
+                    ${breakdownHtml}
+                </div>
+            `;
+            openModal('detail-modal');
+        }
+
+        async function openAnswerReview(sessionId) {
+            if (!currentExam || !currentExam.id) {
+                showAlert('Pilih ujian terlebih dahulu', 'warning');
+                return;
+            }
+
+            const cacheKey = `${currentExam.id}:${sessionId}`;
+            const reviewContent = document.getElementById('review-content');
+            closeModal('detail-modal');
+            reviewContent.innerHTML = `
+                <div class="loading" style="padding: 2rem 0;">
+                    <div class="spinner"></div>
+                </div>
+            `;
+            openModal('review-modal');
+
+            try {
+                let payload = sessionReviewCache.get(cacheKey);
+                if (!payload) {
+                    payload = await api.getSessionAnswerReview(currentExam.id, sessionId);
+                    sessionReviewCache.set(cacheKey, payload);
+                }
+                activeReviewPayload = payload;
+                activeReviewFilter = 'all';
+                activeReviewSearch = '';
+                renderActiveReviewPayload();
+            } catch (error) {
+                console.error('Gagal memuat review jawaban:', error);
+                reviewContent.innerHTML = `
+                    <div class="empty-state" style="padding: 1.5rem 0;">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <p>Gagal memuat review jawaban.</p>
+                        <small>${escapeHtml(error.message || 'Silakan coba lagi')}</small>
+                    </div>
+                `;
+            }
+        }
+
+        function setReviewFilter(status) {
+            activeReviewFilter = status;
+            renderActiveReviewPayload();
+        }
+
+        function handleReviewSearchInput(value) {
+            activeReviewSearch = String(value || '').toLowerCase().trim();
+            renderActiveReviewPayload();
+        }
+
+        function getReviewStatusBadge(status) {
+            const map = {
+                correct: { label: 'Benar', className: 'badge-success' },
+                partial: { label: 'Parsial', className: 'badge-warning' },
+                incorrect: { label: 'Salah', className: 'badge-danger' },
+                pending: { label: 'Menunggu', className: 'badge-warning' },
+                not_answered: { label: 'Kosong', className: 'badge-secondary' }
+            };
+            return map[status] || { label: status || '-', className: 'badge-secondary' };
+        }
+
+        function renderReviewTableValidationRows(answerPayload = {}) {
+            const rows = Array.isArray(answerPayload.rows) ? answerPayload.rows : [];
+            if (!rows.length) return '<div style="color: var(--text-secondary);">-</div>';
+            return `
+                <div style="display:grid; gap:0.3rem;">
+                    ${rows.map((row) => `
+                        <div style="font-size:0.82rem;">
+                            <strong>${row.index}.</strong> ${escapeHtml(row.statement || '-')}
+                            <span style="color: var(--text-secondary);">
+                                -> ${row.student_answer === true ? 'Benar' : (row.student_answer === false ? 'Salah' : '-')}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderActiveReviewPayload() {
+            const payload = activeReviewPayload;
+            const reviewContent = document.getElementById('review-content');
+            if (!payload) {
+                reviewContent.innerHTML = `
+                    <div class="empty-state" style="padding: 1rem 0;">
+                        <i class="fas fa-circle-info"></i>
+                        <p>Data review belum tersedia.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const statusPriority = ['incorrect', 'partial', 'pending', 'not_answered', 'correct'];
+            let questions = Array.isArray(payload.questions) ? [...payload.questions] : [];
+            if (activeReviewFilter !== 'all') {
+                questions = questions.filter((item) => item.status === activeReviewFilter);
+            }
+            if (activeReviewSearch) {
+                questions = questions.filter((item) => {
+                    const hay = [
+                        item.question_text,
+                        item.student_answer_display,
+                        item.answer_key_display
+                    ].join(' ').toLowerCase();
+                    return hay.includes(activeReviewSearch);
+                });
+            }
+            questions.sort((a, b) => {
+                const pa = statusPriority.indexOf(a.status);
+                const pb = statusPriority.indexOf(b.status);
+                if (pa !== pb) return pa - pb;
+                return (a.order_index || 0) - (b.order_index || 0);
+            });
+
+            const summary = payload.summary || {};
+            const score = Number(payload.session?.score || 0);
+            const passing = Number(payload.exam?.passing_score || 70);
+            const passed = payload.session?.passed === true;
+
+            reviewContent.innerHTML = `
+                <div style="display:grid; gap: 0.9rem;">
+                    <div class="card" style="padding: 0.9rem;">
+                        <div style="display:flex; justify-content:space-between; gap: 1rem; flex-wrap: wrap; align-items:center;">
+                            <div>
+                                <h3 style="margin:0;">${escapeHtml(payload.student?.full_name || '-')}</h3>
+                                <p style="margin:0.2rem 0 0 0; color: var(--text-secondary);">
+                                    @${escapeHtml(payload.student?.username || '-')} ${payload.student?.student_class ? `| ${escapeHtml(payload.student.student_class)}` : ''}
+                                </p>
+                                <p style="margin:0.2rem 0 0 0; color: var(--text-secondary); font-size:0.85rem;">
+                                    ${escapeHtml(payload.exam?.title || '-')}${payload.exam?.subject ? ` • ${escapeHtml(payload.exam.subject)}` : ''}
+                                </p>
+                            </div>
+                            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                                <span class="badge badge-${passed ? 'success' : 'danger'}">${passed ? 'Lulus' : 'Tidak Lulus'}</span>
+                                <span class="badge badge-primary">Skor ${score.toFixed(2)} / KKM ${passing}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="review-mini-kpi">
+                        <div class="item"><div style="font-size:0.72rem;color:var(--text-secondary);">Total Soal</div><div style="font-weight:700;font-size:1.05rem;">${summary.total_questions || 0}</div></div>
+                        <div class="item"><div style="font-size:0.72rem;color:var(--text-secondary);">Benar</div><div style="font-weight:700;font-size:1.05rem;color:#22c55e;">${summary.correct || 0}</div></div>
+                        <div class="item"><div style="font-size:0.72rem;color:var(--text-secondary);">Parsial</div><div style="font-weight:700;font-size:1.05rem;color:#f59e0b;">${summary.partial || 0}</div></div>
+                        <div class="item"><div style="font-size:0.72rem;color:var(--text-secondary);">Salah</div><div style="font-weight:700;font-size:1.05rem;color:#ef4444;">${summary.incorrect || 0}</div></div>
+                        <div class="item"><div style="font-size:0.72rem;color:var(--text-secondary);">Kosong</div><div style="font-weight:700;font-size:1.05rem;">${summary.unanswered || 0}</div></div>
+                        <div class="item"><div style="font-size:0.72rem;color:var(--text-secondary);">Menunggu Nilai</div><div style="font-weight:700;font-size:1.05rem;">${summary.pending || 0}</div></div>
+                    </div>
+
+                    <div class="card" style="padding:0.9rem;">
+                        <div class="review-toolbar">
+                            <button class="review-filter-btn ${activeReviewFilter === 'all' ? 'active' : ''}" onclick="setReviewFilter('all')">Semua</button>
+                            <button class="review-filter-btn ${activeReviewFilter === 'incorrect' ? 'active' : ''}" onclick="setReviewFilter('incorrect')">Salah</button>
+                            <button class="review-filter-btn ${activeReviewFilter === 'partial' ? 'active' : ''}" onclick="setReviewFilter('partial')">Parsial</button>
+                            <button class="review-filter-btn ${activeReviewFilter === 'pending' ? 'active' : ''}" onclick="setReviewFilter('pending')">Pending</button>
+                            <button class="review-filter-btn ${activeReviewFilter === 'not_answered' ? 'active' : ''}" onclick="setReviewFilter('not_answered')">Kosong</button>
+                            <button class="review-filter-btn ${activeReviewFilter === 'correct' ? 'active' : ''}" onclick="setReviewFilter('correct')">Benar</button>
+                            <div class="search-box" style="margin-left:auto; min-width: 220px;">
+                                <i class="fas fa-magnifying-glass"></i>
+                                <input type="text" class="form-control" placeholder="Cari teks soal/jawaban..." value="${escapeHtml(activeReviewSearch)}" oninput="handleReviewSearchInput(this.value)">
+                            </div>
+                        </div>
+                        <div style="font-size:0.82rem; color: var(--text-secondary); margin-bottom:0.35rem;">
+                            Menampilkan ${questions.length} soal
+                        </div>
+                    </div>
+
+                    <div>
+                        ${questions.length ? questions.map((item) => {
+                            const statusBadge = getReviewStatusBadge(item.status);
+                            const studentAnswerHtml = item.student_answer?.pgk_type === 'table_validation'
+                                ? renderReviewTableValidationRows(item.student_answer)
+                                : escapeHtml(item.student_answer_display || '-');
+                            const keyAnswerHtml = item.answer_key?.pgk_type === 'table_validation'
+                                ? `
+                                    <div style="display:grid; gap:0.3rem;">
+                                        ${(item.answer_key.rows || []).map((row) => `
+                                            <div style="font-size:0.82rem;">
+                                                <strong>${row.index}.</strong> ${escapeHtml(row.statement || '-')}
+                                                <span style="color: var(--text-secondary);">
+                                                    -> ${row.correct_answer === true ? 'Benar' : (row.correct_answer === false ? 'Salah' : '-')}
+                                                </span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                `
+                                : escapeHtml(item.answer_key_display || '-');
+                            return `
+                                <div class="review-q-card">
+                                    <div style="display:flex; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-bottom:0.55rem;">
+                                        <div style="display:flex; gap:0.45rem; align-items:center; flex-wrap:wrap;">
+                                            <span class="badge badge-secondary">Soal ${item.question_number || item.order_index}</span>
+                                            <span class="badge badge-info">${escapeHtml(item.question_type_label || formatQuestionTypeLabel(item.question_type))}</span>
+                                            <span class="badge ${statusBadge.className}">${statusBadge.label}</span>
+                                        </div>
+                                        <span class="badge badge-primary">${Number(item.points_earned || 0).toFixed(2)} / ${Number(item.max_points || 0).toFixed(2)} poin</span>
+                                    </div>
+                                    <div style="font-size:0.92rem; margin-bottom:0.55rem; line-height:1.45;">${escapeHtml(item.question_text || '-')}</div>
+                                    ${item.stimulus ? `<div style="font-size:0.82rem; color: var(--text-secondary); margin-bottom:0.55rem;"><strong>Stimulus:</strong> ${escapeHtml(item.stimulus)}</div>` : ''}
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+                                        <div>
+                                            <div style="font-size:0.78rem; color: var(--text-secondary); margin-bottom:0.25rem;">Jawaban Siswa</div>
+                                            <div class="review-answer-box">${studentAnswerHtml}</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size:0.78rem; color: var(--text-secondary); margin-bottom:0.25rem;">Kunci Jawaban</div>
+                                            <div class="review-answer-box key">${keyAnswerHtml}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') : `
+                            <div class="empty-state" style="padding: 1.2rem 0;">
+                                <i class="fas fa-filter-circle-xmark"></i>
+                                <p>Tidak ada soal yang cocok dengan filter saat ini.</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function exportParticipationSummary(format = 'csv') {
+            if (!currentExam?.id) {
+                showAlert('Pilih ujian terlebih dahulu', 'warning');
+                return;
+            }
+            const normalizedFormat = String(format || 'csv').toLowerCase();
+            const extensionMap = {
+                csv: 'csv',
+                excel: 'xls',
+                xls: 'xls',
+                pdf: 'pdf',
+                docx: 'docx',
+                word: 'docx'
+            };
+            try {
+                const query = new URLSearchParams({ format: normalizedFormat });
+                const response = await fetch(`/api/exams/${currentExam.id}/participation-summary/export?${query.toString()}`, {
+                    method: 'GET',
+                    headers: api.getHeaders()
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+                const blob = await response.blob();
+                const ext = extensionMap[normalizedFormat] || 'csv';
+                const filename = `kehadiran_${slugifyFilename(currentExam?.title || 'ujian')}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+                downloadBlob(blob, filename);
+                showAlert(`Export kehadiran ${normalizedFormat.toUpperCase()} berhasil didownload`, 'success');
+            } catch (error) {
+                console.error('Export kehadiran gagal:', error);
+                showAlert(`Export kehadiran gagal: ${error.message}`, 'danger');
+            }
+        }
+
+        async function exportResults(format = 'csv') {
+            if (allResults.length === 0) {
+                showAlert('Tidak ada data untuk diekspor', 'warning');
+                return;
+            }
+
+            const headers = ['No', 'Nama', 'Username', 'Kelas', 'Ujian', 'Bidang Studi', 'Tipe Ujian', 'Nilai', 'Status', 'Durasi (menit)', 'Waktu Selesai'];
+            const rows = allResults.map((r, i) => [
+                i + 1,
+                r.user.full_name,
+                r.user.username,
+                r.user.student_class || '-',
+                r.exam.title,
+                r.exam.subject || '-',
+                r.exam.exam_type || '-',
+                r.score,
+                r.passed ? 'Lulus' : 'Tidak Lulus',
+                r.duration_taken || '-',
+                new Date(r.submitted_at).toLocaleString('id-ID')
+            ]);
+
+            const filename = `hasil_ujian_${slugifyFilename(currentExam?.title || 'all')}_${new Date().toISOString().slice(0, 10)}`;
+            const creatorName = currentExam?.teacher_name || currentExam?.creator?.full_name || '-';
+            const exportedAt = new Date().toLocaleString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const stats = calculateStats();
+            const logoDataUrl = await getExportLogoDataUrl();
+            const logoHtml = logoDataUrl
+                ? `<img src="${logoDataUrl}" alt="Logo Sekolah" style="width:68px;height:68px;object-fit:contain;" />`
+                : '';
+
+            if (format === 'csv') {
+                const toCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+                let csv = '';
+                if (currentExam) {
+                    csv += `Institusi,${toCsvCell(EXPORT_BRANDING.schoolName)}\n`;
+                    csv += `Judul Ujian,${toCsvCell(currentExam.title)}\n`;
+                    csv += `Guru Pelaksana,${toCsvCell(creatorName)}\n`;
+                    csv += `KKM / Passing Score,${toCsvCell(currentExam?.passing_score || 70)}\n`;
+                    csv += `Tanggal Export,${toCsvCell(exportedAt)}\n\n`;
+                }
+                csv += [headers.map(toCsvCell).join(','), ...rows.map(r => r.map(toCsvCell).join(','))].join('\n');
+                downloadFile(csv, `${filename}.csv`, 'text/csv;charset=utf-8;');
+                showAlert('CSV berhasil diexport', 'success');
+            }
+            else if (format === 'excel') {
+                let html = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta charset="utf-8">
+                    <!--[if gte mso 9]>
+                    <xml>
+                        <x:ExcelWorkbook>
+                            <x:ExcelWorksheets>
+                                <x:ExcelWorksheet>
+                                    <x:Name>Hasil Ujian</x:Name>
+                                    <x:WorksheetOptions>
+                                        <x:DisplayGridlines/>
+                                    </x:WorksheetOptions>
+                                </x:ExcelWorksheet>
+                            </x:ExcelWorksheets>
+                        </x:ExcelWorkbook>
+                    </xml>
+                    <![endif]-->
+                    <style>
+                        body { font-family: 'Arial', sans-serif; }
+                        .header-title { font-size: 16pt; font-weight: bold; text-align: center; margin-bottom: 4px; color:#0f172a; }
+                        .header-sub { font-size: 10pt; text-align: center; margin-bottom: 14px; color:#334155; }
+                        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                        th {
+                            background-color: #0f172a;
+                            color: white;
+                            border: 1px solid #000000;
+                            padding: 8px;
+                            text-align: center;
+                            vertical-align: middle;
+                            font-weight: bold;
+                        }
+                        td {
+                            border: 1px solid #000000;
+                            padding: 8px;
+                            vertical-align: middle;
+                        }
+                        .center { text-align: center; }
+                        .right { text-align: right; }
+                        .lulus { color: #006100; background-color: #C6EFCE; font-weight: bold; text-align: center; }
+                        .tidak-lulus { color: #9C0006; background-color: #FFC7CE; font-weight: bold; text-align: center; }
+                        .score { font-weight: bold; text-align: center; color:#0f172a; }
+                    </style>
+                </head>
+                <body>
+                    <table style="border:none; width:100%; margin-bottom: 8px;">
+                        <tr>
+                            <td style="border:none; width:80px; text-align:center;">${logoHtml}</td>
+                            <td style="border:none;">
+                                <div class="header-title">${EXPORT_BRANDING.schoolName}</div>
+                                <div class="header-sub">${EXPORT_BRANDING.reportSubtitle}</div>
+                                <div class="header-sub" style="margin-bottom: 0;"><strong>LAPORAN HASIL UJIAN</strong></div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="border: none; width: 56%; margin-bottom: 10px;">
+                        <tr>
+                            <td style="border: none; width: 150px; font-weight: bold;">Judul Ujian</td>
+                            <td style="border: none;">: ${escapeHtml(currentExam?.title || '-')}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: none; font-weight: bold;">Guru Pelaksana</td>
+                            <td style="border: none;">: ${escapeHtml(creatorName)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: none; font-weight: bold;">KKM / Passing Score</td>
+                            <td style="border: none;">: ${currentExam?.passing_score || 70}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: none; font-weight: bold;">Tanggal Export</td>
+                            <td style="border: none;">: ${escapeHtml(exportedAt)}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: none; font-weight: bold;">Ringkasan</td>
+                            <td style="border: none;">: Total ${stats.total} siswa, Lulus ${stats.passed}, Tidak Lulus ${stats.failed}, Rata-rata ${stats.average}</td>
+                        </tr>
+                    </table>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                ${headers.map(h => `<th>${h}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                rows.forEach(r => {
+                    html += '<tr>';
+                    r.forEach((v, i) => {
+                        let styleClass = '';
+                        if (i === 0) styleClass = 'center';
+                        if (i === 7) styleClass = 'score';
+                        if (i === 9) styleClass = 'center';
+                        if (i === 8) {
+                            if (v === 'Lulus') html += `<td class="lulus">${v}</td>`;
+                            else html += `<td class="tidak-lulus">${v}</td>`;
+                        } else {
+                            html += `<td class="${styleClass}">${v}</td>`;
+                        }
+                    });
+                    html += '</tr>';
+                });
+
+                html += `
+                        </tbody>
+                    </table>
+                </body>
+                </html>`;
+
+                downloadFile(html, `${filename}.xls`, 'application/vnd.ms-excel');
+                showAlert('Excel berhasil diexport dengan format profesional', 'success');
+            }
+            else if (format === 'pdf') {
+                if (!currentExam?.id) {
+                    showAlert('Pilih satu ujian untuk export PDF formal', 'warning');
+                    return;
+                }
+                try {
+                    const response = await fetch(`/api/exams/${currentExam.id}/results/pdf`, {
+                        method: 'GET',
+                        headers: api.getHeaders()
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+                    const blob = await response.blob();
+                    downloadBlob(blob, `${filename}.pdf`);
+                    showAlert('PDF resmi berhasil didownload', 'success');
+                } catch (error) {
+                    console.error('PDF export endpoint gagal:', error);
+                    showAlert(`Export PDF gagal: ${error.message}`, 'danger');
+                }
+            }
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            anchor.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob(['\ufeff' + content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function calculateStats() {
+            if (allResults.length === 0) return { total: 0, passed: 0, failed: 0, passRate: 0, average: 0, highest: 0, lowest: 0 };
+
+            const scores = allResults.map(r => r.score);
+            const passed = allResults.filter(r => r.passed).length;
+            const failed = allResults.length - passed;
+
+            return {
+                total: allResults.length,
+                passed: passed,
+                failed: failed,
+                passRate: Math.round((passed / allResults.length) * 100),
+                average: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+                highest: Math.max(...scores),
+                lowest: Math.min(...scores)
+            };
+        }
+
+        function exportSummary() {
+            if (allResults.length === 0) {
+                showAlert('Tidak ada data untuk diekspor', 'warning');
+                return;
+            }
+
+            const stats = calculateStats();
+            const examTitle = currentExam?.title || 'Semua Ujian';
+
+            // Calculate score distribution
+            const distribution = {
+                'A (90-100)': allResults.filter(r => r.score >= 90).length,
+                'B (80-89)': allResults.filter(r => r.score >= 80 && r.score < 90).length,
+                'C (70-79)': allResults.filter(r => r.score >= 70 && r.score < 80).length,
+                'D (60-69)': allResults.filter(r => r.score >= 60 && r.score < 70).length,
+                'E (<60)': allResults.filter(r => r.score < 60).length
+            };
+
+            let summary = `RINGKASAN HASIL UJIAN\n`;
+            summary += `${'='.repeat(50)}\n\n`;
+            summary += `Ujian: ${examTitle}\n`;
+            summary += `Guru Pelaksana: ${currentExam?.teacher_name || '-'}\n`;
+            summary += `KKM / Passing Score: ${currentExam?.passing_score || 70}\n`;
+            summary += `Tanggal Export: ${new Date().toLocaleString('id-ID')}\n\n`;
+
+            summary += `STATISTIK UMUM\n`;
+            summary += `${'─'.repeat(30)}\n`;
+            summary += `Total Peserta      : ${stats.total}\n`;
+            summary += `Jumlah Lulus       : ${stats.passed} (${stats.passRate}%)\n`;
+            summary += `Jumlah Tidak Lulus : ${stats.failed}\n`;
+            summary += `Nilai Rata-rata    : ${stats.average}\n`;
+            summary += `Nilai Tertinggi    : ${stats.highest}\n`;
+            summary += `Nilai Terendah     : ${stats.lowest}\n\n`;
+
+            summary += `DISTRIBUSI NILAI\n`;
+            summary += `${'─'.repeat(30)}\n`;
+            for (const [grade, count] of Object.entries(distribution)) {
+                const bar = '█'.repeat(Math.round(count / stats.total * 20)) || '';
+                summary += `${grade.padEnd(12)} : ${String(count).padStart(3)} ${bar}\n`;
+            }
+
+            summary += `\n${'='.repeat(50)}\n`;
+            summary += `Diekspor dari Sistem Ujian Online\n`;
+
+            const filename = `ringkasan_${examTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.txt`;
+            downloadFile(summary, filename, 'text/plain;charset=utf-8;');
+            showAlert('Ringkasan statistik berhasil diexport', 'success');
+        }
+
+        function printResults() {
+            exportResults('pdf');
+        }
+
+        // ================================
+        // EXPORT QUESTIONS FUNCTIONS
+        // ================================
+
+        async function exportCurrentExamQuestions(format) {
+            if (!currentExam || !currentExam.id) {
+                showAlert('Pilih ujian terlebih dahulu', 'warning');
+                return;
+            }
+
+            try {
+                showAlert('Sedang memuat soal...', 'info');
+
+                const questions = await api.getQuestions(currentExam.id);
+                if (!questions || questions.length === 0) {
+                    showAlert('Tidak ada soal untuk diexport', 'warning');
+                    return;
+                }
+
+                const logoDataUrl = await getExportLogoDataUrl();
+                switch (format) {
+                    case 'pdf':
+                        exportQuestionsPDF(currentExam, questions, logoDataUrl);
+                        break;
+                    case 'docx':
+                        exportQuestionsDOCX(currentExam, questions, logoDataUrl);
+                        break;
+                    case 'excel':
+                        exportQuestionsExcel(currentExam, questions, logoDataUrl);
+                        break;
+                }
+
+            } catch (error) {
+                console.error('Export error:', error);
+                showAlert('Gagal export: ' + error.message, 'danger');
+            }
+        }
+
+        function getQuestionTypeName(type) {
+            const types = {
+                'multiple_choice': 'Pilihan Ganda',
+                'essay': 'Essay',
+                'short_answer': 'Jawaban Singkat',
+                'true_false': 'Benar/Salah',
+                'matching': 'Menjodohkan',
+                'pg_kompleks': 'PG Kompleks'
+            };
+            return types[type] || type;
+        }
+
+        function getOptionText(option) {
+            return option?.option_text || option?.text || option || '';
+        }
+
+        function getQuestionOptionsFormatted(question) {
+            const options = Array.isArray(question.options) ? [...question.options] : [];
+            options.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+            return options.map((opt, idx) => ({
+                id: opt.id,
+                label: String.fromCharCode(65 + (idx % 26)),
+                text: getOptionText(opt),
+                is_correct: opt.is_correct === true
+            }));
+        }
+
+        function getQuestionAnswerKeyDisplay(question) {
+            const settings = question.question_settings || {};
+            const type = question.question_type;
+
+            if (type === 'multiple_choice' || type === 'true_false') {
+                const options = getQuestionOptionsFormatted(question);
+                const correct = options.find((o) => o.is_correct);
+                return correct ? `${correct.label}. ${correct.text}` : '-';
+            }
+
+            if (type === 'multiple_choice_complex') {
+                const pgkType = question.pgk_type || settings.pgk_type || 'checkbox';
+                if (pgkType === 'table_validation') {
+                    const statements = Array.isArray(settings.statements) ? settings.statements : [];
+                    const answers = Array.isArray(settings.statement_answers) ? settings.statement_answers : [];
+                    if (!statements.length) return '-';
+                    return statements.map((statement, idx) => {
+                        const text = typeof statement === 'object'
+                            ? (statement.text || statement.statement || `Pernyataan ${idx + 1}`)
+                            : statement;
+                        const value = answers[idx];
+                        return `${idx + 1}. ${text}: ${value === true ? 'Benar' : (value === false ? 'Salah' : '-')}`;
+                    }).join(' | ');
+                }
+                const options = getQuestionOptionsFormatted(question).filter((o) => o.is_correct);
+                if (!options.length) return '-';
+                return options.map((o) => `${o.label}. ${o.text}`).join(', ');
+            }
+
+            if (type === 'short_answer') {
+                const acceptable = Array.isArray(settings.acceptable_answers) ? settings.acceptable_answers : [];
+                return acceptable.length ? acceptable.join(' / ') : '-';
+            }
+
+            if (type === 'essay') {
+                return settings.answer_key || settings.sample_answer || '-';
+            }
+
+            return '-';
+        }
+
+        function renderQuestionOptionsHtml(question) {
+            const type = question.question_type;
+            if (type === 'true_false') {
+                return '<div class="opt-row">A. Benar</div><div class="opt-row">B. Salah</div>';
+            }
+            if (type === 'multiple_choice' || type === 'multiple_choice_complex') {
+                const options = getQuestionOptionsFormatted(question);
+                if (!options.length) return '<div class="opt-row">-</div>';
+                return options.map((opt) => `<div class="opt-row">${escapeHtml(opt.label)}. ${escapeHtml(opt.text || '-')}</div>`).join('');
+            }
+            return '<div class="opt-row">-</div>';
+        }
+
+        function buildQuestionExportHTML(exam, questions, logoDataUrl = null) {
+            const now = new Date().toLocaleString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const logoHtml = logoDataUrl
+                ? `<img src="${logoDataUrl}" alt="Logo" style="width:70px;height:70px;object-fit:contain;">`
+                : '';
+            let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Soal Ujian - ${escapeHtml(exam.title)}</title>
+            <style>
+                body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; padding: 1.8rem; color:#0f172a; }
+                .header-table { width:100%; border-collapse: collapse; margin-bottom: 1rem; }
+                .header-table td { vertical-align: middle; border: none; }
+                .header-title { text-align:center; font-size: 16pt; font-weight: bold; margin: 0; }
+                .header-sub { text-align:center; font-size: 10.5pt; margin: 0.1rem 0; color:#334155; }
+                .meta { margin-bottom: 1.2rem; padding: 0.8rem 1rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; }
+                .meta-item { margin-bottom: 0.25rem; }
+                .meta-label { font-weight: bold; display: inline-block; width: 150px; }
+                .question { margin-bottom: 1rem; padding: 0.8rem; border:1px solid #cbd5e1; border-radius: 8px; page-break-inside: avoid; }
+                .q-title { font-weight:bold; margin-bottom:0.3rem; }
+                .q-type { color:#475569; font-size: 10pt; }
+                .opt-row { margin-left: 1rem; font-size: 10.5pt; margin-bottom: 0.18rem; }
+                .answer-key { margin-top:0.45rem; font-size:10.5pt; padding: 0.4rem 0.55rem; background:#ecfdf5; border:1px solid #86efac; border-radius: 6px; }
+                @media print { body { padding: 0; } }
+            </style></head><body>
+            <table class="header-table">
+                <tr>
+                    <td style="width:80px; text-align:center;">${logoHtml}</td>
+                    <td>
+                        <p class="header-title">${EXPORT_BRANDING.schoolName}</p>
+                        <p class="header-sub">${EXPORT_BRANDING.reportSubtitle}</p>
+                        <p class="header-sub"><strong>DOKUMEN SOAL DAN KUNCI JAWABAN</strong></p>
+                    </td>
+                </tr>
+            </table>
+            <div class="meta">
+                <div class="meta-item"><span class="meta-label">Judul Ujian:</span> ${escapeHtml(exam.title || '-')}</div>
+                <div class="meta-item"><span class="meta-label">Mata Pelajaran:</span> ${escapeHtml(exam.subject || '-')}</div>
+                <div class="meta-item"><span class="meta-label">Tipe Ujian:</span> ${escapeHtml(exam.exam_type || '-')}</div>
+                <div class="meta-item"><span class="meta-label">Durasi:</span> ${exam.duration_minutes} menit</div>
+                <div class="meta-item"><span class="meta-label">Jumlah Soal:</span> ${questions.length} soal</div>
+                <div class="meta-item"><span class="meta-label">Tanggal Export:</span> ${escapeHtml(now)}</div>
+            </div><div class="questions">`;
+
+            questions.forEach((q, idx) => {
+                const answerKey = getQuestionAnswerKeyDisplay(q);
+                html += `
+                    <div class="question">
+                        <div class="q-title">Soal ${idx + 1} <span class="q-type">(${escapeHtml(getQuestionTypeName(q.question_type))})</span></div>
+                        <div>${escapeHtml(q.question_text || '-')}</div>
+                        ${(q.stimulus || '').trim() ? `<div style="margin-top:0.3rem; color:#475569; font-size:10pt;"><strong>Stimulus:</strong> ${escapeHtml(q.stimulus)}</div>` : ''}
+                        <div style="margin-top:0.4rem;">
+                            ${renderQuestionOptionsHtml(q)}
+                        </div>
+                        <div class="answer-key"><strong>Kunci Jawaban:</strong> ${escapeHtml(answerKey)}</div>
+                    </div>
+                `;
+            });
+            html += `</div></body></html>`;
+            return html;
+        }
+
+        function exportQuestionsPDF(exam, questions, logoDataUrl) {
+            const content = buildQuestionExportHTML(exam, questions, logoDataUrl);
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(content);
+            printWindow.document.close();
+            printWindow.onload = function () { printWindow.print(); };
+            showAlert('PDF soal dibuka di tab baru. Gunakan Save as PDF untuk simpan dokumen formal.', 'success');
+        }
+
+        function exportQuestionsDOCX(exam, questions, logoDataUrl) {
+            const content = buildQuestionExportHTML(exam, questions, logoDataUrl);
+            const blob = new Blob(['\ufeff' + content], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `soal_dan_kunci_${slugifyFilename(exam.title)}_${new Date().toISOString().slice(0, 10)}.doc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAlert('Dokumen Word soal + kunci berhasil didownload', 'success');
+        }
+
+        function exportQuestionsExcel(exam, questions, logoDataUrl) {
+            const logoHtml = logoDataUrl
+                ? `<img src="${logoDataUrl}" alt="Logo" style="width:64px;height:64px;object-fit:contain;" />`
+                : '';
+            let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+            <head><meta charset="utf-8"><style>
+            body{font-family:Arial,sans-serif;}
+            table{border-collapse:collapse;}
+            th,td{border:1px solid #000;padding:8px;vertical-align:top;}
+            th{background:#0f172a;color:white;font-weight:bold;}
+            .key{background:#ecfdf5;}
+            </style></head><body>
+            <table style="border:none; width:100%; margin-bottom:10px;">
+                <tr>
+                    <td style="border:none; width:80px; text-align:center;">${logoHtml}</td>
+                    <td style="border:none;">
+                        <div style="font-size:14pt;font-weight:bold;">${EXPORT_BRANDING.schoolName}</div>
+                        <div style="font-size:10pt;color:#334155;">${EXPORT_BRANDING.reportSubtitle}</div>
+                        <div style="font-size:11pt;font-weight:bold;">DAFTAR SOAL DAN KUNCI JAWABAN</div>
+                    </td>
+                </tr>
+            </table>
+            <table style="border:none;margin-bottom:14px;">
+                <tr><td style="border:none;font-weight:bold;">Judul Ujian</td><td style="border:none;">: ${escapeHtml(exam.title || '-')}</td></tr>
+                <tr><td style="border:none;font-weight:bold;">Mata Pelajaran</td><td style="border:none;">: ${escapeHtml(exam.subject || '-')}</td></tr>
+                <tr><td style="border:none;font-weight:bold;">Durasi</td><td style="border:none;">: ${exam.duration_minutes} menit</td></tr>
+                <tr><td style="border:none;font-weight:bold;">Jumlah Soal</td><td style="border:none;">: ${questions.length}</td></tr>
+            </table>
+            <table><tr><th>No</th><th>Tipe Soal</th><th>Pertanyaan</th><th>Opsi</th><th>Kunci Jawaban</th><th>Poin</th></tr>`;
+
+            questions.forEach((q, idx) => {
+                const options = renderQuestionOptionsHtml(q).replace(/class="opt-row"/g, 'style="margin-bottom:2px;"');
+                const answerKey = getQuestionAnswerKeyDisplay(q);
+                html += `<tr>
+                    <td style="text-align:center;">${idx + 1}</td>
+                    <td>${escapeHtml(getQuestionTypeName(q.question_type))}</td>
+                    <td>${escapeHtml(q.question_text || '-')}</td>
+                    <td>${options}</td>
+                    <td class="key">${escapeHtml(answerKey)}</td>
+                    <td style="text-align:center;">${q.points || 1}</td>
+                </tr>`;
+            });
+
+            html += `</table></body></html>`;
+            const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `soal_dan_kunci_${slugifyFilename(exam.title)}_${new Date().toISOString().slice(0, 10)}.xls`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAlert('Excel soal + kunci berhasil didownload', 'success');
+        }
+
+        async function deleteAllResults() {
+            console.log('[DELETE] Initiating delete all results for exam:', currentExam?.id);
+
+            if (!currentExam || !currentExam.id) {
+                showAlert('Pilih ujian terlebih dahulu', 'warning');
+                console.error('[DELETE] No exam selected');
+                return;
+            }
+
+            const examTitle = document.getElementById('active-exam-title')?.textContent || 'ujian ini';
+            const totalResults = document.getElementById('total-participants')?.textContent || '0';
+
+            console.log(`[DELETE] Exam: ${examTitle}, Total results: ${totalResults}`);
+
+            // Use native confirm for better reliability
+            const confirmed = confirm(
+                `⚠️ HAPUS SEMUA HASIL UJIAN\n\n` +
+                `Hapus semua ${totalResults} hasil ujian untuk "${examTitle}"?\n\n` +
+                `Tindakan ini tidak dapat dibatalkan!`
+            );
+
+            if (!confirmed) {
+                console.log('[DELETE] User cancelled deletion');
+                return;
+            }
+
+
+            // Show loading state
+            const deleteBtn = document.getElementById('delete-results-btn');
+            const originalBtnHtml = deleteBtn?.innerHTML;
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+            }
+
+            try {
+                console.log(`[DELETE] Sending DELETE request to /api/exams/${currentExam.id}/results`);
+
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/exams/${currentExam.id}/results`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log(`[DELETE] Response status: ${response.status}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('[DELETE] Success:', result);
+
+                    showAlert(`${result.message || 'Hasil ujian berhasil dihapus'}`, 'success');
+
+                    // Reload results to show empty state
+                    console.log('[DELETE] Reloading exam results...');
+                    await loadResults(currentExam.id);
+                } else {
+                    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                    console.error('[DELETE] Error response:', error);
+                    showAlert(`${error.detail || 'Gagal menghapus hasil'}`, 'danger');
+                }
+            } catch (error) {
+                console.error('[DELETE] Exception:', error);
+                showAlert(`Terjadi kesalahan: ${error.message}`, 'danger');
+            } finally {
+                // Restore button state
+                if (deleteBtn) {
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = originalBtnHtml || '<i class="fas fa-trash-can"></i> Hapus Hasil';
+                }
+                console.log('[DELETE] Operation complete');
+            }
+        }
+
+        // ===== BULK SELECTION FUNCTIONS =====
+
+        function toggleCheckboxMode() {
+            checkboxMode = !checkboxMode;
+            const btn = document.getElementById('checkbox-mode-btn');
+            const bulkControls = document.getElementById('bulk-controls');
+
+            if (checkboxMode) {
+                btn.innerHTML = '<i class="fas fa-times"></i> Batal Mode Pilih';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-primary');
+                bulkControls.style.display = 'flex';
+            } else {
+                btn.innerHTML = '<i class="fas fa-check-square"></i> Mode Pilih';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                bulkControls.style.display = 'none';
+                selectedExamIds.clear();
+            }
+
+            renderExamCards(allExams);
+            updateSelectionCount();
+        }
+
+        function toggleExamSelection(examId, event) {
+            event.stopPropagation();
+
+            if (selectedExamIds.has(examId)) {
+                selectedExamIds.delete(examId);
+            } else {
+                selectedExamIds.add(examId);
+            }
+
+            renderExamCards(allExams);
+            updateSelectionCount();
+        }
+
+        function selectAllExams() {
+            allExams.forEach(exam => selectedExamIds.add(exam.id));
+            renderExamCards(allExams);
+            updateSelectionCount();
+        }
+
+        function deselectAllExams() {
+            selectedExamIds.clear();
+            renderExamCards(allExams);
+            updateSelectionCount();
+        }
+
+        function updateSelectionCount() {
+            const count = selectedExamIds.size;
+            const countElement = document.getElementById('selected-exam-count');
+            const deleteBtn = document.getElementById('delete-selected-btn');
+
+            if (countElement) {
+                countElement.textContent = count;
+            }
+            if (deleteBtn) {
+                deleteBtn.disabled = count === 0;
+            }
+        }
+
+        async function deleteSelectedExams() {
+            if (selectedExamIds.size === 0) return;
+
+            const count = selectedExamIds.size;
+            const confirmed = confirm(
+                `⚠️ HAPUS ${count} UJIAN\n\n` +
+                `Anda akan menghapus ${count} ujian beserta semua hasil ujian di dalamnya.\n\n` +
+                `Tindakan ini tidak dapat dibatalkan!\n\n` +
+                `Lanjutkan?`
+            );
+
+            if (!confirmed) return;
+
+            // Show loading
+            const deleteBtn = document.getElementById('delete-selected-btn');
+            const originalHtml = deleteBtn.innerHTML;
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+
+            let successCount = 0;
+            let failCount = 0;
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const examIds = Array.from(selectedExamIds);
+
+                // Delete exams sequentially
+                for (const examId of examIds) {
+                    try {
+                        const response = await fetch(`/api/exams/${examId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok || response.status === 204) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.error(`Failed to delete exam ${examId}`);
+                        }
+                    } catch (error) {
+                        failCount++;
+                        console.error(`Error deleting exam ${examId}:`, error);
+                    }
+                }
+
+                // Show result
+                if (successCount > 0) {
+                    showAlert(`Berhasil menghapus ${successCount} ujian`, 'success');
+                }
+                if (failCount > 0) {
+                    showAlert(`${failCount} ujian gagal dihapus`, 'warning');
+                }
+
+
+                // Exit checkbox mode and clear selection
+                checkboxMode = false;
+                selectedExamIds.clear();
+
+                // Update button states
+                const modeBtn = document.getElementById('checkbox-mode-btn');
+                const bulkControls = document.getElementById('bulk-controls');
+                if (modeBtn) {
+                    modeBtn.innerHTML = '<i class="fas fa-check-square"></i> Mode Pilih';
+                    modeBtn.classList.remove('btn-primary');
+                    modeBtn.classList.add('btn-secondary');
+                }
+                if (bulkControls) {
+                    bulkControls.style.display = 'none';
+                }
+
+                // Reload exams
+                await loadExams();
+
+            } catch (error) {
+                console.error('Bulk delete error:', error);
+                showAlert('Terjadi kesalahan saat menghapus ujian', 'danger');
+            } finally {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalHtml;
+            }
+        }
+
+        loadExams();
+    </script>
+
+    <!-- Modern Modals Library (Standalone) -->
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+</body>
+
+</html>

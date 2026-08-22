@@ -1,0 +1,83 @@
+# Version control and local agent state
+.git
+.gitignore
+.github
+.claude
+.codex
+.codex/
+.opencode
+.opencode/
+.pi
+.playwright-cli
+.serena
+
+# Secrets and deployment credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+docker/certs/*
+!docker/certs/.gitkeep
+runtime_control/ssh_keys/*
+!runtime_control/ssh_keys/.gitkeep
+akses-vps-root
+
+# Python caches and local environments
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.venv
+.venv-*
+
+# Flutter/Dart and package-manager outputs
+node_modules
+.dart_tool
+**/.dart_tool
+flutter_client_code/build
+flutter_client_code/.packages
+flutter_client_code/.flutter-plugins*
+
+# Runtime and generated data
+logs
+reports
+recovery_sistem
+backups
+apk_builds
+uploads/*
+!uploads/.gitkeep
+static/uploads/*
+!static/uploads/.gitkeep
+runtime_control/*
+!runtime_control/.gitkeep
+!runtime_control/ssh_keys
+
+# Local archives, dumps, databases, and editor files
+*.log
+*.bak
+*.bak_*
+*.backup
+*.zip
+*.tar.gz
+*.tgz
+*.sql
+!docker/init.sql
+!app/migrations/*.sql
+*.db
+*.tmp
+*.temp
+*.swp
+MT
+
+# Development-only test and documentation material
+tests
+reports
+.coverage
+htmlcov

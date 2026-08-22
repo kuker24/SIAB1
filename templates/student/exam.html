@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>Mengerjakan Ujian - Ujian Online</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <!-- Preconnect for faster font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/student.css">
+    <link rel="stylesheet" href="/static/css/exam.css?v=20260418-richtext1">
+    <style>
+        /* ============== MOBILE-FIRST EXAM HEADER - PROFESSIONAL DESIGN ============== */
+        body {
+            overflow-x: hidden;
+        }
+
+        /* Override external CSS - Mobile Header Fix */
+        .exam-header {
+            position: sticky !important;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .exam-header-inner {
+            padding: 0.875rem 1rem !important;
+            max-width: 100% !important;
+            width: 100%;
+        }
+
+        .exam-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0 !important;
+        }
+
+        .exam-header-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+            gap: 0.15rem;
+        }
+
+        .exam-meta {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6366f1;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .exam-title {
+            font-size: 0.95rem !important;
+            font-weight: 600;
+            color: #f1f5f9;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0 !important;
+        }
+
+        .exam-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Timer Pill - Compact & Clean */
+        .timer-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            padding: 0.45rem 0.85rem;
+            border-radius: 2rem;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .timer-pill .timer-icon {
+            font-size: 0.9rem;
+            color: #fff;
+        }
+
+        .timer-pill .timer-value {
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.02em;
+        }
+
+        /* Timer States */
+        .timer-pill.warning {
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+            animation: timerPulse 1s infinite;
+        }
+
+        .timer-pill.danger {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+            animation: timerPulse 0.5s infinite;
+        }
+
+        @keyframes timerPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.03);
+                opacity: 0.9;
+            }
+        }
+
+        /* Exit Button */
+        .btn-exit {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-exit:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            transform: scale(1.05);
+        }
+
+        /* Progress Bar - Dynamic Color */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #22c55e);
+            transition: width 0.4s ease-out;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+        }
+
+        /* Progress color changes based on completion */
+        .progress-fill.low {
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+        }
+
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #8b5cf6, #f59e0b);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+        }
+
+        .progress-fill.high {
+            background: linear-gradient(90deg, #f59e0b, #22c55e);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+        }
+
+        .progress-fill.complete {
+            background: linear-gradient(90deg, #22c55e, #10b981);
+            box-shadow: 0 0 16px rgba(34, 197, 94, 0.6);
+        }
+
+        /* ============== MOBILE RESPONSIVE HEADER ============== */
+        @media (max-width: 480px) {
+            .exam-header-inner {
+                padding: 0.75rem !important;
+            }
+
+            .exam-header-row {
+                gap: 0.5rem;
+            }
+
+            .exam-title {
+                font-size: 0.875rem !important;
+                max-width: 160px;
+            }
+
+            .exam-meta {
+                font-size: 0.6rem;
+            }
+
+            .timer-pill {
+                padding: 0.4rem 0.7rem;
+            }
+
+            .timer-pill .timer-value {
+                font-size: 0.875rem;
+            }
+
+            .btn-exit {
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .exam-title {
+                font-size: 0.8rem !important;
+                max-width: 130px;
+            }
+
+            .timer-pill .timer-value {
+                font-size: 0.8rem;
+            }
+
+            .timer-pill .timer-icon {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* ============== QUESTION CARD STYLING ============== */
+        .question-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1rem;
+        }
+
+        .question-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(99, 102, 241, 0.15);
+            flex-wrap: wrap;
+        }
+
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .question-badge {
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.375rem;
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .question-text {
+            font-size: 1.05rem;
+            line-height: 1.75;
+            color: #e2e8f0;
+            margin-bottom: 1.25rem;
+            font-weight: 500;
+            padding: 0.875rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 3px solid #6366f1;
+            border-radius: 0.5rem;
+        }
+
+        /* ============== STIMULUS CARD ============== */
+        .stimulus-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.03));
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border-left: 3px solid #8b5cf6;
+            margin-bottom: 1rem;
+        }
+
+        .stimulus-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #a78bfa;
+            margin-bottom: 0.5rem;
+        }
+
+        .stimulus-text {
+            font-size: 0.95rem;
+            line-height: 1.65;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+        }
+
+        /* ============== OPTION BUTTONS ============== */
+        .option-btn,
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            background: rgba(30, 41, 59, 0.6);
+            border: 2px solid rgba(99, 102, 241, 0.2);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 0.5rem;
+        }
+
+        .option-btn:hover,
+        .option-item:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .option-btn.selected,
+        .option-item.selected {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        }
+
+        .option-btn .option-letter,
+        .option-item .option-letter {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #a5b4fc;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .option-btn.selected .option-letter,
+        .option-item.selected .option-letter {
+            background: #22c55e;
+            color: white;
+        }
+
+        .option-btn .option-text,
+        .option-item .option-text {
+            flex: 1;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        /* ============== INPUT FIELDS ============== */
+        .short-answer-input,
+        .essay-textarea {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.6) !important;
+            border: 2px solid rgba(99, 102, 241, 0.3) !important;
+            color: #e2e8f0 !important;
+            font-size: 1rem !important;
+            padding: 0.875rem !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s ease;
+        }
+
+        .short-answer-input:focus,
+        .essay-textarea:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+            outline: none;
+        }
+
+        .essay-textarea {
+            min-height: 150px !important;
+            resize: vertical;
+        }
+
+        /* ============== FOOTER NAVIGATION ============== */
+        .exam-footer {
+            position: fixed !important;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(99, 102, 241, 0.2);
+            padding: env(safe-area-inset-bottom, 0);
+        }
+
+        .exam-footer-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .nav-btn {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .nav-btn:active {
+            transform: scale(0.96);
+        }
+
+        .nav-btn-prev,
+        .nav-btn-flag {
+            width: 44px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+        }
+
+        .nav-btn-prev:hover,
+        .nav-btn-flag:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+        }
+
+        .nav-btn-flag.flagged {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: #f59e0b;
+            color: #fbbf24;
+        }
+
+        .nav-btn-all {
+            flex: 1;
+            gap: 0.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            font-size: 0.875rem;
+            max-width: 200px;
+        }
+
+        .nav-btn-all:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .nav-btn-next {
+            width: 44px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-btn-next:hover {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+        }
+
+        /* ============== ANIMATIONS ============== */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* ============== MEDIA ============== */
+        .question-image {
+            max-width: 100%;
+            max-height: 350px;
+            height: auto;
+            border-radius: 0.75rem;
+            margin: 1rem 0;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+        }
+
+        .question-video {
+            margin: 1rem 0;
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            max-width: 100%;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .question-video iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0.75rem;
+        }
+
+        /* ============== MAIN CONTENT AREA ============== */
+        .exam-main {
+            padding-top: 0.75rem !important;
+            padding-bottom: 5.5rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            max-width: 100% !important;
+        }
+
+        /* ============== MOBILE PERFORMANCE OPTIMIZATIONS ============== */
+        /* REMOVED smooth scroll - causes lag on Android WebView */
+        html,
+        body {
+            -webkit-overflow-scrolling: touch;
+            /* scroll-behavior: smooth; -- REMOVED: causes jank on Android */
+        }
+
+        /* GPU acceleration ONLY for animated elements (modal) */
+        /* REMOVED will-change from static elements - wastes GPU memory */
+        .nav-modal-content {
+            will-change: transform;
+            transform: translateZ(0);
+        }
+
+        /* Touch targets */
+        .option-btn,
+        .option-item {
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+
+        .nav-btn {
+            min-width: 44px;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        /* Simplified touch feedback - no transform animation */
+        .option-btn:active,
+        .option-item:active {
+            opacity: 0.85;
+        }
+
+        /* Larger touch targets for mobile (min 44px as per Apple/Google guidelines) */
+        .option-btn,
+        .option-item {
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+
+        .nav-btn {
+            min-width: 44px;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        /* Better touch feedback */
+        .option-btn:active,
+        .option-item:active {
+            transform: scale(0.98) translateZ(0);
+            transition: transform 0.1s ease;
+        }
+
+        /* Disable text selection on interactive elements */
+        .option-btn,
+        .option-item,
+        .nav-btn,
+        .question-nav-btn {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* Optimize images for mobile */
+        .question-image {
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        /* Prevent overscroll bounce on mobile */
+        body {
+            overscroll-behavior: contain;
+        }
+
+        /* Safe area padding for notched devices */
+        .exam-header {
+            padding-top: max(env(safe-area-inset-top), 0.75rem);
+        }
+
+        .exam-footer {
+            padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+        }
+
+        /* Ultra-small screens (320px - older phones) */
+        @media (max-width: 320px) {
+            .exam-title {
+                font-size: 0.75rem !important;
+                max-width: 100px;
+            }
+
+            .timer-pill {
+                padding: 0.35rem 0.6rem;
+            }
+
+            .timer-pill .timer-value {
+                font-size: 0.75rem;
+            }
+
+            .question-text {
+                font-size: 0.9rem;
+            }
+
+            .option-btn .option-text,
+            .option-item .option-text {
+                font-size: 0.85rem;
+            }
+
+            .question-nav-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Reduce motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ============== IMAGE ZOOM LIGHTBOX ============== */
+        .image-zoom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            touch-action: none;
+            /* Penting untuk custom pinch zoom */
+        }
+
+        .image-zoom-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .image-zoom-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .image-zoom-modal img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transform-origin: center center;
+            transition: transform 0.1s;
+            will-change: transform;
+        }
+
+        .zoom-close-btn {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+            right: calc(env(safe-area-inset-right, 0px) + 0.75rem);
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: white;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 10002;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .zoom-exit-btn {
+            position: fixed;
+            left: 50%;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+            transform: translateX(-50%);
+            min-width: 156px;
+            min-height: 48px;
+            padding: 0.75rem 1.25rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: rgba(15, 23, 42, 0.88);
+            color: white;
+            font-weight: 700;
+            z-index: 10002;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .zoom-hint {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 10000;
+        }
+    </style>
+</head>
+
+<body class="dark">
+    <!-- Modern Header -->
+    <header class="exam-header">
+        <div class="exam-header-inner">
+            <div class="exam-header-row">
+                <div class="exam-header-info">
+                    <span class="exam-meta" id="exam-metadata-compact">
+                        <span id="exam-subject-display"></span>
+                    </span>
+                    <h1 id="exam-title" class="exam-title">Memuat Ujian...</h1>
+                </div>
+                <div class="exam-header-actions">
+                    <!-- Connection Indicator -->
+                    <div id="connection-status" class="timer-pill"
+                        style="background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; padding: 0.45rem 0.75rem; display: none;">
+                        <i class="fas fa-wifi" style="color: #22c55e; font-size: 0.9rem;"></i>
+                    </div>
+
+                    <div class="timer-pill" id="timer-container">
+                        <i class="fas fa-clock timer-icon"></i>
+                        <span class="timer-value" id="timer-value">00:00</span>
+                    </div>
+                    <button class="btn-exit" onclick="showSubmitConfirm()" title="Kumpulkan Ujian">
+                        <i class="fas fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="exam-main">
+        <div id="question-container">
+            <div class="question-card" style="text-align: center; padding: 3rem;">
+                <i class="fas fa-spinner fa-spin"
+                    style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <p style="color: var(--text-secondary);">Memuat soal...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Fixed Footer Navigation -->
+    <footer class="exam-footer">
+        <div class="exam-footer-inner">
+            <button class="nav-btn nav-btn-prev" onclick="window.examSystem?.prevQuestion()" title="Sebelumnya">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <button class="nav-btn nav-btn-all" onclick="toggleNavigator()" id="toggle-nav-btn">
+                <i class="fas fa-table-cells"></i>
+                <span>Semua Soal</span>
+            </button>
+            <button class="nav-btn nav-btn-flag" onclick="window.examSystem?.toggleFlag()" id="flag-btn" title="Tandai">
+                <i class="far fa-flag"></i>
+            </button>
+            <button class="nav-btn nav-btn-next" onclick="window.examSystem?.nextQuestion()" title="Selanjutnya">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Question Navigator Modal -->
+    <div class="nav-modal" id="navigator-modal">
+        <div class="nav-modal-backdrop" onclick="toggleNavigator()"></div>
+        <div class="nav-modal-content">
+            <h3 class="nav-modal-title">Navigasi Soal</h3>
+
+            <!-- Legend -->
+            <div class="nav-legend">
+                <div class="nav-legend-item">
+                    <div class="nav-legend-dot unanswered"></div>
+                    <span>Belum</span>
+                </div>
+                <div class="nav-legend-item">
+                    <div class="nav-legend-dot answered"></div>
+                    <span>Dijawab</span>
+                </div>
+                <div class="nav-legend-item">
+                    <div class="nav-legend-dot current"></div>
+                    <span>Saat ini</span>
+                </div>
+                <div class="nav-legend-item">
+                    <div class="nav-legend-dot flagged"></div>
+                    <span>Ragu</span>
+                </div>
+            </div>
+
+            <!-- Question Grid -->
+            <div class="question-nav-grid" id="question-navigator"></div>
+
+            <!-- Submit Button -->
+            <div style="margin-top: 1.25rem;">
+                <button class="nav-btn nav-btn-submit" onclick="showSubmitConfirm(); toggleNavigator();">
+                    <i class="fas fa-paper-plane"></i>
+                    Kumpulkan Ujian
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden elements for compatibility -->
+    <span id="question-count" style="display:none;">0</span>
+    <span id="answered-display" style="display:none;">0</span>
+    <span id="teacher-name" style="display:none;"></span>
+    <span id="exam-type-display" style="display:none;"></span>
+    <div id="sidebar-panel" style="display:none;">
+        <div id="answered-count">0</div>
+        <div id="flagged-count">0</div>
+        <div id="remaining-count">0</div>
+    </div>
+
+    <div class="student-container" style="display: none;">
+        <div class="exam-interface">
+            <!-- Question Panel -->
+            <div class="question-panel">
+                <!-- Question Container for exam-system.js -->
+                <!-- This will be populated dynamically by exam-system.js -->
+                <div id="question-container">
+                    <div class="card" style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-spinner fa-spin"
+                            style="font-size: 2rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-secondary);">Memuat soal...</p>
+                    </div>
+                </div>
+            </div> <!-- Close question-panel -->
+
+            <!-- Sidebar -->
+            <div class="sidebar-panel" id="sidebar-panel">
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-table-cells" style="color: var(--primary);"></i> Navigasi Soal
+                    </h4>
+                    <div class="question-nav" id="question-navigator"></div>
+                    <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-secondary);">
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <span><span
+                                    style="display: inline-block; width: 12px; height: 12px; background: var(--dark-card); border-radius: 2px; border: 1px solid var(--border-color);"></span>
+                                Belum</span>
+                            <span><span
+                                    style="display: inline-block; width: 12px; height: 12px; background: var(--success); border-radius: 2px;"></span>
+                                Dijawab</span>
+                            <span><span
+                                    style="display: inline-block; width: 12px; height: 12px; background: var(--warning); border-radius: 2px;"></span>
+                                Ditandai</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chart-pie" style="color: var(--success);"></i> Progress
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; text-align: center;">
+                        <div style="background: rgba(34, 197, 94, 0.1); padding: 0.75rem; border-radius: 0.5rem;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);"
+                                id="answered-count">0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Dijawab</div>
+                        </div>
+                        <div style="background: rgba(245, 158, 11, 0.1); padding: 0.75rem; border-radius: 0.5rem;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning);" id="flagged-count">
+                                0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Ditandai</div>
+                        </div>
+                        <div style="background: rgba(99, 102, 241, 0.1); padding: 0.75rem; border-radius: 0.5rem;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"
+                                id="remaining-count">0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Tersisa</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Modal - Professional Confirmation -->
+    <div class="modal-overlay" id="submit-modal">
+        <div class="modal" style="max-width: 520px;">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">📤</div>
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-primary);">Kumpulkan Ujian?</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Pastikan Anda sudah memeriksa semua jawaban
+                </p>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="card"
+                style="margin-bottom: 1rem; background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(99, 102, 241, 0.3);">
+                <h4
+                    style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-chart-simple"></i> Statistik Jawaban
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; text-align: center;">
+                    <!-- Answered -->
+                    <div
+                        style="padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.75rem;">
+                        <div style="font-size: 2rem; font-weight: 700; color: #22c55e;" id="modal-answered">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            <i class="fas fa-circle-check"></i> Dijawab
+                        </div>
+                    </div>
+                    <!-- Unanswered -->
+                    <div
+                        style="padding: 1rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem;">
+                        <div style="font-size: 2rem; font-weight: 700; color: #ef4444;" id="modal-unanswered">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            <i class="fas fa-circle-xmark"></i> Belum
+                        </div>
+                    </div>
+                    <!-- Flagged -->
+                    <div
+                        style="padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem;">
+                        <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;" id="modal-flagged">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            <i class="fas fa-flag"></i> Ragu
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning for Unanswered -->
+            <div class="alert alert-danger" id="submit-warning-unanswered" style="display: none; margin-bottom: 1rem;">
+                <i class="fas fa-circle-exclamation"></i>
+                <div>
+                    <strong>Masih ada soal yang belum dijawab!</strong>
+                    <p style="font-size: 0.85rem; margin-top: 0.25rem; opacity: 0.9; margin-bottom: 0;">
+                        Anda memiliki <span id="warning-unanswered-count" style="font-weight: 600;">0</span> soal yang
+                        belum dijawab
+                    </p>
+                </div>
+            </div>
+
+            <!-- Warning for Flagged -->
+            <div class="alert alert-warning" id="submit-warning-flagged" style="display: none; margin-bottom: 1rem;">
+                <i class="fas fa-flag"></i>
+                <div>
+                    <strong>Ada soal yang ditandai ragu-ragu</strong>
+                    <p style="font-size: 0.85rem; margin-top: 0.25rem; opacity: 0.9; margin-bottom: 0;">
+                        Anda memiliki <span id="warning-flagged-count" style="font-weight: 600;">0</span> soal yang
+                        ditandai ragu-ragu
+                    </p>
+                </div>
+            </div>
+
+            <!-- Success Message (all answered) -->
+            <div class="alert alert-success" id="submit-success" style="display: none; margin-bottom: 1rem;">
+                <i class="fas fa-circle-check"></i>
+                <span>Semua soal sudah dijawab! Ujian siap dikumpulkan.</span>
+            </div>
+
+            <!-- Confirmation Question -->
+            <p
+                style="text-align: center; font-size: 1rem; color: var(--text-primary); margin-bottom: 1.5rem; font-weight: 500;">
+                Apakah Anda yakin ingin mengumpulkan ujian sekarang?
+            </p>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn btn-secondary"
+                    onclick="document.getElementById('submit-modal').classList.remove('active')"
+                    style="padding: 0.875rem 1.75rem;">
+                    <i class="fas fa-arrow-left"></i> Periksa Lagi
+                </button>
+                <button class="btn btn-success" onclick="if(window.examSystem) window.examSystem.submitExam(false)"
+                    style="padding: 0.875rem 1.75rem;">
+                    <i class="fas fa-paper-plane"></i> Ya, Kumpulkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Up Modal -->
+    <div class="modal-overlay" id="timeup-modal">
+        <div class="modal" style="text-align: center;">
+            <i class="fas fa-clock" style="font-size: 4rem; color: var(--danger); margin-bottom: 1rem;"></i>
+            <h2>Waktu Habis!</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Ujian akan dikumpulkan otomatis.</p>
+            <button class="btn btn-primary" onclick="submitExam()">OK</button>
+        </div>
+    </div>
+
+    <!-- Success Modal - Professional Submit Confirmation -->
+    <div class="modal-overlay" id="success-modal">
+        <div class="modal" style="text-align: center; max-width: 450px; padding: 2.5rem;">
+            <div style="font-size: 5rem; margin-bottom: 1rem; animation: bounce 0.6s ease;">🎉</div>
+            <h2
+                style="font-size: 1.75rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #22c55e, #10b981); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Ujian Berhasil Dikumpulkan!</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Jawaban Anda telah tersimpan dengan aman di
+                server.</p>
+            <div class="card"
+                style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                    <i class="fas fa-circle-check" style="color: #22c55e; font-size: 1.5rem;"></i>
+                    <span id="success-status">Sedang menghitung nilai...</span>
+                </div>
+            </div>
+            <button id="result-button" class="btn btn-success btn-lg" onclick="goToResult()"
+                style="padding: 1rem 2rem; font-size: 1.1rem;">
+                <i class="fas fa-chart-simple"></i> Lihat Detail (10)
+            </button>
+        </div>
+    </div>
+
+    <style>
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        #success-modal .modal {
+            animation: slideIn 0.5s ease, bounce 0.6s ease 0.2s;
+        }
+    </style>
+
+    <!-- Image Zoom Modal HTML -->
+    <div id="imageZoomModal" class="image-zoom-modal" role="dialog" aria-modal="true" aria-label="Preview gambar diperbesar">
+        <button type="button" class="zoom-close-btn" aria-label="Tutup gambar" onclick="closeImageZoom(event)" ontouchend="closeImageZoom(event)"><i class="fas fa-times"></i></button>
+        <div class="zoom-hint">Bisa di-zoom (Pinch) 🔍</div>
+        <div class="image-zoom-container" aria-label="Area gambar, ketuk area gelap untuk menutup">
+            <img id="zoomImageObj" src="" alt="Zoomed Image">
+        </div>
+        <button type="button" class="zoom-exit-btn" onclick="closeImageZoom(event)" ontouchend="closeImageZoom(event)">Tutup gambar</button>
+    </div>
+
+    <!-- Core Dependencies -->
+    <script src="/static/js/auth.js?v=20260226-hotfix1"></script>
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/exam-system.js?v=20260418-richtext1"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!auth.requireAuth(['student', 'guruplus'])) return;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const examId = urlParams.get('exam_id');
+
+            if (!examId) {
+                alert('ID Ujian tidak ditemukan');
+                window.location.href = '/student/dashboard.html';
+                return;
+            }
+
+            // NEW: Check for active session in localStorage (session recovery after token refresh)
+            const savedSession = localStorage.getItem('active_exam_session');
+            if (savedSession) {
+                try {
+                    const sessionData = JSON.parse(savedSession);
+
+                    // Only restore if it's the same exam
+                    if (sessionData.examId === parseInt(examId)) {
+                        console.log('🔄 Found saved session, attempting to restore...');
+
+                        // Validate session is still active on server
+                        const sessionStatus = await api.getSessionStatus(sessionData.sessionId);
+                        const status = String(sessionStatus?.status || '').toLowerCase();
+                        const isAdminTerminated = status === 'terminated' && sessionStatus?.terminated_by_admin === true;
+                        const canRestore = (
+                            status === 'in_progress'
+                            || status === 'active'
+                            || (status === 'terminated' && !isAdminTerminated)
+                        );
+
+                        if (sessionStatus && canRestore) {
+                            // Restore exam from authoritative start endpoint so
+                            // question/option order stays identical to student runtime shuffle.
+                            const restoredData = await api.startExam(sessionData.examId);
+                            if (!restoredData || !restoredData.session_id) {
+                                throw new Error('Sesi tersimpan tidak valid untuk dilanjutkan');
+                            }
+
+                            window.examSystem = new ExamSystem(
+                                restoredData.session_id,
+                                restoredData.exam_id,
+                                restoredData.duration_minutes,
+                                restoredData.start_time,
+                                restoredData.show_results === true
+                            );
+                            window.examSystem.setQuestions(restoredData.questions || []);
+
+                            // Restore UI
+                            const examTitleEl = document.getElementById('exam-title');
+                            const questionCountEl = document.getElementById('question-count');
+                            if (examTitleEl) examTitleEl.textContent = restoredData.exam_title || sessionStatus.exam_title || 'Ujian';
+                            if (questionCountEl) questionCountEl.textContent = (restoredData.questions || []).length;
+
+                            console.log('✅ Session restored successfully');
+                            showNotification('Ujian dilanjutkan', 'success');
+                            return; // Skip starting new session
+                        } else {
+                            console.log('⚠️ Saved session expired or inactive');
+                            ExamSystem.clearSessionStorage();
+                        }
+                    } else {
+                        console.log('⚠️ Saved session is for different exam');
+                        ExamSystem.clearSessionStorage();
+                    }
+                } catch (error) {
+                    console.error('Failed to restore session:', error);
+                    ExamSystem.clearSessionStorage();
+                }
+            }
+
+            try {
+                // 1. START EXAM SESSION (Get data from server with handshake)
+                const startData = await api.startExam(examId);
+
+                if (!startData || !startData.session_id) {
+                    throw new Error('Gagal memulai sesi ujian');
+                }
+
+                // 2. INITIALIZE EXAM SYSTEM WITH SERVER TIME (FIX BUG: TIMER RESET)
+                window.examSystem = new ExamSystem(
+                    startData.session_id,
+                    startData.exam_id,
+                    startData.duration_minutes,
+                    startData.start_time,  // CRITICAL: Server-provided start time (anti-cheat)
+                    startData.show_results === true  // 🔥 CRITICAL FIX: Pass show_results flag to constructor
+                );
+
+                // Debug logging for verification
+                console.log('🎯 Exam System Initialized:');
+                console.log('  show_results from API:', startData.show_results);
+                console.log('  ExamSystem.showResults:', window.examSystem.showResults);
+
+                // 3. LOAD QUESTIONS
+                window.examSystem.setQuestions(startData.questions);
+
+                // Update header
+                document.getElementById('exam-title').textContent = startData.exam_title;
+
+                // Show exam metadata (subject and exam_type) in header
+                const metadataCompact = document.getElementById('exam-metadata-compact');
+                if (metadataCompact) {
+                    const parts = [];
+                    if (startData.subject) parts.push(`📚 ${startData.subject}`);
+                    if (startData.exam_type) parts.push(`📋 ${startData.exam_type}`);
+                    metadataCompact.innerHTML = parts.length > 0 ? parts.join(' • ') : '';
+                }
+
+                // Store metadata in examSystem for result page
+                window.examSystem.examMetadata = {
+                    subject: startData.subject || null,
+                    exam_type: startData.exam_type || null,
+                    exam_title: startData.exam_title || null
+                };
+
+                // Show teacher name if enabled
+                if (startData.show_teacher_name && startData.teacher_name) {
+                    const teacherNameEl = document.getElementById('teacher-name');
+                    const examTeacherEl = document.getElementById('exam-teacher');
+                    if (teacherNameEl) teacherNameEl.textContent = startData.teacher_name;
+                    if (examTeacherEl) examTeacherEl.style.display = 'block';
+                }
+
+                const qCountEl = document.getElementById('question-count');
+                if (qCountEl) qCountEl.textContent = startData.questions.length;
+
+                // 5. SYNC SERVER TIME (ANTI-CHEAT LAG COMPENSATION)
+                if (startData.server_time) {
+                    const serverTime = new Date(startData.server_time).getTime();
+                    const clientTime = Date.now();
+                    window.examSystem.serverTimeOffset = serverTime - clientTime;
+                    console.log('⏱️ Time Sync Offset:', window.examSystem.serverTimeOffset, 'ms');
+                }
+
+            } catch (error) {
+                console.error('Fatal Init Error:', error);
+                alert('Gagal memuat ujian: ' + error.message);
+                window.location.href = '/student/dashboard.html';
+            }
+        });
+
+        // Show submit confirmation modal with enhanced statistics
+        function showSubmitConfirm() {
+            const modal = document.getElementById('submit-modal');
+            if (window.examSystem) {
+                const answered = Object.keys(window.examSystem.answers).length;
+                const total = window.examSystem.questions.length;
+                const unanswered = total - answered;
+                const flagged = window.examSystem.flagged.size;
+
+                // Update statistics
+                document.getElementById('modal-answered').textContent = answered;
+                document.getElementById('modal-unanswered').textContent = unanswered;
+                document.getElementById('modal-flagged').textContent = flagged;
+
+                // Show/hide warnings based on status
+                const warningUnanswered = document.getElementById('submit-warning-unanswered');
+                const warningFlagged = document.getElementById('submit-warning-flagged');
+                const successMsg = document.getElementById('submit-success');
+
+                if (unanswered > 0) {
+                    warningUnanswered.style.display = 'flex';
+                    document.getElementById('warning-unanswered-count').textContent = unanswered;
+                } else {
+                    warningUnanswered.style.display = 'none';
+                }
+
+                if (flagged > 0) {
+                    warningFlagged.style.display = 'flex';
+                    document.getElementById('warning-flagged-count').textContent = flagged;
+                } else {
+                    warningFlagged.style.display = 'none';
+                }
+
+                // Show success message if all answered and no flags
+                if (unanswered === 0 && flagged === 0) {
+                    successMsg.style.display = 'flex';
+                } else {
+                    successMsg.style.display = 'none';
+                }
+            }
+            modal.classList.add('active');
+        }
+
+        // Toggle navigator modal (new design)
+        function toggleNavigator() {
+            const modal = document.getElementById('navigator-modal');
+            if (modal) {
+                modal.classList.toggle('active');
+            }
+        }
+
+        // Legacy alias for toggleSidebar
+        function toggleSidebar() {
+            toggleNavigator();
+        }
+
+        // Safe refresh - saves answers before reload
+        let currentSessionId = null;
+        async function safeRefresh() {
+            try {
+                if (window.examSystem) {
+                    currentSessionId = window.examSystem.sessionId;
+                    // Save current answers before refresh
+                    await window.examSystem.autoSave();
+                    showNotification('Menyimpan jawaban...', 'info');
+                }
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            } catch (error) {
+                console.error('Safe refresh error:', error);
+                // Still allow refresh even if save fails
+                window.location.reload();
+            }
+        }
+
+        // Navigate to result page
+        function goToResult() {
+            const sessionId = window.examSystem?.sessionId || currentSessionId;
+            if (sessionId) {
+                window.location.href = `/student/result.html?session=${sessionId}`;
+            } else {
+                window.location.href = '/student/dashboard.html';
+            }
+        }
+
+        // Connection Monitoring
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (!statusEl) return;
+            const icon = statusEl.querySelector('i');
+
+            if (navigator.onLine) {
+                // Online: Hide or Show Green
+                // statusEl.style.display = 'none';
+                // Better UX: Show green briefly then hide, or static green dot
+                statusEl.style.display = 'flex';
+                statusEl.style.background = 'rgba(34, 197, 94, 0.2)';
+                statusEl.style.borderColor = '#22c55e';
+                icon.className = 'fas fa-wifi';
+                icon.style.color = '#22c55e';
+                statusEl.title = "Online";
+            } else {
+                // Offline: Red Warning
+                statusEl.style.display = 'flex';
+                statusEl.style.background = 'rgba(239, 68, 68, 0.2)';
+                statusEl.style.borderColor = '#ef4444';
+                icon.className = 'fas fa-wifi-slash';
+                icon.style.color = '#ef4444';
+                statusEl.title = "Offline - Jawaban disimpan lokal";
+
+                showNotification('Anda sedang OFFLINE. Jawaban tersimpan di perangkat.', 'warning');
+            }
+        }
+
+        window.addEventListener('online', () => {
+            updateConnectionStatus();
+            showNotification('Koneksi pulih. Sinkronisasi jawaban...', 'success');
+            // Trigger manual sync if possible
+            if (window.examSystem) {
+                // Force sync logic here if method exposed
+                // Usually handled by auto-sync interval
+            }
+        });
+
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // ============== IMAGE ZOOM LOGIC ==============
+        const zoomModal = document.getElementById('imageZoomModal');
+        const zoomImg = document.getElementById('zoomImageObj');
+        const ZOOMABLE_EXAM_IMAGE_SELECTOR = [
+            'img.question-image',
+            '.question-content img',
+            '.question-card img',
+            '.question-text img',
+            '.question-options img',
+            '.option-item img',
+            '.option-btn img',
+            'img[data-zoomable="true"]'
+        ].join(', ');
+        let currentZoom = 1;
+        let pinchStartDistance = null;
+        let pinchStartZoom = 1;
+        let lastTouchTapTime = 0;
+        let lastPanPos = { x: 0, y: 0 };
+        let currentPanPos = { x: 0, y: 0 };
+        let zoomCloseTimer = null;
+
+        function isZoomableExamImage(img) {
+            if (!img || !img.tagName || img.tagName.toLowerCase() !== 'img') return false;
+            const forcedZoom = img.dataset && img.dataset.zoomable === 'true';
+            if (img.dataset && img.dataset.noZoom === 'true') return false;
+            if (img.closest && img.closest('.no-image-zoom')) return false;
+            if (!forcedZoom && (!img.matches || !img.matches(ZOOMABLE_EXAM_IMAGE_SELECTOR))) return false;
+
+            const src = img.currentSrc || img.getAttribute('src') || img.src || '';
+            if (!src) return false;
+
+            const width = Number(img.naturalWidth || img.width || img.clientWidth || 0);
+            const height = Number(img.naturalHeight || img.height || img.clientHeight || 0);
+            if (!forcedZoom && width > 0 && height > 0 && width < 120 && height < 120) {
+                return false;
+            }
+            return true;
+        }
+
+        function findZoomableExamImage(target) {
+            if (!target || !target.closest) return null;
+            const directImg = target.tagName && target.tagName.toLowerCase() === 'img' ? target : null;
+            const interactiveTarget = target.closest('button, a, input, textarea, select, label, [role="button"]');
+            if (interactiveTarget && !directImg) return null;
+
+            const img = directImg || target.closest(ZOOMABLE_EXAM_IMAGE_SELECTOR);
+            return isZoomableExamImage(img) ? img : null;
+        }
+
+        function openNativeImagePreview(src, alt) {
+            if (!src || !window.flutter_inappwebview || typeof window.flutter_inappwebview.callHandler !== 'function') {
+                return false;
+            }
+            try {
+                const result = window.flutter_inappwebview.callHandler('openImagePreview', src, alt || '');
+                if (result && typeof result.then === 'function') {
+                    result.then((opened) => {
+                        if (opened === false) openImageZoom(src);
+                    }).catch(() => openImageZoom(src));
+                }
+                return true;
+            } catch (error) {
+                console.warn('Native image preview unavailable, falling back to JS modal:', error);
+                return false;
+            }
+        }
+
+        function openImageZoom(src) {
+            if (!zoomModal || !zoomImg || !src) return;
+            zoomImg.src = src;
+            zoomModal.classList.add('active');
+
+            // Reset zoom
+            currentZoom = 1;
+            pinchStartDistance = null;
+            pinchStartZoom = 1;
+            currentPanPos = { x: 0, y: 0 };
+            updateZoomTransform();
+        }
+
+        function closeImageZoom(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            if (!zoomModal || !zoomImg) return;
+            zoomModal.classList.remove('active');
+            currentZoom = 1;
+            pinchStartDistance = null;
+            pinchStartZoom = 1;
+            currentPanPos = { x: 0, y: 0 };
+            updateZoomTransform();
+            if (zoomCloseTimer) clearTimeout(zoomCloseTimer);
+            zoomCloseTimer = setTimeout(() => { zoomImg.src = ''; }, 300); // clear after fade out
+        }
+
+        function clampZoom(value) {
+            return Math.min(5, Math.max(1, Number(value) || 1));
+        }
+
+        function updateZoomTransform() {
+            currentZoom = clampZoom(currentZoom);
+
+            // Reset pan jika kembali ke zoom normal
+            if (currentZoom === 1) {
+                currentPanPos = { x: 0, y: 0 };
+            }
+
+            if (zoomImg) {
+                zoomImg.style.transform = `translate(${currentPanPos.x}px, ${currentPanPos.y}px) scale(${currentZoom})`;
+            }
+        }
+
+        // Hitung jarak 2 jari (untuk pinch)
+        function getDistance(touches) {
+            return Math.hypot(
+                touches[0].clientX - touches[1].clientX,
+                touches[0].clientY - touches[1].clientY
+            );
+        }
+
+        zoomModal.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target && target.closest && target.closest('.zoom-close-btn, .zoom-exit-btn')) {
+                closeImageZoom(e);
+                return;
+            }
+            if (target === zoomImg) return;
+            if (currentZoom <= 1 && (target === zoomModal || (target && target.classList && target.classList.contains('image-zoom-container')))) {
+                closeImageZoom(e);
+            }
+        });
+
+        zoomModal.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                // Mulai Pinch-to-Zoom dengan ratio agar stabil di Android WebView.
+                e.preventDefault();
+                pinchStartDistance = getDistance(e.touches);
+                pinchStartZoom = currentZoom;
+            } else if (e.touches.length === 1 && currentZoom > 1) {
+                // Mulai Panning (geser-geser pas lagi dizoom)
+                lastPanPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }, { passive: false });
+
+        zoomModal.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Mencegah pull-to-refresh / scrolling browser
+            if (e.touches.length === 2) {
+                const currentDistance = getDistance(e.touches);
+                if (pinchStartDistance && pinchStartDistance > 0) {
+                    const ratio = currentDistance / pinchStartDistance;
+                    currentZoom = pinchStartZoom * ratio;
+                    updateZoomTransform();
+                }
+            } else if (e.touches.length === 1 && currentZoom > 1) {
+                // Lagi Panning
+                const deltaX = e.touches[0].clientX - lastPanPos.x;
+                const deltaY = e.touches[0].clientY - lastPanPos.y;
+
+                currentPanPos.x += deltaX;
+                currentPanPos.y += deltaY;
+
+                lastPanPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                updateZoomTransform();
+            }
+        }, { passive: false });
+
+        zoomModal.addEventListener('touchend', (e) => {
+            const target = e.target;
+            if (target && target.closest && target.closest('.zoom-close-btn, .zoom-exit-btn')) {
+                closeImageZoom(e);
+                return;
+            }
+            if (e.touches.length < 2) {
+                pinchStartDistance = null;
+                pinchStartZoom = currentZoom;
+            }
+            if (target === zoomImg || (target && target.closest && target.closest('#zoomImageObj'))) {
+                return;
+            }
+            if (e.touches.length === 0 && currentZoom <= 1 && (target === zoomModal || (target && target.classList && target.classList.contains('image-zoom-container')))) {
+                closeImageZoom(e);
+            }
+        }, { passive: false });
+
+        function tryOpenImageZoom(target) {
+            const img = findZoomableExamImage(target);
+            if (!img) return false;
+
+            const src = img.currentSrc || img.getAttribute('src') || img.src;
+            if (!src) return false;
+            const alt = img.getAttribute('alt') || img.getAttribute('aria-label') || 'Gambar soal';
+
+            if (openNativeImagePreview(src, alt)) {
+                return true;
+            }
+            openImageZoom(src);
+            return true;
+        }
+
+        // Klik desktop/fallback
+        document.body.addEventListener('click', function (e) {
+            if (zoomModal && zoomModal.classList.contains('active')) return;
+            if (tryOpenImageZoom(e.target)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        // Tap mobile/WebView (beberapa WebView tidak konsisten memicu click untuk IMG)
+        document.body.addEventListener('touchend', function (e) {
+            if (zoomModal && zoomModal.classList.contains('active')) return;
+            if (e.touches.length > 0) return;
+            if (tryOpenImageZoom(e.target)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, { passive: false });
+
+        // Double Tap to zoom reset/in via JS (Optional, but good for UX)
+        zoomImg.addEventListener('touchend', function (e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTouchTapTime;
+            if (tapLength < 300 && tapLength > 0) {
+                if (currentZoom > 1) {
+                    currentZoom = 1;
+                    currentPanPos = { x: 0, y: 0 };
+                } else {
+                    currentZoom = 2.5;
+                }
+                updateZoomTransform();
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            lastTouchTapTime = currentTime;
+        }, { passive: false });
+
+        // Init connection status on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(updateConnectionStatus, 1000);
+        });
+    </script>
+
+</body>
+
+</html>

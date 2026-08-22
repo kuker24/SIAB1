@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Analytics Dashboard | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ============================================
+           Modern Analytics Dashboard - Clean & Intuitive
+           ============================================ */
+
+        .analytics-page {
+            padding: 0;
+        }
+
+        /* Hero Header - Compact */
+        .analytics-hero {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%);
+            border-radius: 1rem;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analytics-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -25%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-text h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hero-text h1 i {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .hero-text p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 0.85rem;
+        }
+
+        .hero-btn.primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+        }
+
+        .hero-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+        }
+
+        .hero-btn.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .hero-btn.secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Stats Grid - Compact */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .stat-card.purple::before {
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        }
+
+        .stat-card.green::before {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+
+        .stat-card.blue::before {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        }
+
+        .stat-card.orange::before {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+        }
+
+        .stat-card.purple .stat-icon {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        }
+
+        .stat-card.green .stat-icon {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .stat-card.blue .stat-icon {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .stat-card.orange .stat-icon {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .stat-badge.up {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .stat-badge.down {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 0.2rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-panel {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chart-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chart-title i {
+            color: var(--primary);
+        }
+
+        .period-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--bg-primary);
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+        }
+
+        .period-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .period-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .period-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .chart-body {
+            padding: 1.5rem;
+        }
+
+        .chart-canvas {
+            height: 280px;
+            position: relative;
+        }
+
+        /* Violations Donut */
+        .donut-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1rem;
+        }
+
+        .donut-chart {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+
+        .donut-stats {
+            flex: 1;
+        }
+
+        .donut-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .donut-stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .donut-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .donut-dot.clean {
+            background: #10b981;
+        }
+
+        .donut-dot.violation {
+            background: #ef4444;
+        }
+
+        .donut-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .donut-stat-value {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        /* Data Tables */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .data-panel {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .data-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .data-title i {
+            color: var(--primary);
+        }
+
+        .data-body {
+            padding: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Performance Table */
+        .perf-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .perf-table th,
+        .perf-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .perf-table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .perf-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .perf-table tbody tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .class-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .pass-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .pass-badge.excellent {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .pass-badge.good {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .pass-badge.fair {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .pass-badge.poor {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        /* Leaderboard */
+        .leaderboard-list {
+            padding: 0;
+        }
+
+        .leader-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .leader-item:last-child {
+            border-bottom: none;
+        }
+
+        .leader-item:hover {
+            background: var(--bg-tertiary);
+            padding-left: 1.75rem;
+        }
+
+        .leader-rank {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .leader-rank.gold {
+            background: linear-gradient(135deg, #fcd34d, #f59e0b);
+            color: #78350f;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        .leader-rank.silver {
+            background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+            color: #374151;
+        }
+
+        .leader-rank.bronze {
+            background: linear-gradient(135deg, #fed7aa, #fb923c);
+            color: #7c2d12;
+        }
+
+        .leader-rank.normal {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .leader-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .leader-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .leader-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .leader-score {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-left: 1rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading Animation */
+        .loading-shimmer {
+            background: linear-gradient(90deg,
+                    var(--bg-tertiary) 25%,
+                    var(--bg-secondary) 50%,
+                    var(--bg-tertiary) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Smooth animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+
+        <!-- Main Content -->
+        <main class="main-content analytics-page">
+            <!-- Hero Header -->
+            <div class="analytics-hero fade-in">
+                <div class="hero-content">
+                    <div class="hero-text">
+                        <h1><i class="fas fa-chart-pie"></i> Analytics Dashboard</h1>
+                        <p>Pantau performa sistem dan analisis data ujian secara real-time</p>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="hero-btn secondary" onclick="exportDashboard('csv')">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button class="hero-btn primary" onclick="exportDashboard('pdf')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card purple fade-in" style="animation-delay: 0.1s;">
+                    <div class="stat-header">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-badge up" id="users-badge">
+                            <i class="fas fa-arrow-up"></i> Aktif
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-users">-</div>
+                    <div class="stat-label">Total Pengguna</div>
+                </div>
+
+                <div class="stat-card green fade-in" style="animation-delay: 0.2s;">
+                    <div class="stat-header">
+                        <div class="stat-icon"><i class="fas fa-file-lines"></i></div>
+                        <div class="stat-badge up" id="exams-badge">
+                            <i class="fas fa-arrow-up"></i> <span>0 baru</span>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-exams">-</div>
+                    <div class="stat-label">Total Ujian</div>
+                </div>
+
+                <div class="stat-card blue fade-in" style="animation-delay: 0.3s;">
+                    <div class="stat-header">
+                        <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+                        <div class="stat-badge up" id="sessions-badge">
+                            <i class="fas fa-check"></i> <span>0 hari ini</span>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-sessions">-</div>
+                    <div class="stat-label">Sesi Selesai</div>
+                </div>
+
+                <div class="stat-card orange fade-in" style="animation-delay: 0.4s;">
+                    <div class="stat-header">
+                        <div class="stat-icon"><i class="fas fa-chart-column"></i></div>
+                        <div class="stat-badge" id="score-badge">
+                            <i class="fas fa-minus"></i> <span>0%</span>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="avg-score">-</div>
+                    <div class="stat-label">Rata-rata Nilai</div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <!-- Trend Chart -->
+                <div class="chart-panel fade-in" style="animation-delay: 0.5s;">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-area"></i>
+                            Tren Sesi Ujian
+                        </div>
+                        <div class="period-tabs">
+                            <button class="period-tab" data-days="7">7 Hari</button>
+                            <button class="period-tab active" data-days="30">30 Hari</button>
+                            <button class="period-tab" data-days="90">90 Hari</button>
+                        </div>
+                    </div>
+                    <div class="chart-body">
+                        <div class="chart-canvas">
+                            <canvas id="sessionsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Violations Donut -->
+                <div class="chart-panel fade-in" style="animation-delay: 0.6s;">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <i class="fas fa-shield-halved"></i>
+                            Integritas Ujian
+                        </div>
+                    </div>
+                    <div class="chart-body">
+                        <div class="donut-container">
+                            <div class="donut-chart">
+                                <canvas id="violationsChart"></canvas>
+                            </div>
+                            <div class="donut-stats">
+                                <div class="donut-stat-item">
+                                    <div class="donut-dot clean"></div>
+                                    <div>
+                                        <div class="donut-stat-label">Sesi Bersih</div>
+                                        <div class="donut-stat-value" id="clean-count">-</div>
+                                    </div>
+                                </div>
+                                <div class="donut-stat-item">
+                                    <div class="donut-dot violation"></div>
+                                    <div>
+                                        <div class="donut-stat-label">Sesi Dengan Pelanggaran</div>
+                                        <div class="donut-stat-value" id="violation-count">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Grid -->
+            <div class="data-grid">
+                <!-- Class Performance -->
+                <div class="data-panel fade-in" style="animation-delay: 0.7s;">
+                    <div class="data-header">
+                        <div class="data-title">
+                            <i class="fas fa-school"></i>
+                            Performa Kelas
+                        </div>
+                    </div>
+                    <div class="data-body">
+                        <table class="perf-table">
+                            <thead>
+                                <tr>
+                                    <th>Kelas</th>
+                                    <th>Siswa</th>
+                                    <th>Rata-rata</th>
+                                    <th>Lulus</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody id="class-performance-body">
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <div class="spinner"></div>
+                                            <p>Memuat data...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Students -->
+                <div class="data-panel fade-in" style="animation-delay: 0.8s;">
+                    <div class="data-header">
+                        <div class="data-title">
+                            <i class="fas fa-trophy"></i>
+                            Top 10 Siswa
+                        </div>
+                    </div>
+                    <div class="data-body">
+                        <div class="leaderboard-list" id="leaderboard">
+                            <div class="empty-state">
+                                <div class="spinner"></div>
+                                <p>Memuat data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js?v=20260314-analyticsfix1"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script>
+        auth.requireAuth(['admin', 'developer', 'teacher']);
+
+        let sessionsChart = null;
+        let violationsChart = null;
+        let currentPeriod = 30;
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Setup period tabs
+            document.querySelectorAll('.period-tab').forEach(tab => {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPeriod = parseInt(this.dataset.days);
+                    loadAnalytics(currentPeriod);
+                });
+            });
+
+            // Load all data
+            await loadDashboardStats();
+            await loadAnalytics(currentPeriod);
+            await loadClassPerformance();
+            await loadTopStudents();
+        });
+
+        async function loadDashboardStats() {
+            try {
+                const stats = await api.getDashboardStats();
+
+                animateValue('total-users', 0, stats.total_users || 0, 1000);
+                animateValue('total-exams', 0, stats.total_exams || 0, 1000);
+                animateValue('total-sessions', 0, stats.active_sessions || 0, 1000);
+
+                document.querySelector('#exams-badge span').textContent = `${stats.upcoming_exams || 0} baru`;
+                document.querySelector('#sessions-badge span').textContent = `${stats.completed_today || 0} hari ini`;
+            } catch (e) {
+                console.error('Failed to load dashboard stats:', e);
+            }
+        }
+
+        async function loadAnalytics(days) {
+            try {
+                const analytics = await api.getAnalyticsDashboard(days);
+
+                // Update average score with animation
+                const avgScore = analytics.average_score || 0;
+                animateValue('avg-score', 0, avgScore, 1000, true);
+
+                // Update score badge
+                const scoreBadge = document.getElementById('score-badge');
+                if (avgScore >= 70) {
+                    scoreBadge.className = 'stat-badge up';
+                    scoreBadge.innerHTML = `<i class="fas fa-arrow-up"></i> <span>${avgScore >= 80 ? 'Excellent' : 'Good'}</span>`;
+                } else {
+                    scoreBadge.className = 'stat-badge down';
+                    scoreBadge.innerHTML = `<i class="fas fa-arrow-down"></i> <span>Perlu perhatian</span>`;
+                }
+
+                // Update sessions count
+                animateValue('total-sessions', 0, analytics.total_sessions || 0, 1000);
+
+                // Render charts
+                renderSessionsChart(analytics.daily_trend || []);
+                renderViolationsChart({
+                    totalSessions: analytics.total_sessions || 0,
+                    totalViolations: analytics.total_violations || 0,
+                    sessionsWithViolations: analytics.sessions_with_violations || 0,
+                    sessionsClean: analytics.sessions_clean || 0
+                });
+            } catch (e) {
+                console.error('Failed to load analytics:', e);
+            }
+        }
+
+        function animateValue(id, start, end, duration, isDecimal = false) {
+            const obj = document.getElementById(id);
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                const current = start + (end - start) * eased;
+
+                obj.textContent = isDecimal ? current.toFixed(1) : Math.round(current).toLocaleString();
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function renderSessionsChart(dailyTrend) {
+            const ctx = document.getElementById('sessionsChart').getContext('2d');
+
+            if (sessionsChart) sessionsChart.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            sessionsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dailyTrend.map(d => {
+                        const date = new Date(d.date);
+                        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                    }),
+                    datasets: [{
+                        label: 'Sesi Ujian',
+                        data: dailyTrend.map(d => d.count),
+                        borderColor: '#6366f1',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#1a1b2e',
+                        pointBorderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointHoverBorderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 27, 46, 0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#a1a1aa',
+                            borderColor: 'rgba(99, 102, 241, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: ctx => `${ctx.parsed.y} sesi ujian`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#71717a' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#71717a',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderViolationsChart({
+            totalSessions = 0,
+            totalViolations = 0,
+            sessionsWithViolations = 0,
+            sessionsClean = 0
+        } = {}) {
+            const ctx = document.getElementById('violationsChart').getContext('2d');
+
+            if (violationsChart) violationsChart.destroy();
+
+            const cleanSessions = Math.max(0, sessionsClean);
+            const flaggedSessions = Math.max(0, sessionsWithViolations);
+            const dataset = totalSessions > 0
+                ? [cleanSessions, flaggedSessions]
+                : [1, 0];
+
+            // Update stats
+            document.getElementById('clean-count').textContent = cleanSessions.toLocaleString();
+            document.getElementById('violation-count').textContent = flaggedSessions.toLocaleString();
+
+            violationsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sesi Bersih', 'Sesi Dengan Pelanggaran'],
+                    datasets: [{
+                        data: dataset,
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.85)',
+                            'rgba(239, 68, 68, 0.85)'
+                        ],
+                        borderColor: ['#10b981', '#ef4444'],
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 27, 46, 0.95)',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: ctx => {
+                                    const label = ctx.label || 'Data';
+                                    const value = ctx.parsed || 0;
+                                    const percent = totalSessions > 0
+                                        ? ` (${((value / totalSessions) * 100).toFixed(1)}%)`
+                                        : '';
+                                    return `${label}: ${value}${percent}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadClassPerformance() {
+            const tbody = document.getElementById('class-performance-body');
+
+            try {
+                // Get all exam results by fetching from each exam
+                const exams = await api.getExams();
+                const allResults = [];
+
+                for (const exam of exams) {
+                    try {
+                        const examResults = await api.getExamResults(exam.id, false);
+                        allResults.push(...examResults);
+                    } catch (e) {
+                        console.log(`No results for exam ${exam.id}`);
+                    }
+                }
+
+                if (!allResults || allResults.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="5">
+                            <div class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>Belum ada data hasil ujian</p>
+                            </div>
+                        </td></tr>
+                    `;
+                    return;
+                }
+
+                // Group by class and calculate real stats
+                const classStats = {};
+                allResults.forEach(result => {
+                    const className = result.user?.student_class || result.class || 'Tidak Diketahui';
+                    if (!classStats[className]) {
+                        classStats[className] = { name: className, students: new Set(), scores: [], passed: 0 };
+                    }
+                    classStats[className].students.add(result.user_id);
+                    classStats[className].scores.push(result.score || 0);
+                    if ((result.score || 0) >= 70) classStats[className].passed++;
+                });
+
+                const classData = Object.values(classStats).map(cls => ({
+                    name: cls.name,
+                    students: cls.students.size,
+                    average: Math.round(cls.scores.reduce((a, b) => a + b, 0) / cls.scores.length),
+                    passRate: Math.round((cls.passed / cls.scores.length) * 100)
+                })).sort((a, b) => b.average - a.average).slice(0, 10);
+                // Old dummy code below (ignored)
+                const _oldDummy = [].map(_className => ({
+                    name: className,
+                    students: 0, // REPLACED - will be calculated from real data
+                    average: 0, // REPLACED - will be calculated from real data
+                    passRate: 0 // REPLACED - will be calculated from real data
+                }));
+
+                tbody.innerHTML = classData.map(cls => {
+                    const badgeClass = cls.passRate >= 80 ? 'excellent' :
+                        cls.passRate >= 70 ? 'good' :
+                            cls.passRate >= 60 ? 'fair' : 'poor';
+                    const barColor = cls.average >= 70 ? '#10b981' :
+                        cls.average >= 60 ? '#f59e0b' : '#ef4444';
+
+                    return `
+                        <tr>
+                            <td><span class="class-name">${cls.name}</span></td>
+                            <td>${cls.students}</td>
+                            <td><strong>${cls.average}</strong></td>
+                            <td><span class="pass-badge ${badgeClass}">${cls.passRate}%</span></td>
+                            <td>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${cls.average}%; background: ${barColor};"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load class performance:', e);
+                tbody.innerHTML = `
+                    <tr><td colspan="5">
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>Gagal memuat data</p>
+                        </div>
+                    </td></tr>
+                `;
+            }
+        }
+
+        async function loadTopStudents() {
+            const container = document.getElementById('leaderboard');
+
+            try {
+                // Get all exam results by fetching from each exam
+                const exams = await api.getExams();
+                const allResults = [];
+
+                for (const exam of exams) {
+                    try {
+                        const examResults = await api.getExamResults(exam.id, false);
+                        allResults.push(...examResults);
+                    } catch (e) {
+                        console.log(`No results for exam ${exam.id}`);
+                    }
+                }
+
+                if (!allResults || allResults.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-trophy"></i>
+                            <p>Belum ada data siswa</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Calculate average score per student from real results
+                const studentScores = {};
+                allResults.forEach(result => {
+                    const userId = result.user_id;
+                    if (!studentScores[userId]) {
+                        studentScores[userId] = {
+                            name: result.user?.full_name || result.user?.username || 'Unknown',
+                            class: result.user?.student_class || 'N/A',
+                            scores: []
+                        };
+                    }
+                    studentScores[userId].scores.push(result.score || 0);
+                });
+
+                const topStudents = Object.values(studentScores)
+                    .map(student => ({
+                        name: student.name,
+                        class: student.class,
+                        score: Math.round(student.scores.reduce((a, b) => a + b, 0) / student.scores.length)
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 10);
+
+                if (topStudents.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-trophy"></i>
+                            <p>Belum ada data siswa</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = topStudents.map((student, idx) => {
+                    const rankClass = idx === 0 ? 'gold' :
+                        idx === 1 ? 'silver' :
+                            idx === 2 ? 'bronze' : 'normal';
+
+                    return `
+                        <div class="leader-item">
+                            <div class="leader-rank ${rankClass}">${idx + 1}</div>
+                            <div class="leader-info">
+                                <div class="leader-name">${student.name}</div>
+                                <div class="leader-meta">${student.class}</div>
+                            </div>
+                            <div class="leader-score">${student.score}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load top students:', e);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Gagal memuat data</p>
+                    </div>
+                `;
+            }
+        }
+
+        function exportDashboard(format) {
+            if (format === 'csv') {
+                let csv = 'Laporan Analytics Ujian Online\n';
+                csv += `Tanggal: ${new Date().toLocaleDateString('id-ID')}\n\n`;
+                csv += 'Statistik Umum\n';
+                csv += `Total Pengguna,${document.getElementById('total-users').textContent}\n`;
+                csv += `Total Ujian,${document.getElementById('total-exams').textContent}\n`;
+                csv += `Sesi Selesai,${document.getElementById('total-sessions').textContent}\n`;
+                csv += `Rata-rata Nilai,${document.getElementById('avg-score').textContent}\n`;
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+
+                alert('✅ Export CSV berhasil!');
+            } else if (format === 'pdf') {
+                window.print();
+            }
+        }
+    </script>
+</body>
+
+</html>

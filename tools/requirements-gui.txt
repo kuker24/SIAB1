@@ -1,0 +1,3 @@
+# APK Builder GUI - Requirements
+pillow>=12.3.0
+pyyaml>=6.0

@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Pengaturan - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Core CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="/static/css/utilities.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <style>
+        /* Backup Card Styles */
+        .backup-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 2px solid var(--dark);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .backup-option:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .backup-option.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .backup-option input[type="radio"] {
+            display: none;
+        }
+
+        .backup-option .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .backup-option .icon.all {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+
+        .backup-option .icon.teachers {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .backup-option .icon.students {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .backup-option .icon.exams {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--dark);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--dark);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            transition: width 0.3s ease;
+        }
+
+        /* Action Button */
+        .action-btn {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn.export {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+        }
+
+        .action-btn.export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .action-btn.import {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-switch .slider {
+            width: 60px;
+            height: 30px;
+            background: var(--dark);
+            border-radius: 30px;
+            position: relative;
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch .slider:before {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch input:checked+.slider {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        .toggle-switch input:checked+.slider:before {
+            transform: translateX(30px);
+        }
+
+        .toggle-switch:hover .slider {
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Added for text visibility */
+        .form-control {
+            color: white !important;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title"><i class="fas fa-cog" style="color: var(--primary);"></i> Pengaturan Sistem</h1>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <!-- 🔥 System Warmup -->
+            <div class="card"
+                style="margin-bottom: 1.5rem; border: 2px solid transparent; background-image: linear-gradient(var(--card-bg), var(--card-bg)), linear-gradient(135deg, #f97316, #ef4444, #f97316); background-origin: border-box; background-clip: padding-box, border-box; position: relative; overflow: hidden;">
+                <div id="warmup-glow"
+                    style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.08), transparent 70%); pointer-events: none; opacity: 0; transition: opacity 0.5s;">
+                </div>
+                <h3 style="margin-bottom: 1rem; color: white; display: flex; align-items: center; gap: 0.75rem;">
+                    <span
+                        style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #f97316, #ef4444); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🔥</span>
+                    Pemanasan Sistem
+                    <span
+                        style="font-size: 0.75rem; padding: 4px 10px; background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 20px; color: #fb923c; font-weight: 600; margin-left: auto;">RECOMMENDED</span>
+                </h3>
+
+                <p style="color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6;">
+                    Seperti memanaskan mesin mobil sebelum jalan — tombol ini membangunkan semua layanan (Redis,
+                    Database, Worker) agar siap menerima murid saat ujian dimulai. <strong style="color: #fb923c;">Wajib
+                        klik setelah server idle lebih dari 1 hari.</strong>
+                </p>
+
+                <!-- Warmup Button -->
+                <button id="warmup-btn" onclick="startWarmup()" style="
+                    padding: 1rem 2rem; font-size: 1.05rem; font-weight: 700; border: none; border-radius: 12px;
+                    background: linear-gradient(135deg, #f97316, #ef4444);
+                    color: white; cursor: pointer; display: inline-flex; align-items: center; gap: 0.75rem;
+                    transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+                ">
+                    <i class="fas fa-fire" style="font-size: 1.1rem;"></i>
+                    Mulai Pemanasan
+                </button>
+
+                <!-- Progress Section (hidden by default) -->
+                <div id="warmup-progress" style="display: none; margin-top: 1.5rem;">
+                    <!-- Progress Bar -->
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div
+                            style="flex: 1; height: 10px; background: var(--dark); border-radius: 5px; overflow: hidden;">
+                            <div id="warmup-fill"
+                                style="height: 100%; width: 0%; background: linear-gradient(90deg, #f97316, #22c55e); border-radius: 5px; transition: width 0.5s ease;">
+                            </div>
+                        </div>
+                        <span id="warmup-percent"
+                            style="color: white; font-weight: 700; font-size: 1.1rem; min-width: 48px; text-align: right;">0%</span>
+                    </div>
+
+                    <!-- Step Log -->
+                    <div id="warmup-log"
+                        style="background: var(--dark); border-radius: 12px; padding: 1rem; max-height: 320px; overflow-y: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem; line-height: 1.8;">
+                        <div style="color: var(--text-secondary);"><i class="fas fa-circle-notch fa-spin"
+                                style="color: #f97316;"></i> Memulai pemanasan sistem...</div>
+                    </div>
+                </div>
+
+                <!-- Result Section (hidden by default) -->
+                <div id="warmup-result" style="display: none; margin-top: 1.25rem;">
+                    <div id="warmup-result-inner"
+                        style="padding: 1rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- General Settings -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; color: white;"><i class="fas fa-sliders" style="color: white;"></i>
+                    Pengaturan Umum</h3>
+
+                <div class="form-group">
+                    <label class="form-label" for="app-name">Nama Aplikasi</label>
+                    <input type="text" class="form-control" id="app-name" value="Ujian Online"
+                        autocomplete="organization">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Zona Waktu</label>
+                    <select class="form-control" id="timezone">
+                        <option value="Asia/Jakarta">WIB (UTC+7)</option>
+                        <option value="Asia/Makassar">WITA (UTC+8)</option>
+                        <option value="Asia/Jayapura">WIT (UTC+9)</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Simpan Pengaturan
+                </button>
+            </div>
+
+            <!-- APK Token Security Section - Hidden by default -->
+            <div id="apk-token-section" class="card"
+                style="margin-bottom: 1.5rem; display: none; border: 2px solid var(--danger); position: relative;">
+                <div
+                    style="position: absolute; top: -10px; right: 20px; background: var(--danger); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                    <i class="fas fa-lock"></i> MODE KEAMANAN
+                </div>
+                <h3 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-mobile-screen" style="color: var(--danger);"></i>
+                    Pengaturan APK Token
+                </h3>
+
+                <!-- Security Warning -->
+                <div
+                    style="margin-bottom: 1.5rem; padding: 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.1); border-radius: 0.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <i class="fas fa-shield-alt" style="color: var(--danger); margin-top: 2px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <strong style="color: var(--danger); display: block; margin-bottom: 0.5rem;">Pengaturan Keamanan
+                            Tingkat Tinggi:</strong>
+                        <p style="margin: 0; color: #fca5a5; line-height: 1.6; font-size: 0.9rem;">
+                            Field ini mengontrol versi minimum APK yang diizinkan. Salah konfigurasi dapat membuat
+                            seluruh siswa tidak bisa mengakses ujian.
+                            <strong style="color: #fff;">Hanya admin/developer senior yang boleh mengubah!</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="min-apk-token">
+                        <i class="fas fa-key" style="color: var(--danger);"></i>
+                        Token APK `stable` (versi lama yang tetap boleh dipakai)
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="min-apk-token"
+                            placeholder="Contoh: BUILD-20260131120000-ABC123"
+                            style="font-family: 'Consolas', monospace; background: rgba(239, 68, 68, 0.05); border-color: var(--danger);">
+                        <button class="btn btn-outline-danger" type="button"
+                            onclick="navigator.clipboard.readText().then(t => document.getElementById('min-apk-token').value = t.trim())"
+                            title="Paste dari Clipboard">
+                            <i class="fas fa-paste"></i>
+                        </button>
+                    </div>
+                    <small class="form-text" style="color: #fca5a5;">
+                        Label: <strong>stable</strong>.
+                    </small>
+                </div>
+
+                <div class="form-group" style="margin-top: 0.75rem;">
+                    <div
+                        style="display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 0.75rem;">
+                        <label class="toggle-switch"
+                            style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="stable-apk-enabled"
+                                onclick="handleStableProfileToggleClick(event)" style="display: none;">
+                            <span class="slider" style="background: var(--dark);"></span>
+                        </label>
+                        <div style="flex: 1; margin-left: 1.5rem;">
+                            <strong id="stable-profile-title"
+                                style="display: block; margin-bottom: 0.15rem; color: #22c55e;">Profil Stable:
+                                AKTIF</strong>
+                            <p id="stable-profile-description"
+                                style="margin: 0; font-size: 0.85rem; color: #86efac;">
+                                Token/hash stable diterima saat validasi APK.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="new-update-apk-token">
+                        <i class="fas fa-key" style="color: #f59e0b;"></i>
+                        Token APK `new update` (versi terbaru)
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="new-update-apk-token"
+                            placeholder="Contoh: BUILD-20260305103000-XYZ789"
+                            style="font-family: 'Consolas', monospace; background: rgba(245, 158, 11, 0.08); border-color: #f59e0b; color: white;">
+                        <button class="btn btn-outline-warning" type="button"
+                            onclick="navigator.clipboard.readText().then(t => document.getElementById('new-update-apk-token').value = t.trim())"
+                            title="Paste dari Clipboard">
+                            <i class="fas fa-paste"></i>
+                        </button>
+                    </div>
+                    <small class="form-text" style="color: #fcd34d;">
+                        Label: <strong>new update</strong>. Boleh kosong jika belum ada rilis baru.
+                    </small>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="allowed-signatures">
+                        <i class="fas fa-fingerprint" style="color: var(--danger);"></i>
+                        Hash / Signature `stable`
+                    </label>
+                    <div class="input-group">
+                        <textarea class="form-control" id="allowed-signatures" rows="2"
+                            placeholder="Contoh: 297ad1bf..., a1b2c3d4... (pisahkan dengan koma/newline)"
+                            style="font-family: 'Consolas', monospace; background: rgba(239, 68, 68, 0.05); border-color: var(--danger); color: white;"></textarea>
+                    </div>
+                    <small class="form-text" style="color: #fca5a5;">
+                        Label: <strong>stable</strong>.
+                    </small>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="new-update-signatures">
+                        <i class="fas fa-fingerprint" style="color: #f59e0b;"></i>
+                        Hash / Signature `new update`
+                    </label>
+                    <div class="input-group">
+                        <textarea class="form-control" id="new-update-signatures" rows="2"
+                            placeholder="Contoh: b7c8d9..., e1f2g3... (pisahkan dengan koma/newline)"
+                            style="font-family: 'Consolas', monospace; background: rgba(245, 158, 11, 0.08); border-color: #f59e0b; color: white;"></textarea>
+                    </div>
+                    <small class="form-text" style="color: #fcd34d;">
+                        Label: <strong>new update</strong>. Boleh kosong jika belum ada rilis baru.
+                    </small>
+                </div>
+
+                <!-- Emergency Bypass Toggle -->
+                <div class="form-group"
+                    style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div
+                        style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: 0.75rem;">
+                        <label class="toggle-switch"
+                            style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="token-bypass"
+                                onclick="handleTokenBypassClick(event)"
+                                style="display: none;">
+                            <span class="slider" style="background: var(--dark);"></span>
+                        </label>
+                        <div style="flex: 1; margin-left: 1.5rem;">
+                            <strong id="token-bypass-title"
+                                style="display: block; margin-bottom: 0.25rem; color: var(--danger);">🚑 EMERGENCY
+                                BYPASS</strong>
+                            <p id="token-bypass-description"
+                                style="margin: 0; font-size: 0.875rem; color: #fca5a5;">
+                                Aktifkan jika terjadi masalah massal. Siswa bisa login TANPA pengecekan versi APK.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bypass-status" style="display: none; margin-top: 1rem;">
+                    <div
+                        style="padding: 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.2); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-exclamation-circle fa-beat" style="color: var(--danger); flex-shrink: 0;"></i>
+                        <div>
+                            <strong style="color: var(--danger);">BYPASS AKTIF!</strong>
+                            <span style="color: #fca5a5;">- Validasi token dinonaktifkan sementara. Keamanan
+                                menurun.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+                    <button class="btn btn-danger" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Simpan Token
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="hideApkTokenSection()">
+                        <i class="fas fa-eye-slash"></i> Sembunyikan
+                    </button>
+                    <span style="color: var(--text-secondary); font-size: 0.875rem; margin-left: auto;">
+                        <i class="fas fa-keyboard"></i> Shortcut: Ctrl+Shift+Alt+K
+                    </span>
+                </div>
+            </div>
+
+            <!-- Developer/Tester Mode Section -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-code" style="color: var(--warning);"></i> Mode Developer/Tester
+                </h3>
+
+                <!-- Warning Alert -->
+                <div
+                    style="margin-bottom: 1.5rem; padding: 1.25rem; border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); border-radius: 0.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-top: 2px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <strong style="color: #f59e0b; display: block; margin-bottom: 0.5rem;">Peringatan
+                            Keamanan:</strong>
+                        <p style="margin: 0; color: #f59e0b; line-height: 1.6;">
+                            Mode ini menonaktifkan semua security checks SEB/SXB.
+                            Siswa bisa mengakses ujian dari browser biasa (Chrome, Firefox, dll).
+                            Hanya untuk testing/development. <strong style="color: #b45309;">Jangan aktifkan saat
+                                ujian sesungguhnya!</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Toggle Switch -->
+                <div class="form-group">
+                    <div
+                        style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--dark); border-radius: 0.75rem;">
+                        <label class="toggle-switch"
+                            style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="developer-mode" onclick="handleDeveloperModeClick(event)"
+                                style="display: none;">
+                            <span class="slider"></span>
+                        </label>
+                        <div style="flex: 1; margin-left: 1.5rem;">
+                            <strong style="display: block; margin-bottom: 0.25rem; color: white;">Izinkan ujian lewat
+                                browser
+                                biasa</strong>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">Untuk testing dan
+                                development saja</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dev-mode-status" style="display: none; margin-top: 1rem;">
+                    <div
+                        style="padding: 1rem; border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color: #ef4444; flex-shrink: 0;"></i>
+                        <div>
+                            <strong style="color: #ef4444;">Mode Developer AKTIF</strong>
+                            <span style="color: var(--text-secondary);">- SEB security checks dinonaktifkan. Siswa bisa
+                                login dari browser apapun.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Android APK Section -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-mobile-alt" style="color: #3b82f6;"></i> Akses Aplikasi Android
+                </h3>
+
+                <div
+                    style="margin-bottom: 1.5rem; padding: 1.25rem; border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.1); border-radius: 0.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <i class="fas fa-info-circle" style="color: #3b82f6; margin-top: 2px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <strong style="color: #3b82f6; display: block; margin-bottom: 0.5rem;">Akses Aplikasi
+                            Mobile</strong>
+                        <p style="margin: 0; color: #3b82f6; line-height: 1.6;">
+                            Izinkan aplikasi Android resmi (APK) untuk mengikuti ujian.
+                            APK resmi adalah jalur utama production; SEB PC/Laptop hanya legacy opsional/fallback.
+                            <strong style="color: #1e40af;">Recommended: ON untuk production</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Toggle Switch -->
+                <div class="form-group">
+                    <div
+                        style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--dark); border-radius: 0.75rem;">
+                        <label class="toggle-switch"
+                            style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="mobile-apps-mode" onclick="handleMobileAppsClick(event)"
+                                style="display: none;">
+                            <span class="slider"></span>
+                        </label>
+                        <div style="flex: 1; margin-left: 1.5rem;">
+                            <strong style="display: block; margin-bottom: 0.25rem; color: white;">Izinkan APK Resmi
+                                Android</strong>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">Runtime utama ujian siswa; SEB PC hanya legacy opsional</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mobile-apps-status" style="display: none; margin-top: 1rem;">
+                    <div
+                        style="padding: 1rem; border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.1); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color: #10b981; flex-shrink: 0;"></i>
+                        <div>
+                            <strong style="color: #10b981;">APK Resmi AKTIF</strong>
+                            <span style="color: var(--text-secondary);">- Siswa diarahkan menggunakan APK Android sebagai runtime utama</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Maintenance Mode Section -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-tools" style="color: var(--danger);"></i> Mode Pemeliharaan Server
+                </h3>
+
+                <!-- Warning Alert -->
+                <div
+                    style="margin-bottom: 1.5rem; padding: 1.25rem; border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 0.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <i class="fas fa-exclamation-circle" style="color: #ef4444; margin-top: 2px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <strong style="color: #ef4444; display: block; margin-bottom: 0.5rem;">Mode Pemeliharaan
+                            Sistem</strong>
+                        <p style="margin: 0; color: #ef4444; line-height: 1.6;">
+                            Saat diaktifkan, <strong style="color: #b91c1c;">hanya admin/developer yang bisa login</strong>.
+                            Guru dan siswa akan diblokir sementara.
+                            Gunakan untuk backup database, update sistem, atau perbaikan keamanan data.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Toggle Switch -->
+                <div class="form-group">
+                    <div
+                        style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--dark); border-radius: 0.75rem;">
+                        <label class="toggle-switch"
+                            style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="maintenance-mode" onclick="handleMaintenanceModeClick(event)"
+                                style="display: none;">
+                            <span class="slider"></span>
+                        </label>
+                        <div style="flex: 1; margin-left: 1.5rem;">
+                            <strong style="display: block; margin-bottom: 0.25rem; color: white;">Blokir akses
+                                non-admin/developer</strong>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">Untuk pemeliharaan
+                                dan keamanan sistem</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Indicator -->
+                <div id="maintenance-mode-status" style="display: none; margin-top: 1rem;">
+                    <div
+                        style="padding: 1rem; border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.15); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-tools" style="color: #ef4444; flex-shrink: 0;"></i>
+                        <div>
+                            <strong style="color: #ef4444;">Mode Pemeliharaan AKTIF</strong>
+                            <span style="color: var(--text-secondary);"> - Guru dan siswa tidak bisa login. Hanya admin/developer
+                                yang dapat mengakses sistem.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden Freeze Mode Section -->
+            <div id="freeze-mode-section" class="card"
+                style="margin-bottom: 1.5rem; display: none; border: 2px solid #f43f5e; position: relative;">
+                <div
+                    style="position: absolute; top: -10px; right: 20px; background: #f43f5e; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                    <i class="fas fa-snowflake"></i> RAHASIA
+                </div>
+
+                <h3 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-snowflake" style="color: #f43f5e;"></i> Emergency Freeze Mode
+                </h3>
+
+                <div
+                    style="margin-bottom: 1.25rem; padding: 1rem; border-left: 4px solid #f43f5e; background: rgba(244, 63, 94, 0.12); border-radius: 0.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <i class="fas fa-ban" style="color: #f43f5e; margin-top: 2px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <strong style="color: #fda4af; display: block; margin-bottom: 0.5rem;">Mode Darurat Tingkat
+                            Tinggi</strong>
+                        <p style="margin: 0; color: #fecdd3; line-height: 1.6;">
+                            Saat aktif, seluruh aktivitas non-developer akan dikunci (API/aksi realtime).
+                            Gunakan hanya saat insiden kritis.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div
+                        style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--dark); border-radius: 0.75rem;">
+                        <label class="toggle-switch"
+                            style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="freeze-mode" onclick="handleFreezeModeClick(event)"
+                                style="display: none;">
+                            <span class="slider"></span>
+                        </label>
+                        <div style="flex: 1; margin-left: 1.5rem;">
+                            <strong style="display: block; margin-bottom: 0.25rem; color: white;">Kunci semua aktivitas
+                                non-developer</strong>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">
+                                Hanya akun developer-exempt yang tetap bisa bertindak.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="freeze-mode-status" style="display: none; margin-top: 1rem;">
+                    <div
+                        style="padding: 1rem; border-left: 4px solid #f43f5e; background: rgba(244, 63, 94, 0.2); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-lock" style="color: #f43f5e; flex-shrink: 0;"></i>
+                        <div>
+                            <strong style="color: #fda4af;">FREEZE MODE AKTIF</strong>
+                            <span style="color: var(--text-secondary);"> - Aktivitas non-developer dikunci sementara.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+                    <button class="btn btn-outline-secondary" onclick="hideFreezeSection()">
+                        <i class="fas fa-eye-slash"></i> Sembunyikan
+                    </button>
+                    <span style="color: var(--text-secondary); font-size: 0.875rem; margin-left: auto;">
+                        <i class="fas fa-keyboard"></i> Shortcut: Ctrl+Shift+Alt+F
+                    </span>
+                </div>
+            </div>
+
+            <!-- Backup Section -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1.5rem; color: white;">
+                    <i class="fas fa-database" style="color: var(--success);"></i> Backup Data
+                </h3>
+
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Pilih jenis data yang ingin di-backup, lalu klik tombol Export.
+                </p>
+
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <label class="backup-option selected" onclick="selectBackupType(this, 'all')">
+                        <input type="radio" name="backup-type" value="all" checked>
+                        <div class="icon all"><i class="fas fa-globe"></i></div>
+                        <div>
+                            <strong style="color: white;">Semua Data</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">User, Ujian, Soal</div>
+                        </div>
+                    </label>
+                    <label class="backup-option" onclick="selectBackupType(this, 'teachers')">
+                        <input type="radio" name="backup-type" value="teachers">
+                        <div class="icon teachers"><i class="fas fa-chalkboard-user"></i></div>
+                        <div>
+                            <strong style="color: white;">Guru Saja</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Akun guru/teacher</div>
+                        </div>
+                    </label>
+                    <label class="backup-option" onclick="selectBackupType(this, 'students')">
+                        <input type="radio" name="backup-type" value="students">
+                        <div class="icon students"><i class="fas fa-user-graduate"></i></div>
+                        <div>
+                            <strong style="color: white;">Siswa Saja</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Akun siswa/student</div>
+                        </div>
+                    </label>
+                    <label class="backup-option" onclick="selectBackupType(this, 'exams')">
+                        <input type="radio" name="backup-type" value="exams">
+                        <div class="icon exams"><i class="fas fa-file-lines"></i></div>
+                        <div>
+                            <strong style="color: white;">Ujian Saja</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Ujian tanpa user</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="action-btn export" onclick="exportBackup()" id="export-btn">
+                        <i class="fas fa-download"></i>
+                        <span>Export Backup</span>
+                    </button>
+                </div>
+
+                <div id="export-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 0%"></div>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
+                        <i class="fas fa-spinner fa-spin"></i> Mengekspor data...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Restore Section -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1.5rem; color: white;">
+                    <i class="fas fa-upload" style="color: var(--info);"></i> Restore Backup
+                </h3>
+
+                <div class="upload-zone" id="upload-zone" onclick="document.getElementById('backup-file').click()">
+                    <input type="file" id="backup-file" accept=".json" style="display: none;"
+                        onchange="handleFileSelect(event)">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h4 style="margin-bottom: 0.5rem; color: white;">Drop file backup disini</h4>
+                    <p style="color: var(--text-secondary);">atau klik untuk memilih file (.json)</p>
+                </div>
+
+                <div id="import-preview" style="display: none; margin-top: 1.5rem;">
+                    <div class="card" style="background: var(--dark); padding: 1rem;">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-eye"></i> Preview Data</h4>
+                        <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                            <div><span style="color: var(--text-secondary);">Users:</span> <strong
+                                    id="preview-users">0</strong></div>
+                            <div><span style="color: var(--text-secondary);">Exams:</span> <strong
+                                    id="preview-exams">0</strong></div>
+                            <div><span style="color: var(--text-secondary);">Questions:</span> <strong
+                                    id="preview-questions">0</strong></div>
+                        </div>
+                        <div id="preview-warnings" style="margin-top: 1rem;"></div>
+                    </div>
+
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="import-users" checked>
+                            <span>Import Users</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="import-exams" checked>
+                            <span>Import Exams</span>
+                        </label>
+                    </div>
+
+                    <button class="action-btn import" onclick="importBackup()" style="margin-top: 1rem;">
+                        <i class="fas fa-upload"></i>
+                        <span>Import Backup</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Telegram Broadcast Section -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-paper-plane" style="color: #17a2b8;"></i> Telegram Broadcast
+                </h3>
+
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Kirim notifikasi custom ke semua penerima Telegram yang dikonfigurasi.
+                </p>
+
+                <form id="telegram-broadcast-form">
+                    <input type="hidden" name="_action" value="send_telegram_broadcast">
+
+                    <div class="form-group">
+                        <label class="form-label" for="broadcast-message">Pesan</label>
+                        <textarea class="form-control" id="broadcast-message" rows="5"
+                            placeholder="Ketik pesan broadcast Anda di sini...&#10;&#10;Contoh:&#10;🎉 PENGUMUMAN&#10;&#10;Ujian Matematika akan dimulai besok pagi pukul 09:00 WIB.&#10;Harap login 15 menit sebelum waktu ujian."
+                            required maxlength="2000"></textarea>
+                        <small class="form-text text-secondary" id="char-count">0 / 2000 karakter</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Preview</label>
+                        <div id="broadcast-preview" style="
+                            padding: 1.25rem;
+                            background: var(--dark);
+                            border: 1px solid rgba(99, 102, 241, 0.2);
+                            border-radius: 0.75rem;
+                            min-height: 100px;
+                            white-space: pre-wrap;
+                            font-family: 'Inter', sans-serif;
+                            color: white;
+                        ">
+                            <em style="color: var(--text-secondary);">Preview pesan akan muncul di sini...</em>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                        <button type="submit" class="btn btn-primary" id="send-broadcast-btn" style="
+                            background: linear-gradient(135deg, #17a2b8, #138496);
+                            border: none;
+                        ">
+                            <i class="fas fa-paper-plane"></i> Kirim Broadcast
+                        </button>
+
+                        <span id="broadcast-recipients" style="color: var(--text-secondary); font-size: 0.875rem;">
+                            <i class="fas fa-users"></i> Penerima: <strong id="recipients-count">-</strong>
+                        </span>
+                    </div>
+
+                    <div id="broadcast-result" class="mt-3" style="display:none;">
+                        <!-- Success/error message will appear here -->
+                    </div>
+                </form>
+            </div>
+
+            <!-- Cache Section -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem; color: white;"><i class="fas fa-broom"
+                        style="color: var(--warning);"></i> Pembersihan
+                </h3>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="clearCache()">
+                        <i class="fas fa-broom"></i> Bersihkan Cache
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="/static/js/sidebar-loader.js?v=20260423-devmenu1"></script>
+    <script>
+        auth.requireAuth(['admin', 'developer']);
+
+        // === System Warmup ===
+        async function startWarmup() {
+            const btn = document.getElementById('warmup-btn');
+            const progress = document.getElementById('warmup-progress');
+            const log = document.getElementById('warmup-log');
+            const fill = document.getElementById('warmup-fill');
+            const percent = document.getElementById('warmup-percent');
+            const result = document.getElementById('warmup-result');
+            const resultInner = document.getElementById('warmup-result-inner');
+            const glow = document.getElementById('warmup-glow');
+
+            // Reset UI
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Memproses...';
+            btn.style.opacity = '0.7';
+            progress.style.display = 'block';
+            result.style.display = 'none';
+            fill.style.width = '0%';
+            percent.textContent = '0%';
+            log.innerHTML = '<div style="color: var(--text-secondary);"><i class="fas fa-circle-notch fa-spin" style="color: #f97316;"></i> Menghubungi server...</div>';
+            glow.style.opacity = '1';
+
+            try {
+                const response = await api.post('/monitoring/system/warmup');
+
+                if (!response || !response.steps) {
+                    throw new Error('Response tidak valid dari server');
+                }
+
+                // Animate each step sequentially
+                log.innerHTML = '';
+                for (let i = 0; i < response.steps.length; i++) {
+                    const step = response.steps[i];
+                    await new Promise(r => setTimeout(r, 300)); // delay for animation
+
+                    // Update progress bar
+                    fill.style.width = step.percent + '%';
+                    percent.textContent = step.percent + '%';
+
+                    // Icon based on status
+                    const icons = {
+                        ok: '<i class="fas fa-check-circle" style="color: #22c55e;"></i>',
+                        warning: '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>',
+                        error: '<i class="fas fa-times-circle" style="color: #ef4444;"></i>'
+                    };
+                    const icon = icons[step.status] || icons.error;
+                    const color = step.status === 'ok' ? '#22c55e' : (step.status === 'warning' ? '#f59e0b' : '#ef4444');
+
+                    const entry = document.createElement('div');
+                    entry.style.cssText = 'opacity: 0; transform: translateY(8px); transition: all 0.3s ease;';
+                    entry.innerHTML = `${icon} <strong style="color: ${color};">${step.name}</strong> <span style="color: var(--text-secondary);">— ${step.detail}</span>`;
+                    log.appendChild(entry);
+
+                    // Trigger animation
+                    requestAnimationFrame(() => {
+                        entry.style.opacity = '1';
+                        entry.style.transform = 'translateY(0)';
+                    });
+
+                    log.scrollTop = log.scrollHeight;
+                }
+
+                // Show final result
+                await new Promise(r => setTimeout(r, 500));
+                result.style.display = 'block';
+
+                if (response.overall === 'ok') {
+                    resultInner.style.background = 'rgba(34, 197, 94, 0.1)';
+                    resultInner.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+                    resultInner.innerHTML = `
+                        <i class="fas fa-rocket" style="font-size: 1.5rem; color: #22c55e;"></i>
+                        <div>
+                            <strong style="color: #22c55e; display: block;">✅ Sistem Siap! Semua layanan aktif.</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">Total waktu: ${response.total_time_ms}ms — Ujian aman dilaksanakan.</span>
+                        </div>`;
+                    fill.style.background = 'linear-gradient(90deg, #22c55e, #16a34a)';
+                } else if (response.overall === 'warning') {
+                    resultInner.style.background = 'rgba(245, 158, 11, 0.1)';
+                    resultInner.style.border = '1px solid rgba(245, 158, 11, 0.3)';
+                    resultInner.innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; color: #f59e0b;"></i>
+                        <div>
+                            <strong style="color: #f59e0b; display: block;">⚠️ Sistem Siap dengan Peringatan</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">${response.warnings} peringatan — ${response.total_time_ms}ms. Periksa log di atas.</span>
+                        </div>`;
+                    fill.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
+                } else {
+                    resultInner.style.background = 'rgba(239, 68, 68, 0.1)';
+                    resultInner.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    resultInner.innerHTML = `
+                        <i class="fas fa-times-circle" style="font-size: 1.5rem; color: #ef4444;"></i>
+                        <div>
+                            <strong style="color: #ef4444; display: block;">❌ Ada Masalah pada ${response.errors} Layanan</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">Perbaiki error sebelum memulai ujian. Lihat detail di atas.</span>
+                        </div>`;
+                    fill.style.background = 'linear-gradient(90deg, #ef4444, #b91c1c)';
+                }
+
+            } catch (error) {
+                log.innerHTML += `<div><i class="fas fa-times-circle" style="color: #ef4444;"></i> <strong style="color: #ef4444;">Gagal:</strong> <span style="color: var(--text-secondary);">${error.message || 'Koneksi ke server gagal'}</span></div>`;
+                fill.style.width = '100%';
+                fill.style.background = '#ef4444';
+                percent.textContent = 'ERROR';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-fire" style="font-size: 1.1rem;"></i> Mulai Pemanasan';
+                btn.style.opacity = '1';
+                glow.style.opacity = '0';
+            }
+        }
+
+        let selectedBackupType = 'all';
+        let selectedFile = null;
+
+        async function requestJson(method, endpoint, data = null) {
+            return apiRequest(endpoint, method, data);
+        }
+
+        async function requestRaw(method, endpoint, options = {}) {
+            return apiRequestRaw(endpoint, {
+                method,
+                data: options.data,
+                body: options.body,
+                headers: options.headers,
+                timeoutMs: options.timeoutMs
+            });
+        }
+
+        function selectBackupType(element, type) {
+            document.querySelectorAll('.backup-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedBackupType = type;
+        }
+
+        async function exportBackup() {
+            const btn = document.getElementById('export-btn');
+            const progress = document.getElementById('export-progress');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengekspor...';
+            progress.style.display = 'block';
+
+            // Animate progress
+            const fill = progress.querySelector('.fill');
+            fill.style.width = '30%';
+
+            try {
+                const response = await requestRaw('POST', '/api/v1/backup/export', {
+                    data: { export_type: selectedBackupType }
+                });
+
+                fill.style.width = '80%';
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `backup_${selectedBackupType}_${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+
+                    fill.style.width = '100%';
+                    showAlert('Backup berhasil diunduh!', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Gagal export backup', 'danger');
+                }
+            } catch (error) {
+                showAlert('Terjadi kesalahan: ' + error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-download"></i><span>Export Backup</span>';
+                setTimeout(() => {
+                    progress.style.display = 'none';
+                    fill.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        // Drag and drop
+        const uploadZone = document.getElementById('upload-zone');
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        async function handleFile(file) {
+            if (!file.name.endsWith('.json')) {
+                showAlert('File harus format JSON', 'warning');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Preview
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await requestRaw('POST', '/api/v1/backup/import/preview', {
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const preview = await response.json();
+                    document.getElementById('preview-users').textContent = preview.users_count;
+                    document.getElementById('preview-exams').textContent = preview.exams_count;
+                    document.getElementById('preview-questions').textContent = preview.questions_count;
+
+                    const warningsDiv = document.getElementById('preview-warnings');
+                    warningsDiv.innerHTML = preview.warnings.map(w =>
+                        `<div style="color: var(--warning); font-size: 0.875rem;">${w}</div>`
+                    ).join('');
+
+                    document.getElementById('import-preview').style.display = 'block';
+
+                    // Update upload zone
+                    uploadZone.innerHTML = `
+                        <i class="fas fa-file-alt" style="color: var(--success);"></i>
+                        <h4 style="margin-bottom: 0.5rem;">${file.name}</h4>
+                        <p style="color: var(--text-secondary);">${(file.size / 1024).toFixed(1)} KB</p>
+                    `;
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Gagal membaca file', 'danger');
+                }
+            } catch (error) {
+                showAlert('Gagal preview file: ' + error.message, 'danger');
+            }
+        }
+
+        async function importBackup() {
+            if (!selectedFile) {
+                showAlert('Pilih file backup terlebih dahulu', 'warning');
+                return;
+            }
+
+            const confirmed = await showConfirm('Import data dari backup? Data baru akan ditambahkan, tidak menimpa data yang ada.', {
+                title: 'Konfirmasi Import',
+                type: 'warning',
+                confirmText: 'Ya, Import',
+                cancelText: 'Batal'
+            });
+
+            if (!confirmed) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('import_users', document.getElementById('import-users').checked);
+            formData.append('import_exams', document.getElementById('import-exams').checked);
+
+            try {
+                const response = await requestRaw('POST', '/api/v1/backup/import', {
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(result.message, 'success');
+
+                    // Reset UI
+                    document.getElementById('import-preview').style.display = 'none';
+                    uploadZone.innerHTML = `
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h4 style="margin-bottom: 0.5rem;">Drop file backup disini</h4>
+                        <p style="color: var(--text-secondary);">atau klik untuk memilih file (.json)</p>
+                    `;
+                    selectedFile = null;
+                } else {
+                    const error = await response.json();
+                    showAlert(error.detail || 'Gagal import backup', 'danger');
+                }
+            } catch (error) {
+                showAlert('Gagal import: ' + error.message, 'danger');
+            }
+        }
+
+        async function saveSettings() {
+            const btn = document.querySelector('button[onclick="saveSettings()"]');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            const appName = document.getElementById('app-name').value;
+            const timezone = document.getElementById('timezone').value;
+            const stableApkToken = (document.getElementById('min-apk-token').value || '').trim();
+            const stableApkEnabled = document.getElementById('stable-apk-enabled').checked;
+            const newUpdateApkToken = (document.getElementById('new-update-apk-token').value || '').trim();
+            const stableSignaturesRaw = document.getElementById('allowed-signatures').value || '';
+            const newUpdateSignaturesRaw = document.getElementById('new-update-signatures').value || '';
+
+            const parseSignatureInput = (rawValue) => {
+                return String(rawValue || '')
+                    .split(/[\n,]/)
+                    .map((item) => item.trim())
+                    .filter(Boolean);
+            };
+
+            const payload = {
+                app_name: appName,
+                timezone: timezone,
+                stable_apk_token: stableApkToken,
+                stable_apk_enabled: stableApkEnabled,
+                new_update_apk_token: newUpdateApkToken,
+                stable_signatures: parseSignatureInput(stableSignaturesRaw),
+                new_update_signatures: parseSignatureInput(newUpdateSignaturesRaw)
+            };
+
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', payload);
+                showAlert('Pengaturan berhasil disimpan!', 'success');
+
+                // Update title immediately if changed
+                document.title = `Pengaturan - Admin Panel | ${appName}`;
+            } catch (error) {
+                showAlert(error.message || 'Gagal menyimpan pengaturan', 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function clearCache() {
+            showAlert('Cache berhasil dibersihkan!', 'success');
+        }
+
+        // ============================================
+        // Developer Mode Functions
+        // ============================================
+
+        // Load system settings on page load
+        async function loadSystemSettings() {
+            try {
+                const settings = await requestJson('GET', '/api/v1/settings/system');
+
+                    // Load General Settings
+                    if (settings.app_name) document.getElementById('app-name').value = settings.app_name;
+                    if (settings.timezone) document.getElementById('timezone').value = settings.timezone;
+
+                    const tokenProfiles = settings.apk_token_profiles || {};
+                    const sigProfiles = settings.apk_signature_profiles || {};
+
+                    document.getElementById('min-apk-token').value = tokenProfiles.stable || '';
+                    document.getElementById('new-update-apk-token').value = tokenProfiles.new_update || '';
+
+                    document.getElementById('allowed-signatures').value =
+                        Array.isArray(sigProfiles.stable) ? sigProfiles.stable.join(', ') : '';
+                    document.getElementById('new-update-signatures').value =
+                        Array.isArray(sigProfiles.new_update) ? sigProfiles.new_update.join(', ') : '';
+
+                    // Fallback for legacy payloads
+                    if (!tokenProfiles.stable && settings.minimum_apk_token) {
+                        document.getElementById('min-apk-token').value = settings.minimum_apk_token;
+                    }
+                    if ((!sigProfiles.stable || sigProfiles.stable.length === 0) && settings.allowed_signatures) {
+                        document.getElementById('allowed-signatures').value = settings.allowed_signatures;
+                    }
+
+                    // Load Token Bypass (direct mapping to token_validation_bypass)
+                    if (document.getElementById('token-bypass')) {
+                        const bypassEnabled = settings.token_validation_bypass || false;
+                        document.getElementById('token-bypass').checked = bypassEnabled;
+                        updateTokenBypassStatus(bypassEnabled);
+                    }
+
+                    // Load Stable Profile Toggle
+                    if (document.getElementById('stable-apk-enabled')) {
+                        const stableEnabled = tokenProfiles.stable_enabled !== false;
+                        document.getElementById('stable-apk-enabled').checked = stableEnabled;
+                        updateStableProfileStatus(stableEnabled);
+                    }
+
+                    // Load Developer Mode
+                    document.getElementById('developer-mode').checked = settings.allow_browser_testing;
+                    updateDevModeStatus(settings.allow_browser_testing);
+
+                    // Load Mobile Apps Mode
+                    document.getElementById('mobile-apps-mode').checked = settings.allow_mobile_apps !== false; // Default true
+                    updateMobileAppsStatus(settings.allow_mobile_apps !== false);
+
+                    // Load maintenance mode status
+                    if (document.getElementById('maintenance-mode')) {
+                        document.getElementById('maintenance-mode').checked = settings.maintenance_mode || false;
+                        updateMaintenanceStatus(settings.maintenance_mode || false);
+                    }
+
+                    // Load freeze mode status
+                    if (document.getElementById('freeze-mode')) {
+                        document.getElementById('freeze-mode').checked = settings.freeze_mode || false;
+                        updateFreezeStatus(settings.freeze_mode || false);
+                    }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Toggle developer mode (Refactored to onclick for better UX control)
+        async function handleDeveloperModeClick(event) {
+            const checkbox = event.target;
+            const isChecking = checkbox.checked; // This is the new state after click
+
+            if (isChecking) {
+                // User is trying to enable it
+                event.preventDefault(); // Prevent visual change immediately
+                // Note: preventDefault on click reverts the checked state visually and internally
+
+                const confirmed = await showConfirm(
+                    '⚠️ PERINGATAN SECURITY!\n\n' +
+                    'Mode ini akan menonaktifkan semua proteksi keamanan:\n\n' +
+                    '✗ SEB/SXB security tidak aktif\n' +
+                    '✗ Screenshot prevention dinonaktifkan\n' +
+                    '✗ Copy-paste blocking dinonaktifkan\n' +
+                    '✓ Siswa bisa akses dari browser biasa\n\n' +
+                    '📝 Catatan: Hanya untuk testing/development. Jangan aktifkan saat ujian!',
+                    'Mode Developer',
+                    {
+                        type: 'warning',
+                        confirmText: 'Ya, Aktifkan',
+                        cancelText: 'Batal'
+                    }
+                );
+
+                if (confirmed) {
+                    // User confirmed, now we manually check it and save
+                    checkbox.checked = true;
+                    await saveDeveloperMode(true);
+                }
+                // If cancelled, do nothing (checkbox remains unchecked due to preventDefault)
+            } else {
+                // User is disabling it - usually safe to do without confirmation
+                await saveDeveloperMode(false);
+            }
+        }
+
+        // Legacy function kept if needed or for reference, but not attached
+        async function toggleDeveloperMode() {
+            // Replaced by handleDeveloperModeClick
+        }
+
+        // Save developer mode setting
+        async function saveDeveloperMode(enabled) {
+            const checkbox = document.getElementById('developer-mode'); // Get checkbox again for error handling
+
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', { allow_browser_testing: enabled });
+                updateDevModeStatus(enabled);
+
+                if (enabled) {
+                    showAlert(
+                        'Mode Developer DIAKTIFKAN! Siswa bisa akses ujian dari browser biasa.',
+                        'warning'
+                    );
+                } else {
+                    showAlert(
+                        '✓ Mode Developer DINONAKTIFKAN. SEB security aktif kembali.',
+                        'success'
+                    );
+                }
+            } catch (error) {
+                showAlert('Gagal update settings: ' + error.message, 'danger');
+                checkbox.checked = !enabled;  // Revert on error
+            }
+        }
+
+        function updateDevModeStatus(enabled) {
+            const statusDiv = document.getElementById('dev-mode-status');
+            statusDiv.style.display = enabled ? 'block' : 'none';
+        }
+
+        // ============================================
+        // Mobile Apps Mode Functions
+        // ============================================
+
+        async function handleMobileAppsClick(event) {
+            const checkbox = event.target;
+            const enabled = checkbox.checked;
+
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', { allow_mobile_apps: enabled });
+                updateMobileAppsStatus(enabled);
+
+                if (enabled) {
+                    showAlert(
+                        '✓ Akses APK Android DIAKTIFKAN! Siswa bisa ujian dari aplikasi mobile.',
+                        'success'
+                    );
+                } else {
+                    showAlert(
+                        '⚠️ Akses APK Android DINONAKTIFKAN. Hanya SEB PC/Laptop yang diizinkan.',
+                        'warning'
+                    );
+                }
+            } catch (error) {
+                showAlert('Gagal update settings: ' + error.message, 'danger');
+                checkbox.checked = !enabled;  // Revert on error
+            }
+        }
+
+        function updateMobileAppsStatus(enabled) {
+            const statusDiv = document.getElementById('mobile-apps-status');
+            statusDiv.style.display = enabled ? 'block' : 'none';
+        }
+
+        // ============================================
+        // Stable Profile Toggle (ON/OFF without changing token/hash values)
+        // ============================================
+
+        async function handleStableProfileToggleClick(event) {
+            const checkbox = event.target;
+            const enabled = checkbox.checked;
+
+            if (!enabled) {
+                event.preventDefault();
+                const confirmed = await showConfirm(
+                    'NONAKTIFKAN PROFIL STABLE?\n\n' +
+                    'Token/hash stable tetap tersimpan,\n' +
+                    'tetapi versi stable tidak akan diterima saat login.',
+                    'Konfirmasi Stable OFF',
+                    {
+                        type: 'warning',
+                        confirmText: 'Ya, Nonaktifkan',
+                        cancelText: 'Batal'
+                    }
+                );
+
+                if (confirmed) {
+                    checkbox.checked = false;
+                    await saveStableProfileMode(false);
+                }
+                return;
+            }
+
+            await saveStableProfileMode(true);
+        }
+
+        async function saveStableProfileMode(enabled) {
+            const checkbox = document.getElementById('stable-apk-enabled');
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', { stable_apk_enabled: enabled });
+                updateStableProfileStatus(enabled);
+                if (enabled) {
+                    showAlert('✓ Profil stable AKTIF. Token/hash stable kembali diterima.', 'success');
+                } else {
+                    showAlert('⚠️ Profil stable OFF. Token/hash stable tetap tersimpan tapi tidak dipakai.', 'warning');
+                }
+            } catch (error) {
+                showAlert('Gagal update profil stable: ' + error.message, 'danger');
+                if (checkbox) checkbox.checked = !enabled;
+            }
+        }
+
+        function updateStableProfileStatus(enabled) {
+            const title = document.getElementById('stable-profile-title');
+            const description = document.getElementById('stable-profile-description');
+            const slider = document.querySelector('#stable-apk-enabled + .slider');
+
+            if (title) {
+                title.textContent = enabled ? 'Profil Stable: AKTIF' : 'Profil Stable: OFF';
+                title.style.color = enabled ? '#22c55e' : '#f59e0b';
+            }
+            if (description) {
+                description.textContent = enabled
+                    ? 'Token/hash stable diterima saat validasi APK.'
+                    : 'Token/hash stable tetap tersimpan, tapi versi stable tidak diterima.';
+                description.style.color = enabled ? '#86efac' : '#fde68a';
+            }
+            if (slider) {
+                slider.style.backgroundColor = enabled ? '#22c55e' : '#f59e0b';
+            }
+        }
+
+        // ============================================
+        // APK Token Bypass
+        // ============================================
+
+        async function handleTokenBypassClick(event) {
+            const checkbox = event.target;
+            const isChecking = checkbox.checked;
+
+            if (isChecking) {
+                event.preventDefault(); // Prevent visual change
+                const confirmed = await showConfirm(
+                    '🚑 AKTIFKAN EMERGENCY BYPASS?\n\n' +
+                    'Tindakan ini akan:\n' +
+                    '✓ Mengizinkan login SEMUA versi APK (termasuk versi lama/bermasalah)\n' +
+                    '✓ Menonaktifkan validasi token\n\n' +
+                    'Gunakan HANYA JIKA:\n' +
+                    '• Terjadi error massal saat update\n' +
+                    '• Siswa tidak bisa login karena token salah',
+                    'Konfirmasi Bypass',
+                    {
+                        type: 'danger',
+                        confirmText: 'Ya, Bypass',
+                        cancelText: 'Batal'
+                    }
+                );
+
+                if (confirmed) {
+                    checkbox.checked = true;
+                    await saveTokenBypass(true);
+                }
+                return;
+            }
+
+            await saveTokenBypass(false);
+        }
+
+        async function saveTokenBypass(enabled) {
+            const checkbox = document.getElementById('token-bypass');
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', { token_validation_bypass: enabled });
+                updateTokenBypassStatus(enabled);
+                if (enabled) {
+                    showAlert('🚑 Emergency Bypass AKTIF! Semua versi APK diizinkan login.', 'warning');
+                } else {
+                    showAlert('✓ Bypass dinonaktifkan. Validasi token kembali normal.', 'success');
+                }
+            } catch (error) {
+                showAlert('Gagal update settings: ' + error.message, 'danger');
+                if (checkbox) checkbox.checked = !enabled; // Revert on error
+            }
+        }
+
+        function updateTokenBypassStatus(enabled) {
+            const statusDiv = document.getElementById('bypass-status');
+            if (statusDiv) statusDiv.style.display = enabled ? 'block' : 'none';
+
+            const slider = document.querySelector('#token-bypass + .slider');
+            if (slider) {
+                slider.style.backgroundColor = enabled ? 'var(--danger)' : 'var(--dark)';
+            }
+
+            const title = document.getElementById('token-bypass-title');
+            if (title) {
+                title.textContent = '🚑 EMERGENCY BYPASS';
+                title.style.color = enabled ? 'var(--danger)' : '#fca5a5';
+            }
+
+            const description = document.getElementById('token-bypass-description');
+            if (description) {
+                description.textContent = enabled
+                    ? 'Bypass aktif. Semua versi APK diizinkan login sementara.'
+                    : 'Aktifkan jika terjadi masalah massal. Siswa bisa login TANPA pengecekan versi APK.';
+                description.style.color = enabled ? '#fca5a5' : '#fda4af';
+            }
+        }
+
+        // ============================================
+        // Maintenance Mode Functions
+        // ============================================
+
+        // Toggle maintenance mode (Refactored to onclick)
+        async function handleMaintenanceModeClick(event) {
+            const checkbox = event.target;
+            const isChecking = checkbox.checked;
+
+            if (isChecking) {
+                event.preventDefault(); // Prevent visual change
+
+                const confirmed = await showConfirm(
+                    'AKTIFKAN MODE PEMELIHARAAN?\n\n' +
+                    'Tindakan ini akan:\n\n' +
+                    '✗ MEMBLOKIR semua guru dari login\n' +
+                    '✗ MEMBLOKIR semua siswa dari login\n' +
+                    '✓ Hanya admin/developer yang dapat mengakses\n\n' +
+                    'Gunakan untuk:\n' +
+                    '• Backup database\n' +
+                    '• Update sistem\n' +
+                    '• Perbaikan keamanan\n' +
+                    '• Migrasi data',
+                    'Mode Pemeliharaan',
+                    {
+                        type: 'danger',
+                        confirmText: 'Ya, Aktifkan',
+                        cancelText: 'Batal'
+                    }
+                );
+
+                if (confirmed) {
+                    checkbox.checked = true;
+                    await saveMaintenanceMode(true);
+                }
+            } else {
+                await saveMaintenanceMode(false);
+            }
+        }
+
+        // Helper to save maintenance mode
+        async function saveMaintenanceMode(enabled) {
+            const checkbox = document.getElementById('maintenance-mode');
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', { maintenance_mode: enabled });
+                updateMaintenanceStatus(enabled);
+                if (enabled) {
+                    showAlert('Mode Pemeliharaan DIAKTIFKAN! Guru dan siswa tidak bisa login.', 'warning');
+                } else {
+                    showAlert('✓ Mode Pemeliharaan DINONAKTIFKAN. Sistem kembali normal.', 'success');
+                }
+            } catch (error) {
+                showAlert('Gagal update settings: ' + error.message, 'danger');
+                if (checkbox) checkbox.checked = !enabled; // Revert on error
+            }
+        }
+
+        // Legacy function
+        async function toggleMaintenanceMode() {
+            // Replaced by handleMaintenanceModeClick
+        }
+
+        function updateMaintenanceStatus(enabled) {
+            const statusDiv = document.getElementById('maintenance-mode-status');
+            statusDiv.style.display = enabled ? 'block' : 'none';
+        }
+
+        // ============================================
+        // Freeze Mode Functions (Hidden Emergency Panel)
+        // ============================================
+        async function handleFreezeModeClick(event) {
+            const checkbox = event.target;
+            const isChecking = checkbox.checked;
+
+            if (isChecking) {
+                event.preventDefault();
+
+                const confirmed = await showConfirm(
+                    'AKTIFKAN FREEZE MODE?\n\n' +
+                    'Efek saat aktif:\n' +
+                    '✗ Aktivitas non-developer dikunci (API & realtime)\n' +
+                    '✗ Pengguna non-developer tidak bisa bertindak\n' +
+                    '✓ Hanya developer-exempt yang tetap bisa mengelola sistem\n\n' +
+                    'Gunakan hanya saat insiden kritis.',
+                    'Konfirmasi Freeze Mode',
+                    {
+                        type: 'danger',
+                        confirmText: 'Ya, Freeze',
+                        cancelText: 'Batal'
+                    }
+                );
+
+                if (confirmed) {
+                    checkbox.checked = true;
+                    await saveFreezeMode(true);
+                }
+                return;
+            }
+
+            await saveFreezeMode(false);
+        }
+
+        async function saveFreezeMode(enabled) {
+            const checkbox = document.getElementById('freeze-mode');
+            try {
+                await requestJson('PUT', '/api/v1/settings/system', { freeze_mode: enabled });
+                updateFreezeStatus(enabled);
+                if (enabled) {
+                    showAlert('🧊 Freeze Mode DIAKTIFKAN. Aktivitas non-developer dikunci.', 'warning');
+                } else {
+                    showAlert('✓ Freeze Mode DINONAKTIFKAN. Aktivitas kembali normal.', 'success');
+                }
+            } catch (error) {
+                showAlert('Gagal update freeze mode: ' + error.message, 'danger');
+                if (checkbox) checkbox.checked = !enabled;
+            }
+        }
+
+        function updateFreezeStatus(enabled) {
+            const statusDiv = document.getElementById('freeze-mode-status');
+            if (statusDiv) statusDiv.style.display = enabled ? 'block' : 'none';
+        }
+
+        // Load settings when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSystemSettings();
+            loadTelegramStatus();  // Load Telegram recipients count
+        });
+
+        // ============================================
+        // Telegram Broadcast Functions
+        // ============================================
+
+        const broadcastForm = document.getElementById('telegram-broadcast-form');
+        const broadcastMessage = document.getElementById('broadcast-message');
+        const broadcastPreview = document.getElementById('broadcast-preview');
+        const sendBroadcastBtn = document.getElementById('send-broadcast-btn');
+        const broadcastResult = document.getElementById('broadcast-result');
+        const charCount = document.getElementById('char-count');
+
+        // Load Telegram status (recipients count)
+        async function loadTelegramStatus() {
+            try {
+                const status = await requestJson('GET', '/api/v1/telegram/status');
+                document.getElementById('recipients-count').textContent = status.recipients || 0;
+
+                if (!status.enabled || !status.configured) {
+                    document.getElementById('broadcast-recipients').innerHTML =
+                        '<i class="fas fa-exclamation-triangle"></i> <span style="color: var(--warning);">Telegram not configured</span>';
+                    sendBroadcastBtn.disabled = true;
+                }
+            } catch (error) {
+                console.error('Failed to load Telegram status:', error);
+            }
+        }
+
+        // Character count
+        if (broadcastMessage) {
+            broadcastMessage.addEventListener('input', function () {
+                const length = this.value.length;
+                charCount.textContent = `${length} / 2000 karakter`;
+                updateBroadcastPreview();
+            });
+        }
+
+        // Live preview
+        function updateBroadcastPreview() {
+            const message = broadcastMessage.value.trim();
+            if (message) {
+                const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+                const adminName = localStorage.getItem('username') || 'Admin';
+
+                broadcastPreview.innerHTML = `<strong style="color: var(--primary);">📢 ADMIN BROADCAST</strong><br><br><span style="color: white;">${escapeHtml(message)}</span><br><br><span style="color: var(--text-secondary); font-size: 0.875rem;">─────────────────────<br>📤 Sent by: ${adminName}<br>⏰ Time: ${now} WIB</span>`;
+            } else {
+                broadcastPreview.innerHTML = '<em style="color: var(--text-secondary);">Preview pesan akan muncul di sini...</em>';
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // Send broadcast
+        if (broadcastForm) {
+            broadcastForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const message = broadcastMessage.value.trim();
+                if (!message) {
+                    showBroadcastResult('danger', '⚠️ Pesan tidak boleh kosong');
+                    return;
+                }
+
+                // Confirm before sending
+                const confirmed = await showConfirm(
+                    'Kirim broadcast ke semua penerima Telegram yang dikonfigurasi?',
+                    'Konfirmasi Broadcast',
+                    {
+                        type: 'info',
+                        confirmText: 'Ya, Kirim',
+                        cancelText: 'Batal'
+                    }
+                );
+
+                if (!confirmed) return;
+
+                sendBroadcastBtn.disabled = true;
+                sendBroadcastBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+
+                try {
+                    const data = await requestJson('POST', '/api/v1/telegram/broadcast', { message });
+
+                    if (data && data.success) {
+                        showBroadcastResult('success',
+                            `✅ Broadcast berhasil dikirim ke ${data.recipients} penerima!`
+                        );
+                        // Clear form
+                        broadcastMessage.value = '';
+                        charCount.textContent = '0 / 2000 karakter';
+                        updateBroadcastPreview();
+                    } else {
+                        showBroadcastResult('danger',
+                            data.detail || 'Gagal mengirim broadcast'
+                        );
+                    }
+                } catch (error) {
+                    showBroadcastResult('danger', 'Network error: ' + error.message);
+                } finally {
+                    sendBroadcastBtn.disabled = false;
+                    sendBroadcastBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Broadcast';
+                }
+            });
+        }
+
+        function showBroadcastResult(type, message) {
+            broadcastResult.style.display = 'block';
+            broadcastResult.className = `mt-3 alert alert-${type}`;
+            broadcastResult.innerHTML = message;
+
+            setTimeout(() => {
+                broadcastResult.style.display = 'none';
+            }, 5000);
+        }
+
+        // ============================================
+        // APK Token Security Section Functions
+        // ============================================
+
+        let apkTokenVisible = false;
+        let freezeVisible = false;
+
+        function showApkTokenSection() {
+            const section = document.getElementById('apk-token-section');
+
+            if (section) {
+                section.style.display = 'block';
+                section.style.animation = 'slideDown 0.3s ease-out';
+                apkTokenVisible = true;
+
+                // Scroll to section
+                section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Show notification
+                showAlert('Mode Keamanan APK Token diaktifkan!', 'warning');
+            }
+        }
+
+        function hideApkTokenSection() {
+            const section = document.getElementById('apk-token-section');
+
+            if (section) {
+                section.style.display = 'none';
+                apkTokenVisible = false;
+            }
+        }
+
+        function showFreezeSection() {
+            const section = document.getElementById('freeze-mode-section');
+
+            if (section) {
+                section.style.display = 'block';
+                section.style.animation = 'slideDown 0.3s ease-out';
+                freezeVisible = true;
+                section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showAlert('Panel Freeze Mode ditampilkan!', 'warning');
+            }
+        }
+
+        function hideFreezeSection() {
+            const section = document.getElementById('freeze-mode-section');
+
+            if (section) {
+                section.style.display = 'none';
+                freezeVisible = false;
+            }
+        }
+
+        // NOTE: Keyboard shortcuts (Ctrl+Shift+Alt+K/F and L) are handled globally in api.js
+        // This ensures consistent behavior across all pages and prevents timing issues
+
+        // Add animation styles
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            kbd {
+                font-family: monospace;
+                font-size: 0.85em;
+            }
+        `;
+        document.head.appendChild(styleSheet);
+    </script>
+
+    <!-- Modern Modals Library (Standalone) -->
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Keamanan Akun - Admin Panel</title>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Core CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css?v=3.2">
+    <link rel="stylesheet" href="/static/css/responsive.css?v=3.2">
+    <link rel="stylesheet" href="/static/css/utilities.css">
+    <style>
+        .security-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .stat-card.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .locked-accounts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .locked-accounts-table th,
+        .locked-accounts-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .locked-accounts-table th {
+            background: rgba(99, 102, 241, 0.1);
+            font-weight: 600;
+            color: #ffffff;
+            /* Changed from text-primary to white */
+        }
+
+        .locked-accounts-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .countdown {
+            font-family: monospace;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 1rem;
+        }
+
+        .btn-unlock {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        .btn-unlock-all {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn.spinning i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="area">
+        <ul class="circles">
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+        </ul>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">🔒 Keamanan Akun</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary refresh-btn" onclick="loadLockedAccounts()">
+                        <i class="fas fa-rotate"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="security-stats">
+                <div class="stat-card warning" id="stat-locked">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="locked-count">0</div>
+                        <div class="stat-label">Akun Terkunci</div>
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">500/min</div>
+                        <div class="stat-label">Rate Limit per IP</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                        <i class="fas fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">15 min</div>
+                        <div class="stat-label">Durasi Lockout</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Locked Accounts Card -->
+            <div class="card">
+                <div class="action-bar">
+                    <h3 style="color: white;"><i class="fas fa-user-lock" style="color: white;"></i> Akun Terkunci</h3>
+                    <button class="btn btn-unlock-all" onclick="unlockAll()" id="unlock-all-btn" style="display: none;">
+                        <i class="fas fa-lock-open"></i> Unlock Semua
+                    </button>
+                </div>
+
+                <div id="locked-accounts-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <h3 style="color: white;"><i class="fas fa-circle-info" style="color: white;"></i> Cara Kerja</h3>
+                <div class="mt-2" style="color: white; line-height: 1.8;">
+                    <p><strong style="color: white;">1. Rate Limit:</strong> Maksimal 500 login per IP per menit (untuk sekolah dengan NAT)
+                    </p>
+                    <p><strong style="color: white;">2. Failed Attempts:</strong> Setelah 3x gagal → muncul CAPTCHA</p>
+                    <p><strong style="color: white;">3. Account Lockout:</strong> Setelah 5x gagal → akun terkunci 15 menit</p>
+                    <p><strong style="color: white;">4. Unlock Manual:</strong> Admin/Pengawas dapat membuka kunci akun siswa secara manual</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/toast.js"></script>
+    <script src="/static/js/custom-confirm.js"></script>
+    <script src="/static/js/sidebar-loader.js?v=3.3"></script>
+    <script>
+        const currentUser = auth.getUser();
+        const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
+        const isPengawas = typeof auth.isPengawas === 'function' && auth.isPengawas();
+
+        // Allow admin and pengawas only.
+        auth.requireAuth(['admin', 'developer', 'teacher']);
+        if (!isAdmin && !isPengawas) {
+            window.location.href = '/admin/exams.html';
+        }
+
+        // Use api client wrapper so refresh/retry behavior is consistent.
+        const API_ENDPOINT_PREFIX = '/admin/security';
+        const canBulkUnlock = isAdmin;
+
+        // Load locked accounts
+        async function loadLockedAccounts() {
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('spinning');
+
+            try {
+                const accounts = await api.request('GET', `${API_ENDPOINT_PREFIX}/locked-accounts`);
+                renderLockedAccounts(accounts);
+            } catch (error) {
+                Toast.error('Gagal memuat data akun terkunci');
+                console.error(error);
+            } finally {
+                btn.classList.remove('spinning');
+            }
+        }
+
+        function renderLockedAccounts(accounts) {
+            const container = document.getElementById('locked-accounts-container');
+            const countEl = document.getElementById('locked-count');
+            const unlockAllBtn = document.getElementById('unlock-all-btn');
+
+            countEl.textContent = accounts.length;
+            unlockAllBtn.style.display = (canBulkUnlock && accounts.length > 0) ? 'flex' : 'none';
+
+            if (accounts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>Tidak Ada Akun Terkunci</h3>
+                        <p style="color: var(--text-secondary);">Semua akun dalam status normal</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="locked-accounts-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Terkunci Sejak</th>
+                            <th>Sisa Waktu</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${accounts.map(acc => `
+                            <tr>
+                                <td><strong>${acc.username}</strong></td>
+                                <td>${formatTime(acc.locked_at)}</td>
+                                <td><span class="countdown">${acc.remaining_minutes} menit</span></td>
+                                <td>
+                                    <button class="btn btn-unlock btn-sm" onclick="unlockAccount('${acc.username}')">
+                                        <i class="fas fa-unlock"></i> Unlock
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function unlockAccount(username) {
+            const confirmed = await showCustomConfirm(
+                `Apakah Anda yakin ingin membuka kunci akun "${username}"?\nUser akan dapat login kembali.`,
+                'Konfirmasi Unlock'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const safeUsername = encodeURIComponent(username);
+                const result = await api.request('POST', `${API_ENDPOINT_PREFIX}/unlock/${safeUsername}`);
+
+                if (result.success) {
+                    Toast.success(`Akun ${username} berhasil di-unlock`);
+                    loadLockedAccounts();
+                } else {
+                    Toast.warning(result.message);
+                }
+            } catch (error) {
+                Toast.error('Gagal unlock akun');
+                console.error(error);
+            }
+        }
+
+        async function unlockAll() {
+            const confirmed = await showCustomConfirm(
+                'Apakah Anda yakin ingin membuka kunci SEMUA akun?\nSemua user yang terkunci akan dapat login kembali.',
+                'Konfirmasi Unlock Massal'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const result = await api.request('POST', `${API_ENDPOINT_PREFIX}/unlock-all`);
+
+                if (result.success) {
+                    Toast.success(`${result.count} akun berhasil di-unlock`);
+                    loadLockedAccounts();
+                } else {
+                    Toast.warning(result.message);
+                }
+            } catch (error) {
+                Toast.error('Gagal unlock semua akun');
+                console.error(error);
+            }
+        }
+
+        // Auto refresh every 30 seconds
+        setInterval(loadLockedAccounts, 30000);
+
+        // Initial load
+        loadLockedAccounts();
+    </script>
+</body>
+
+</html>

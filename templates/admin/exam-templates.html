@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Ujian - Admin Panel</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <style>
+        /* Header Section */
+        .page-header {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(13, 148, 136, 0.1));
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            box-shadow: 0 8px 24px rgba(20, 184, 166, 0.3);
+        }
+
+        .header-text h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-text p {
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 32px rgba(20, 184, 166, 0.2);
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.primary {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(13, 148, 136, 0.2));
+            color: #5eead4;
+        }
+
+        .stat-icon.success {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2));
+            color: #86efac;
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-select {
+            padding: 0.875rem 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            min-width: 180px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+        }
+
+        .filter-select option {
+            background: var(--dark-card);
+        }
+
+        .btn {
+            padding: 0.7rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.76rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 16px rgba(20, 184, 166, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(20, 184, 166, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--primary);
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        /* Templates Grid */
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .templates-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Template Card - Enhanced with Glassmorphism */
+        .template-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.85));
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .template-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #14b8a6, #0d9488, #ec4899, #22d3ee, #14b8a6);
+            background-size: 300% 100%;
+            animation: gradientShift 4s ease-in-out infinite;
+        }
+
+        .template-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0), rgba(20, 184, 166, 0.1));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .template-card:hover::after {
+            opacity: 1;
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .template-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            border-color: rgba(20, 184, 166, 0.6);
+            box-shadow: 0 24px 56px rgba(20, 184, 166, 0.25), 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .template-card:active {
+            transform: translateY(-10px) scale(1.01);
+        }
+
+        .template-card-header {
+            padding: 1.75rem;
+            padding-bottom: 1.25rem;
+        }
+
+        .template-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .template-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(13, 148, 136, 0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: #c7d2fe;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-icon-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .template-card:hover .template-icon-wrapper {
+            transform: rotate(5deg) scale(1.1);
+        }
+
+        .template-card:hover .template-icon-wrapper::before {
+            opacity: 1;
+        }
+
+        .template-badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .template-badge.public {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2));
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .template-badge.private {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+            color: #fcd34d;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .template-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.75rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .template-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .template-meta {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item i {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .meta-item strong {
+            color: var(--text-primary);
+        }
+
+        .template-card-footer {
+            padding: 1rem 1.75rem 1.75rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .template-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .template-actions .btn {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            justify-content: center;
+        }
+
+        /* Admin controls override */
+        .template-actions.admin-controls {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .btn-use {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+            grid-column: 1 / -1;
+        }
+
+        .btn-use:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-preview {
+            background: rgba(20, 184, 166, 0.15);
+            color: #5eead4;
+            border: 1px solid rgba(20, 184, 166, 0.3);
+        }
+
+        .btn-preview:hover {
+            background: rgba(20, 184, 166, 0.25);
+            border-color: var(--primary);
+        }
+
+        .btn-publish {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-publish:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #34d399;
+        }
+
+        .btn-unpublish {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-unpublish:hover {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: #fbbf24;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: var(--danger);
+        }
+
+        /* Empty State - Enhanced with Animation */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 1.6rem;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.5));
+            border-radius: 19px;
+            border: 2px dashed rgba(20, 184, 166, 0.3);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .empty-icon {
+            font-size: 4.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.2rem;
+            opacity: 0.7;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .empty-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.8rem;
+        }
+
+        .empty-text {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.8;
+            font-size: 0.84rem;
+        }
+
+        /* Loading - Enhanced with Pulse Effect */
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+        }
+
+        .spinner {
+            width: 64px;
+            height: 64px;
+            border: 6px solid rgba(20, 184, 166, 0.1);
+            border-top-color: var(--primary);
+            border-right-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            position: relative;
+        }
+
+        .spinner::after {
+            content: '';
+            position: absolute;
+            inset: -20px;
+            border-radius: 50%;
+            border: 2px solid rgba(20, 184, 166, 0.1);
+            animation: pulse 1.5s ease-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
+
+        /* Skeleton Loading */
+        .skeleton-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.6));
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 1.75rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .skeleton-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.05) 50%,
+                    transparent 100%);
+            animation: shimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .skeleton-line {
+            height: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-line.title {
+            height: 24px;
+            width: 70%;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-line.short {
+            width: 40%;
+        }
+
+        /* Modal Improvements */
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(13, 148, 136, 0.1));
+        }
+
+        .modal-title {
+            font-weight: 700;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .modal-title i {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.625rem;
+            display: block;
+        }
+
+        .form-label small {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .form-control,
+        .form-select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        .form-select option {
+            background: var(--dark-card);
+            color: var(--text-primary);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-close {
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        /* Ensure modal appears above sidebar */
+        .modal-backdrop {
+            z-index: 1050 !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+
+        /* Preview Modal */
+        .preview-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-stat {
+            background: rgba(20, 184, 166, 0.1);
+            padding: 1.25rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(20, 184, 166, 0.2);
+        }
+
+        .preview-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #5eead4;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .question-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .question-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .question-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .question-list::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .question-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .question-number {
+            color: var(--primary);
+            font-weight: 700;
+            margin-right: 0.5rem;
+        }
+
+        .question-text {
+            color: var(--text-primary);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .toast {
+            min-width: 300px;
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--info);
+        }
+
+        .toast-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .toast.success .toast-icon {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+        }
+
+        .toast.error .toast-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .toast.warning .toast-icon {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fcd34d;
+        }
+
+        .toast.info .toast-icon {
+            background: rgba(34, 211, 238, 0.2);
+            color: #67e8f9;
+        }
+
+        .toast-message {
+            flex: 1;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="header-content">
+                    <div class="header-title">
+                        <div class="header-icon">
+                            <i class="fas fa-file-circle-plus"></i>
+                        </div>
+                        <div class="header-text">
+                            <h1>Template Ujian</h1>
+                            <p>Kelola dan gunakan template ujian untuk efisiensi maksimal</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="total-templates">0</div>
+                        <div class="stat-label">Total Template</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="public-templates">0</div>
+                        <div class="stat-label">Template Publik</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="filter-controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input"
+                            placeholder="Cari template berdasarkan nama atau deskripsi...">
+                    </div>
+                    <select class="filter-select" id="filter-visibility">
+                        <option value="">Semua Template</option>
+                        <option value="public">Template Publik</option>
+                        <option value="private">Template Private</option>
+                    </select>
+                    <button class="btn btn-icon btn-secondary" onclick="loadTemplates()" title="Refresh">
+                        <i class="fas fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Templates Grid -->
+            <div id="templates-container">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Use Template Modal - CUSTOM -->
+    <div class="custom-modal-overlay" id="useTemplateModal" style="display: none;">
+        <div class="custom-modal-box">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    Buat Ujian dari Template
+                </h5>
+                <button type="button" class="custom-close-btn" onclick="closeUseModal()">&times;</button>
+            </div>
+            <div class="custom-modal-body">
+                <input type="hidden" id="use-template-id">
+
+                <div class="mb-3">
+                    <label class="form-label" style="color: white;">Template</label>
+                    <div
+                        style="padding: 1rem; background: rgba(20, 184, 166, 0.1); border-radius: 10px; border: 1px solid rgba(20, 184, 166, 0.2);">
+                        <strong id="use-template-name" style="color: #5eead4;"></strong>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" style="color: white;">Judul Ujian <span
+                            style="color: #ef4444;">*</span></label>
+                    <input type="text" class="form-control" id="use-exam-title" required
+                        style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); color: white;">
+                </div>
+
+                <!-- Description removed as requested -->
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label" style="color: white;">Waktu Mulai <span
+                                style="color: #ef4444;">*</span></label>
+                        <input type="datetime-local" class="form-control" id="use-start-time" required
+                            style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); color: white;">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color: white;">Waktu Selesai <span
+                                style="color: #ef4444;">*</span></label>
+                        <input type="datetime-local" class="form-control" id="use-end-time" required
+                            style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); color: white;">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" style="color: white;">Kelas yang Diizinkan <small
+                            style="color: #94a3b8;">(opsional)</small></label>
+
+                    <div id="use-allowed-classes-container" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; max-height: 150px; overflow-y: auto;">
+                        <div style="text-align: center; color: #94a3b8; padding: 1rem;">
+                            <i class="fas fa-spinner fa-spin"></i> Memuat daftar kelas...
+                        </div>
+                    </div>
+                    <small style="color: #94a3b8; display: block; margin-top: 0.5rem;">Centang kelas yang diizinkan. Jika tidak ada yang dicentang, ujian terbuka untuk semua kelas.</small>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeUseModal()">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="createExamFromTemplate(event)">
+                        <i class="fas fa-plus"></i> Buat Ujian
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal - CUSTOM -->
+    <div class="custom-modal-overlay" id="deleteTemplateModal" style="display: none;">
+        <div class="custom-modal-box" style="max-width: 500px;">
+            <div class="custom-modal-header" style="background: rgba(239, 68, 68, 0.1);">
+                <h5 class="custom-modal-title" style="color: #fca5a5;">
+                    <i class="fas fa-trash-can" style="background: rgba(239, 68, 68, 0.2);"></i>
+                    Hapus Template
+                </h5>
+                <button type="button" class="custom-close-btn" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="custom-modal-body">
+                <input type="hidden" id="delete-template-id">
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">Apakah Anda yakin ingin menghapus template ini?</p>
+                <div style="padding: 1rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; margin-bottom: 1.5rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #fca5a5; margin-right: 0.5rem;"></i>
+                    <span style="color: #fca5a5;">Tindakan ini tidak dapat dibatalkan.</span>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Batal</button>
+                    <button type="button" class="btn btn-delete" style="background: #ef4444; color: white; border: none;" onclick="confirmDeleteTemplate(event)">
+                        <i class="fas fa-trash-can"></i> Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Template Modal - CUSTOM -->
+    <div class="custom-modal-overlay" id="previewTemplateModal" style="display: none;">
+        <div class="custom-modal-box">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">
+                    <i class="fas fa-eye"></i>
+                    Preview Template
+                </h5>
+                <button type="button" class="custom-close-btn" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="custom-modal-body" id="preview-content">
+                <!-- Dynamic preview content -->
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* CUSTOM MODAL - GUARANTEED CENTERED */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .custom-modal-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .custom-modal-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(13, 148, 136, 0.1));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .custom-modal-title {
+            font-weight: 700;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .custom-modal-title i {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-close-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-close-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .custom-modal-body {
+            padding: 2rem;
+            color: white !important;
+        }
+
+        /* Force all text inside modal to be white */
+        .custom-modal-body * {
+            color: white !important;
+        }
+
+        .custom-modal-body .preview-stat-label,
+        .custom-modal-body small,
+        .custom-modal-body .text-secondary {
+            color: #94a3b8 !important;
+        }
+
+        /* Fix datetime calendar icon to be white/visible */
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/auth.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/api.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/sidebar-loader.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/exam-templates.js?v=20260312-hotfix-draft1"></script>
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+    <script>
+        // Check authentication + role
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        // Initial load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTemplates();
+
+            // Search debounce
+            document.getElementById('search-input').addEventListener('input', debounce(loadTemplates, 300));
+            document.getElementById('filter-visibility').addEventListener('change', loadTemplates);
+        });
+    </script>
+
+    <script>
+        let allTemplates = [];
+
+        // Utility function to escape HTML - MUST be defined first
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+
+        // --- GLOBAL FUNCTIONS START HERE ---
+
+        async function loadTemplates() {
+            const container = document.getElementById('templates-container');
+
+            // Show skeleton loaders
+            container.innerHTML = `
+                <div class="templates-grid">
+                    ${Array(3).fill('').map(() => `
+                        <div class="skeleton-card">
+                            <div class="skeleton-line title"></div>
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line short"></div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            try {
+                const response = await window.api.getTemplates(false, 1, 100);
+                allTemplates = response.templates || [];
+
+                // Update stats with animation
+                const totalEl = document.getElementById('total-templates');
+                const publicEl = document.getElementById('public-templates');
+
+                animateNumber(totalEl, 0, allTemplates.length, 500);
+                animateNumber(publicEl, 0, allTemplates.filter(t => t.is_public).length, 500);
+
+                filterAndRender();
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-title">Gagal Memuat Template</div>
+                        <div class="empty-text">${escapeHtml(error.message || 'Terjadi kesalahan saat memuat template')}</div>
+                        <button class="btn btn-primary" onclick="loadTemplates()">
+                            <i class="fas fa-sync-alt"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function animateNumber(element, start, end, duration) {
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    element.textContent = Math.round(end);
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.round(current);
+                }
+            }, 16);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.querySelector('.toast-container') || (() => {
+                const div = document.createElement('div');
+                div.className = 'toast-container';
+                document.body.appendChild(div);
+                return div;
+            })();
+
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <i class="fas ${icons[type]}"></i>
+                </div>
+                <div class="toast-message">${message}</div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function filterAndRender() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const visibility = document.getElementById('filter-visibility').value;
+
+            let filtered = allTemplates;
+
+            // Search filter
+            if (search) {
+                filtered = filtered.filter(t =>
+                    t.name.toLowerCase().includes(search) ||
+                    (t.description && t.description.toLowerCase().includes(search))
+                );
+            }
+
+            // Visibility filter
+            if (visibility === 'public') {
+                filtered = filtered.filter(t => t.is_public);
+            } else if (visibility === 'private') {
+                filtered = filtered.filter(t => !t.is_public);
+            }
+
+            renderTemplates(filtered);
+        }
+
+        function renderTemplates(templates) {
+            const container = document.getElementById('templates-container');
+
+            if (templates.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-file-circle-plus"></i></div>
+                        <div class="empty-title">Belum Ada Template</div>
+                        <div class="empty-text">
+                            Buat template dengan menyimpan ujian yang sudah ada.<br>
+                            Buka Bank Soal → Pilih ujian → Klik "Simpan sebagai Template"
+                        </div>
+                        <a href="/admin/exams.html" class="btn btn-primary">
+                            <i class="fas fa-file-circle-plus"></i> Buat Template Ujian
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="templates-grid">
+                    ${templates.map(t => renderTemplateCard(t)).join('')}
+                </div>
+            `;
+        }
+
+        function renderTemplateCard(template) {
+            const questionCount = template.template_data?.questions?.length || 0;
+            const createdAt = new Date(template.created_at).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+
+            // Check if user is admin
+            const isAdmin = auth.isAdmin();
+
+            // Prepare Publish Button HTML
+            let publishBtn = '';
+            if (isAdmin) {
+                if (template.is_public) {
+                    publishBtn = `
+                        <button class="btn btn-unpublish" onclick="handleTogglePublic(${template.id}, false, '${escapeHtml(template.name)}')" title="Jadikan Private">
+                            <i class="fas fa-lock"></i> Unpublish
+                        </button>
+                    `;
+                } else {
+                    publishBtn = `
+                        <button class="btn btn-publish" onclick="handleTogglePublic(${template.id}, true, '${escapeHtml(template.name)}')" title="Jadikan Publik">
+                            <i class="fas fa-globe"></i> Publish
+                        </button>
+                    `;
+                }
+            }
+
+            return `
+                <div class="template-card">
+                    <div class="template-card-header">
+                        <div class="template-card-top">
+                            <div class="template-icon-wrapper">
+                                <i class="fas fa-file-lines"></i>
+                            </div>
+                            <span class="template-badge ${template.is_public ? 'public' : 'private'}">
+                                ${template.is_public ? '🌍 Publik' : '🔒 Private'}
+                            </span>
+                        </div>
+                        <h3 class="template-title">${escapeHtml(template.name)}</h3>
+                        <p class="template-description">${escapeHtml(template.description || 'Tidak ada deskripsi')}</p>
+                        <div class="template-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-circle-question"></i>
+                                <span><strong>${questionCount}</strong> Soal</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span><strong>${template.template_data?.duration_minutes || 60}</strong> menit</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-calendar-days"></i>
+                                <span>${createdAt}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="template-card-footer">
+                        <div class="template-actions ${isAdmin ? 'admin-controls' : ''}">
+                            <button class="btn btn-use" onclick="handleUseTemplate(${template.id})">
+                                <i class="fas fa-wand-magic-sparkles"></i> Gunakan Template
+                            </button>
+                            <button class="btn btn-preview" onclick="handlePreviewTemplate(${template.id})">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                            ${publishBtn}
+                            <button class="btn btn-delete" onclick="handleDeleteTemplate(${template.id})">
+                                <i class="fas fa-trash-can"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function handleTogglePublic(templateId, makePublic, templateName) {
+            const action = makePublic ? 'mempublikasikan' : 'memprivatkan';
+            const confirmTitle = makePublic ? '🌍 Publikasikan Template' : '🔒 Privatkan Template';
+            const confirmMsg = makePublic
+                ? `Apakah Anda yakin ingin mempublikasikan template "${templateName}"? Template ini akan dapat dilihat dan digunakan oleh semua guru.`
+                : `Apakah Anda yakin ingin memprivatkan template "${templateName}"? Template ini hanya akan terlihat oleh Anda dan Admin.`;
+
+            // Use showConfirm if available (from modern-modals.js)
+            let confirmed = false;
+            if (typeof showConfirm === 'function') {
+                confirmed = await showConfirm(confirmMsg, {
+                    title: confirmTitle,
+                    type: makePublic ? 'info' : 'warning',
+                    confirmText: makePublic ? 'Ya, Publikasikan' : 'Ya, Privatkan',
+                    cancelText: 'Batal'
+                });
+            } else {
+                confirmed = confirm(confirmMsg);
+            }
+
+            if (!confirmed) return;
+
+            try {
+                // Call API to update template
+                await window.api.updateTemplate(templateId, { is_public: makePublic });
+
+                showToast(`Template berhasil di${makePublic ? 'publikasi' : 'privat'}kan`, 'success');
+                loadTemplates(); // Reload list
+            } catch (error) {
+                console.error('Failed to toggle visibility:', error);
+                showToast(`Gagal ${action} template: ${error.message}`, 'error');
+            }
+        }
+
+        async function openUseModal(templateId, templateName) {
+            document.getElementById('use-template-id').value = templateId;
+            document.getElementById('use-template-name').textContent = templateName;
+            document.getElementById('use-exam-title').value = templateName; // Clean title without "- New" suffix
+
+            // Auto-detect Date & Time (Today)
+            const now = new Date();
+            // Adjust to local timezone ISO string (YYYY-MM-DDTHH:mm)
+            const toLocalISO = (date) => {
+                const offset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+            };
+
+            const startTimeVal = toLocalISO(now);
+            const endTimeVal = toLocalISO(new Date(now.getTime() + 60 * 60 * 1000)); // +60 mins default
+
+            document.getElementById('use-start-time').value = startTimeVal;
+            document.getElementById('use-end-time').value = endTimeVal;
+
+            // Load Classes for Checkbox List
+            const classContainer = document.getElementById('use-allowed-classes-container');
+            classContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Memuat daftar kelas...</div>';
+
+            try {
+                // Fetch classes from API
+                const classes = await window.api.getStudentClasses();
+
+                if (classes && classes.length > 0) {
+                    classContainer.innerHTML = classes.map(cls => `
+                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer; color: white;">
+                            <input type="checkbox" class="class-checkbox" value="${cls}" style="margin-right: 0.75rem; width: 16px; height: 16px; accent-color: var(--primary);">
+                            ${cls}
+                        </label>
+                    `).join('');
+                } else {
+                    classContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1rem;">Tidak ada data kelas ditemukan.</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load classes:', error);
+                classContainer.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 1rem;">Gagal memuat kelas.</div>';
+            }
+
+            // OPEN CUSTOM MODAL!
+            document.getElementById('useTemplateModal').style.display = 'flex';
+        }
+
+        function closeUseModal() {
+            document.getElementById('useTemplateModal').style.display = 'none';
+        }
+
+        async function createExamFromTemplate(event) {
+            const templateId = document.getElementById('use-template-id').value;
+            const title = document.getElementById('use-exam-title').value;
+            // Description removed
+            const startTime = document.getElementById('use-start-time').value;
+            const endTime = document.getElementById('use-end-time').value;
+
+            // Collect checked classes
+            const checkedClasses = Array.from(document.querySelectorAll('.class-checkbox:checked'))
+                                       .map(cb => cb.value);
+            const allowedClasses = checkedClasses.length > 0 ? checkedClasses.join(',') : null;
+
+            // Validate required fields
+            if (!title || !startTime || !endTime) {
+                showToast('Mohon isi semua field wajib', 'warning');
+                return;
+            }
+
+            // Validate date range
+            const startDate = new Date(startTime);
+            const endDate = new Date(endTime);
+            if (startDate >= endDate) {
+                showToast('Waktu selesai harus setelah waktu mulai', 'warning');
+                return;
+            }
+
+            // Show loading state
+            const btn = event ? event.target : document.querySelector('#useTemplateModal .btn-primary');
+            // Check if btn exists (in case triggered programmatically)
+            if(btn) {
+                const originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membuat...';
+            }
+
+            try {
+                const examData = {
+                    title,
+                    description: "", // Send empty description
+                    start_time: startDate.toISOString(),
+                    end_time: endDate.toISOString(),
+                    allowed_classes: allowedClasses
+                };
+
+                const createdExam = await window.api.createExamFromTemplate(templateId, examData);
+
+                closeUseModal();
+                showToast('Ujian berhasil dibuat dari template!', 'success');
+
+                // Redirect to exams page with draft focus so newly created draft is immediately visible
+                setTimeout(() => {
+                    const createdId = createdExam && createdExam.id ? `&created_id=${createdExam.id}` : '';
+                    window.location.href = `/admin/exams.html?filter=draft${createdId}`;
+                }, 1500);
+
+            } catch (error) {
+                showToast('Gagal membuat ujian: ' + error.message, 'danger');
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> Buat Ujian';
+                }
+            }
+        }
+
+        // Custom Modal Functions
+        function closePreviewModal() {
+            document.getElementById('previewTemplateModal').style.display = 'none';
+        }
+
+        // Close when clicking outside
+        document.addEventListener('click', function (e) {
+            const modal = document.getElementById('previewTemplateModal');
+            if (e.target === modal) {
+                closePreviewModal();
+            }
+        });
+
+        // Close with ESC key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                const previewModal = document.getElementById('previewTemplateModal');
+                if (previewModal && previewModal.style.display === 'flex') {
+                    closePreviewModal();
+                }
+
+                const deleteModal = document.getElementById('deleteTemplateModal');
+                if (deleteModal && deleteModal.style.display === 'flex') {
+                    closeDeleteModal();
+                }
+
+                const useModal = document.getElementById('useTemplateModal');
+                if (useModal && useModal.style.display === 'flex') {
+                    closeUseModal();
+                }
+            }
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', function (e) {
+            const previewModal = document.getElementById('previewTemplateModal');
+            if (e.target === previewModal) closePreviewModal();
+
+            const deleteModal = document.getElementById('deleteTemplateModal');
+            if (e.target === deleteModal) closeDeleteModal();
+
+            const useModal = document.getElementById('useTemplateModal');
+            if (e.target === useModal) closeUseModal();
+        });
+
+        function getQuestionTypeLabel(type) {
+            const labels = {
+                'multiple_choice': 'Pilihan Ganda',
+                'multiple_choice_complex': 'PG Kompleks',
+                'essay': 'Essay',
+                'true_false': 'Benar/Salah',
+                'short_answer': 'Isian Singkat',
+                'matching': 'Menjodohkan'
+            };
+            return labels[type] || type;
+        }
+
+        function renderQuestionPreview(q, index) {
+            // Determine PGK type if applicable
+            const pgkType = q.pgk_type || (q.question_settings && q.question_settings.pgk_type) || null;
+            const settings = q.question_settings || {};
+
+            let html = `<div class="question-item" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 12px; margin-bottom: 1rem; border-left: 4px solid var(--primary);">`;
+
+            // Header: Number, Type, Points
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                    <div style="display: flex; gap: 0.75rem;">
+                        <span class="question-number" style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">${index + 1}.</span>
+                        <div style="flex: 1;">
+                            <div class="question-text" style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.5rem; line-height: 1.5;">
+                                ${q.question_text || '<em style="color: var(--text-secondary);">Pertanyaan kosong</em>'}
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <span class="badge" style="background: rgba(255,255,255,0.1); font-size: 0.75rem; color: var(--text-secondary); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                                    ${getQuestionTypeLabel(q.question_type)}
+                                </span>
+                                ${q.question_type === 'multiple_choice_complex' ?
+                                    `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #d8b4fe; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(168, 85, 247, 0.2);">
+                                        ${pgkType === 'table_validation' ? 'Tabel Validasi' : 'Pilihan Jamak'}
+                                     </span>` : ''}
+                                ${q.difficulty_level ?
+                                    `<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                                        ${q.difficulty_level.charAt(0).toUpperCase() + q.difficulty_level.slice(1)}
+                                     </span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: right; min-width: 60px;">
+                        <span style="font-weight: 600; color: #5eead4; font-size: 0.9rem; background: rgba(20, 184, 166, 0.1); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(20, 184, 166, 0.2);">${parseFloat(q.points || 0).toLocaleString('id-ID')} Poin</span>
+                    </div>
+                </div>
+            `;
+
+            // Stimulus (HOTS)
+            if (q.stimulus) {
+                html += `
+                    <div style="background: rgba(245, 158, 11, 0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; color: #fbbf24; border-left: 3px solid #f59e0b; font-size: 0.95rem;">
+                        <strong style="display: block; margin-bottom: 0.25rem; font-size: 0.85rem; opacity: 0.8; text-transform: uppercase;">Stimulus / Bacaan:</strong>
+                        ${escapeHtml(q.stimulus)}
+                    </div>
+                `;
+            }
+
+            // Media
+            if (q.image_url) {
+                html += `<img src="${q.image_url}" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.1); display: block;">`;
+            }
+            if (q.audio_url) {
+                html += `
+                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <audio controls style="width: 100%; height: 36px;">
+                            <source src="${q.audio_url}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                `;
+            }
+            if (q.video_url) {
+                html += `
+                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 0, 0, 0.1); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; color: #fca5a5;">
+                        <i class="fab fa-youtube"></i>
+                        <a href="${q.video_url}" target="_blank" style="color: #fca5a5; text-decoration: none;">Link Video YouTube</a>
+                    </div>
+                `;
+            }
+
+            // Content based on type
+            html += `<div style="padding-left: 2.25rem; margin-top: 0.5rem;">`;
+
+            if (q.question_type === 'multiple_choice' || (q.question_type === 'multiple_choice_complex' && pgkType === 'checkbox') || q.question_type === 'true_false') {
+                if (q.options && q.options.length > 0) {
+                    q.options.forEach((opt, i) => {
+                        const optText = typeof opt === 'string' ? opt : (opt.option_text || '');
+                        const isCorrect = typeof opt === 'object' ? opt.is_correct : false;
+
+                        html += `
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.5rem; align-items: flex-start;">
+                                <div style="width: 24px; height: 24px; min-width: 24px; border-radius: ${q.question_type === 'multiple_choice' ? '50%' : '4px'}; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); margin-top: 2px;">
+                                    ${q.question_type === 'true_false' ? (i===0?'B':'S') : String.fromCharCode(65 + i)}
+                                </div>
+                                <div style="flex: 1; color: var(--text-secondary); ${isCorrect ? 'color: #86efac; font-weight: 500;' : ''} line-height: 1.4;">
+                                    ${escapeHtml(optText)}
+                                    ${isCorrect ? '<i class="fas fa-check-circle" style="margin-left: 0.5rem; color: #86efac; font-size: 0.9em;"></i>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } else if (q.question_type === 'multiple_choice_complex' && pgkType === 'table_validation') {
+                const statements = settings.statements || [];
+                const answers = settings.statement_answers || []; // Array of bools or {id: bool}
+
+                // Normalize answers to array if needed (though templates typically store standardized)
+                let ansArray = [];
+                if (Array.isArray(answers)) {
+                    ansArray = answers;
+                } else if (typeof answers === 'object') {
+                    // legacy dict format support
+                    ansArray = statements.map((_, i) => answers[i] || answers[String(i)]);
+                }
+
+                html += `
+                    <div style="overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; color: var(--text-secondary);">
+                            <thead>
+                                <tr style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <th style="text-align: left; padding: 0.75rem 1rem;">Pernyataan</th>
+                                    <th style="text-align: center; padding: 0.75rem; width: 80px; border-left: 1px solid rgba(255,255,255,0.1);">Benar</th>
+                                    <th style="text-align: center; padding: 0.75rem; width: 80px; border-left: 1px solid rgba(255,255,255,0.1);">Salah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${statements.map((stmt, i) => `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 0.75rem 1rem;">${escapeHtml(stmt)}</td>
+                                        <td style="text-align: center; padding: 0.75rem; border-left: 1px solid rgba(255,255,255,0.1);">
+                                            ${ansArray[i] === true ? '<i class="fas fa-check-circle" style="color: #86efac; font-size: 1.1rem;"></i>' : '<span style="opacity:0.1; font-size:1.5rem;">•</span>'}
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem; border-left: 1px solid rgba(255,255,255,0.1);">
+                                            ${ansArray[i] === false ? '<i class="fas fa-check-circle" style="color: #fca5a5; font-size: 1.1rem;"></i>' : '<span style="opacity:0.1; font-size:1.5rem;">•</span>'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else if (q.question_type === 'matching') {
+                // Group matching pairs
+                const pairs = {};
+                let pairCount = 0;
+
+                if (q.options && q.options.length > 0) {
+                    q.options.forEach(opt => {
+                        const pid = opt.pair_id || 'unpaired_' + pairCount++;
+                        if (!pairs[pid]) pairs[pid] = {left: null, right: null};
+                        if (opt.option_group === 'left') pairs[pid].left = opt.option_text;
+                        if (opt.option_group === 'right') pairs[pid].right = opt.option_text;
+                    });
+                }
+
+                html += `<div style="display: grid; gap: 0.5rem;">`;
+                Object.values(pairs).forEach(pair => {
+                    if (pair.left || pair.right) {
+                        html += `
+                            <div style="display: flex; gap: 1rem; align-items: center; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                                <div style="flex: 1; text-align: right; color: var(--text-secondary); font-size: 0.95rem;">${escapeHtml(pair.left || '-')}</div>
+                                <div style="color: var(--primary); background: rgba(99, 102, 241, 0.1); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;"><i class="fas fa-arrows-alt-h"></i></div>
+                                <div style="flex: 1; color: var(--text-primary); font-size: 0.95rem; font-weight: 500;">${escapeHtml(pair.right || '-')}</div>
+                            </div>
+                        `;
+                    }
+                });
+                html += `</div>`;
+            } else if (q.question_type === 'short_answer') {
+                let key = q.correct_answer;
+                if (!key && settings.acceptable_answers) {
+                    key = settings.acceptable_answers.join(' / ');
+                }
+                html += `
+                    <div style="background: rgba(20, 184, 166, 0.05); padding: 1rem; border-radius: 8px; border: 1px dashed rgba(20, 184, 166, 0.3);">
+                        <div style="color: #5eead4; font-size: 0.8rem; margin-bottom: 0.25rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Kunci Jawaban</div>
+                        <div style="color: white; font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 600;">${escapeHtml(key || '-')}</div>
+                    </div>
+                `;
+            } else if (q.question_type === 'essay') {
+                html += `
+                    <div style="background: rgba(255,255,255,0.03); padding: 2rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); text-align: center; color: var(--text-secondary);">
+                        <i class="fas fa-align-left" style="font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.3;"></i>
+                        <div style="font-size: 0.9rem;">Siswa akan menulis jawaban panjang di sini.</div>
+                        <div style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.5rem;">(Penilaian Manual)</div>
+                    </div>
+                `;
+            }
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        async function previewTemplate(templateId) {
+            const template = allTemplates.find(t => t.id === templateId);
+            if (!template) return;
+
+            const questions = template.template_data?.questions || [];
+            const previewContent = document.getElementById('preview-content');
+
+            previewContent.innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                        <div>
+                            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem; font-size: 1.5rem; font-weight: 700;">${escapeHtml(template.name)}</h4>
+                            <p style="color: var(--text-secondary); line-height: 1.6; font-size: 0.95rem;">${escapeHtml(template.description || 'Tidak ada deskripsi')}</p>
+                        </div>
+                        <span class="badge ${template.is_public ? 'badge-success' : 'badge-warning'}" style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
+                            ${template.is_public ? '<i class="fas fa-globe"></i> Publik' : '<i class="fas fa-lock"></i> Pribadi'}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="preview-stats">
+                    <div class="preview-stat">
+                        <div class="preview-stat-value">${questions.length}</div>
+                        <div class="preview-stat-label">Total Soal</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="preview-stat-value">${template.template_data?.duration_minutes || 60}</div>
+                        <div class="preview-stat-label">Durasi (Menit)</div>
+                    </div>
+                    <div class="preview-stat">
+                        <div class="preview-stat-value">${template.template_data?.passing_score || 0}%</div>
+                        <div class="preview-stat-label">KKM / Passing Grade</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <h6 style="color: var(--text-primary); font-weight: 700; font-size: 1.1rem; margin: 0;">
+                            <i class="fas fa-list-ol" style="color: var(--primary); margin-right: 0.5rem;"></i> Daftar Pertanyaan
+                        </h6>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                            Total Skor: <strong style="color: #5eead4;">${questions.reduce((sum, q) => sum + parseFloat(q.points || 0), 0)}</strong>
+                        </span>
+                    </div>
+
+                    <div class="question-list" style="max-height: 60vh;">
+                        ${questions.length === 0
+                    ? `
+                        <div style="text-align: center; padding: 4rem 2rem; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px;">
+                            <i class="fas fa-clipboard-list" style="font-size: 3rem; color: var(--text-secondary); opacity: 0.3; margin-bottom: 1rem;"></i>
+                            <p style="color: var(--text-secondary); font-size: 1.1rem;">Template ini belum memiliki soal.</p>
+                        </div>
+                      `
+                    : questions.map((q, i) => renderQuestionPreview(q, i)).join('')
+                }
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button class="btn btn-secondary" onclick="closePreviewModal()">Tutup Preview</button>
+                    <button class="btn btn-use" onclick="closePreviewModal(); handleUseTemplate(${template.id})">
+                        <i class="fas fa-wand-magic-sparkles"></i> Gunakan Template Ini
+                    </button>
+                </div>
+            `;
+
+            // OPEN CUSTOM MODAL!
+            document.getElementById('previewTemplateModal').style.display = 'flex';
+        }
+
+        async function deleteTemplate(templateId) {
+            // Open custom modal instead of native confirm
+            document.getElementById('delete-template-id').value = templateId;
+            document.getElementById('deleteTemplateModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteTemplateModal').style.display = 'none';
+        }
+
+        async function confirmDeleteTemplate(event) {
+            const templateId = document.getElementById('delete-template-id').value;
+
+            // Show loading state
+            const btn = event.target;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+
+            try {
+                await window.api.deleteTemplate(templateId);
+                closeDeleteModal();
+                showToast('Template berhasil dihapus', 'success');
+                loadTemplates();
+            } catch (error) {
+                showToast('Gagal menghapus: ' + error.message, 'danger');
+                closeDeleteModal(); // Close even on error to reset UI
+            } finally {
+                // Reset button (though modal closes, good practice)
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'linear-gradient(135deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.95))',
+                danger: 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95))',
+                warning: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.95))',
+                info: 'linear-gradient(135deg, rgba(20, 184, 166, 0.95), rgba(13, 148, 136, 0.95))'
+            };
+            const icons = {
+                success: 'fa-check-circle',
+                danger: 'fa-times-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 24px;
+                right: 24px;
+                min-width: 320px;
+                max-width: 420px;
+                background: ${colors[type]};
+                border-radius: 16px;
+                padding: 1.25rem 1.5rem;
+                color: white;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            `;
+            toast.innerHTML = `
+                <i class="fas ${icons[type]}" style="font-size: 1.5rem;"></i>
+                <span style="flex: 1; font-weight: 500; line-height: 1.5;">${message}</span>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; opacity: 0.7; cursor: pointer; font-size: 1.25rem; padding: 0;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            if (!document.getElementById('toast-animations')) {
+                const style = document.createElement('style');
+                style.id = 'toast-animations';
+                style.textContent = `
+                    @keyframes slideInRight {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOutRight {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Make functions global
+        window.loadTemplates = loadTemplates;
+        window.openUseModal = openUseModal;
+        window.createExamFromTemplate = createExamFromTemplate;
+        window.previewTemplate = previewTemplate;
+        window.deleteTemplate = deleteTemplate;
+
+        // SIMPLE HANDLER FUNCTIONS - lookup from allTemplates array
+        window.handleUseTemplate = function (id) {
+            console.log('handleUseTemplate called with ID:', id);
+            const template = allTemplates.find(t => t.id === id);
+            if (template) {
+                openUseModal(id, template.name);
+            } else {
+                showToast('Template tidak ditemukan', 'danger');
+            }
+        };
+
+        window.handlePreviewTemplate = function (id) {
+            console.log('handlePreviewTemplate called with ID:', id);
+            previewTemplate(id);
+        };
+
+        window.handleDeleteTemplate = function (id) {
+            console.log('handleDeleteTemplate called with ID:', id);
+            deleteTemplate(id);
+        };
+    </script>
+</body>
+
+</html>

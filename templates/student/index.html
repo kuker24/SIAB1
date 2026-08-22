@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - Ujian Online</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Softer colors for eye comfort */
+            --primary: #818cf8;
+            --secondary: #a78bfa;
+            --success: #34d399;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --dark-bg: #0f172a;
+            --dark-card: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+
+            /* Smooth transitions */
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 1.5rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header i {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #alert-container {
+            margin-bottom: 1rem;
+        }
+
+        .alert {
+            padding: 0.875rem 1rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Password Toggle UI - Pro Max Standard */
+        .password-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-smooth);
+            z-index: 10;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fas fa-user-graduate"></i>
+                <h1>Ujian Online</h1>
+                <p>Portal Siswa</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="Masukkan username" required
+                        autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password-input" name="password" class="form-control"
+                            placeholder="Masukkan password" required autocomplete="current-password"
+                            style="padding-right: 46px;">
+                        <div class="password-toggle" id="toggle-password" title="Lihat password">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAPTCHA Section (hidden by default) -->
+                <div id="captcha-section" class="form-group" style="display: none;">
+                    <div
+                        style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <i class="fas fa-shield-halved" style="color: #fbbf24;"></i>
+                            <span style="color: #fbbf24; font-weight: 600;">Verifikasi Keamanan</span>
+                        </div>
+                        <p id="captcha-question"
+                            style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">
+                        </p>
+                        <input type="text" id="captcha-answer" name="captcha_answer" class="form-control"
+                            placeholder="Masukkan jawaban" autocomplete="off"
+                            style="background: rgba(15, 23, 42, 0.9); font-size: 1rem; text-align: center; letter-spacing: 0.1em;">
+                        <input type="hidden" id="captcha-id" name="captcha_id">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-right-to-bracket"></i> Masuk
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/auth.js?v=20260226-hotfix1"></script>
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script>
+        // CAPTCHA state
+        let captchaRequired = false;
+        let currentChallengeId = null;
+
+        // Simple alert function
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 8000);
+        }
+
+        // Show CAPTCHA UI
+        function showCaptcha(challengeId, question) {
+            captchaRequired = true;
+            currentChallengeId = challengeId;
+
+            document.getElementById('captcha-section').style.display = 'block';
+            document.getElementById('captcha-question').textContent = question;
+            document.getElementById('captcha-id').value = challengeId;
+            document.getElementById('captcha-answer').value = '';
+            document.getElementById('captcha-answer').focus();
+        }
+
+        // Hide CAPTCHA UI
+        function hideCaptcha() {
+            captchaRequired = false;
+            currentChallengeId = null;
+            document.getElementById('captcha-section').style.display = 'none';
+        }
+
+        // Check if already logged in
+        const token = localStorage.getItem('access_token');
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (token && user && (user.role === 'student' || user.role === 'guruplus')) {
+            window.location.href = '/student/dashboard.html';
+        }
+
+        // Login form handler with CAPTCHA support
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const btn = this.querySelector('button[type="submit"]');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            btn.disabled = true;
+
+            try {
+                // Build login payload
+                const loginPayload = {
+                    username: formData.get('username'),
+                    password: formData.get('password')
+                };
+
+                // Add CAPTCHA if required
+                if (captchaRequired) {
+                    const captchaAnswer = formData.get('captcha_answer');
+                    if (!captchaAnswer) {
+                        showAlert('Masukkan jawaban CAPTCHA', 'danger');
+                        btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Masuk';
+                        btn.disabled = false;
+                        return;
+                    }
+                    loginPayload.captcha_id = currentChallengeId;
+                    loginPayload.captcha_answer = captchaAnswer;
+                }
+
+                // Make login request directly (not via api.login to handle 428)
+                // ✅ ADDED: Simple retry logic for 5xx errors or network issues (Auto-Retry)
+                let response;
+                let retries = 1;
+
+                while (retries >= 0) {
+                    try {
+                        response = await fetch(`${window.location.origin}/api/student/auth/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(loginPayload)
+                        });
+
+                        // If 5xx error, throw to trigger retry
+                        if (response.status >= 500) {
+                            throw new Error(`Server error: ${response.status}`);
+                        }
+
+                        // If success or expected client error, break loop
+                        break;
+                    } catch (err) {
+                        console.warn('Login attempt failed, retrying...', err);
+                        retries--;
+                        if (retries < 0) {
+                            // If out of retries, use the last error response or throw original error
+                            if (response) break;
+                            throw err;
+                        }
+                        // Wait 1 second before retry
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                const result = await response.json();
+
+                // Handle 428 - CAPTCHA Required
+                if (response.status === 428) {
+                    const detail = result.detail;
+                    if (detail && (detail.type === 'captcha_required' || detail.type === 'captcha_wrong')) {
+                        showCaptcha(detail.challenge_id, detail.question);
+                        const message = detail.type === 'captcha_wrong'
+                            ? '❌ Jawaban salah. Coba lagi dengan soal baru.'
+                            : '🔐 Verifikasi keamanan diperlukan. Jawab pertanyaan di bawah.';
+                        showAlert(message, 'danger');
+                    } else {
+                        showAlert(detail.message || 'CAPTCHA diperlukan', 'danger');
+                    }
+                    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Masuk';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Handle 423 - Account Locked
+                if (response.status === 423) {
+                    showAlert(result.detail || '🔒 Akun terkunci', 'danger');
+                    hideCaptcha();
+                    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Masuk';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Handle other errors
+                if (!response.ok) {
+                    const message = typeof result.detail === 'string' ? result.detail :
+                        (result.detail?.message || result.message || 'Login gagal');
+                    showAlert(message, 'danger');
+                    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Masuk';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Success - save token and redirect
+                if (result.user.role !== 'student' && result.user.role !== 'guruplus') {
+                    showAlert('Portal ini khusus untuk peserta ujian', 'danger');
+                    btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Masuk';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Save credentials
+                localStorage.setItem('access_token', result.access_token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+
+                hideCaptcha();
+                showAlert('Login berhasil!', 'success');
+                setTimeout(() => window.location.href = '/student/dashboard.html', 800);
+
+            } catch (error) {
+                const message = typeof error === 'string' ? error :
+                    (error.message || error.detail || 'Terjadi kesalahan');
+                showAlert(message, 'danger');
+                btn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Masuk';
+                btn.disabled = false;
+            }
+        });
+
+        // UI/UX Pro Max - Password Toggle Interaction
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password-input');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function () {
+                // Toggle input type with smooth transition feeling
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Toggle icon
+                const icon = this.querySelector('i');
+
+                // Animate icon change
+                icon.style.opacity = '0';
+
+                setTimeout(() => {
+                    if (type === 'text') {
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                    icon.style.opacity = '1';
+                }, 150);
+            });
+        }
+    </script>
+</body>
+
+</html>

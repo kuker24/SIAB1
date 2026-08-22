@@ -1,0 +1,607 @@
+# docker-compose.production.yml
+# Production deployment - Right-sized for 16GB RAM / 16 vCPU with 6 API replicas
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+x-api-service: &api-service
+  image: ujian_online-api
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.production
+  command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-2} --limit-concurrency ${LIMIT_CONCURRENCY:-220} --backlog 8192 --timeout-keep-alive 10 --limit-max-requests ${LIMIT_MAX_REQUESTS:-200000} --no-access-log
+  environment:
+    - DATABASE_URL=postgresql+asyncpg://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/exam_system
+    # Keep enough headroom for burst traffic (1000+ concurrent exam clients)
+    # while still letting PgBouncer enforce backend DB limits.
+    - DB_POOL_SIZE=${DB_POOL_SIZE:-12}
+    - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-18}
+    - DB_READ_POOL_SIZE=${DB_READ_POOL_SIZE:-6}
+    - DB_READ_MAX_OVERFLOW=${DB_READ_MAX_OVERFLOW:-9}
+    - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-35}
+    - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-180}
+    - DB_POOL_PRE_PING=${DB_POOL_PRE_PING:-false}
+    - DB_USE_NULL_POOL_WITH_PGBOUNCER=${DB_USE_NULL_POOL_WITH_PGBOUNCER:-true}
+    - DB_HOST=db
+    - DB_USER=examuser
+    - DB_NAME=exam_system
+    - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+    - REDIS_URL=redis://redis:6379/0
+    - REDIS_HOST=redis
+    - ANSWER_WRITE_MODE=${ANSWER_WRITE_MODE:-direct}
+    - ANSWER_QUEUE_ENABLED=${ANSWER_QUEUE_ENABLED:-false}
+    - ANSWER_QUEUE_PERCENTAGE=${ANSWER_QUEUE_PERCENTAGE:-0}
+    - EXAM_PEAK_MODE=${EXAM_PEAK_MODE:-true}
+    - VIOLATION_ASYNC_ENABLED=${VIOLATION_ASYNC_ENABLED:-true}
+    - ADMIN_MONITORING_DETAIL_LEVEL=${ADMIN_MONITORING_DETAIL_LEVEL:-summary}
+    - MOBILE_APK_PRIMARY=${MOBILE_APK_PRIMARY:-true}
+    - SEB_DESKTOP_LEGACY_ENABLED=${SEB_DESKTOP_LEGACY_ENABLED:-false}
+    - SEB_QR_ENABLED=${SEB_QR_ENABLED:-false}
+    - SEB_DEBUG_ENDPOINTS_ENABLED=${SEB_DEBUG_ENDPOINTS_ENABLED:-false}
+    - APK_BUILD_ENDPOINT_ENABLED=${APK_BUILD_ENDPOINT_ENABLED:-false}
+    - TELEGRAM_ALERTING_ENABLED=${TELEGRAM_ALERTING_ENABLED:-false}
+    - HEAVY_EXPORT_ENABLED=${HEAVY_EXPORT_ENABLED:-false}
+    - ANSWER_QUEUE_FLUSH_ON_SUBMIT=${ANSWER_QUEUE_FLUSH_ON_SUBMIT:-false}
+    - ANSWER_QUEUE_FLUSH_BATCH_SIZE=${ANSWER_QUEUE_FLUSH_BATCH_SIZE:-300}
+    - ANSWER_QUEUE_FLUSH_MAX_ROUNDS=${ANSWER_QUEUE_FLUSH_MAX_ROUNDS:-4}
+    - MONITORING_DELTA_STREAM_ENABLED=${MONITORING_DELTA_STREAM_ENABLED:-true}
+    - MONITORING_DELTA_STREAM_MAX_LEN=${MONITORING_DELTA_STREAM_MAX_LEN:-5000}
+    - MONITORING_DELTA_STREAM_TTL_SECONDS=${MONITORING_DELTA_STREAM_TTL_SECONDS:-7200}
+    - SECRET_KEY=${SECRET_KEY}
+    - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    - SEB_DEFAULT_CONFIG_KEY=${SEB_DEFAULT_CONFIG_KEY}
+    - SEB_DEFAULT_BROWSER_EXAM_KEY=${SEB_DEFAULT_BROWSER_EXAM_KEY}
+    - SERVER_HWID=${SERVER_HWID}
+    - APP_ENV=production
+    - DEBUG=false
+    - TZ=Asia/Jakarta
+    - ENFORCE_SXB=true
+    - CORS_ORIGINS=${CORS_ORIGINS}
+    - FORCE_HTTPS=${FORCE_HTTPS:-false}
+    - TELEGRAM_ENABLED=${TELEGRAM_ENABLED:-false}
+    - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+    - TELEGRAM_CHAT_IDS=${TELEGRAM_CHAT_IDS:-}
+    - MONITOR_PUBLIC_BASE_URL=${MONITOR_PUBLIC_BASE_URL:-}
+    - MONITOR_ORIGIN_HEALTH_URL=${MONITOR_ORIGIN_HEALTH_URL:-http://127.0.0.1:8000/health}
+    - MONITOR_PROBE_TIMEOUT_MS=${MONITOR_PROBE_TIMEOUT_MS:-2500}
+    - MONITOR_PROBE_CACHE_SECONDS=${MONITOR_PROBE_CACHE_SECONDS:-15}
+    - MONITORING_ALLOW_DOCKER_SOCKET=${MONITORING_ALLOW_DOCKER_SOCKET:-false}
+    - AUTO_RESTART_ENABLED=${AUTO_RESTART_ENABLED:-false}
+    - AUTO_RESTART_TIME_WIB=${AUTO_RESTART_TIME_WIB:-00:30}
+    - AUTO_RESTART_BUFFER_MINUTES=${AUTO_RESTART_BUFFER_MINUTES:-30}
+    - AUTO_RESTART_FULL_RESTART=${AUTO_RESTART_FULL_RESTART:-true}
+    - AUTO_RESTART_INCLUDE_DATA_SERVICES=${AUTO_RESTART_INCLUDE_DATA_SERVICES:-true}
+    - AUTO_RESTART_TIMEOUT_SECONDS=${AUTO_RESTART_TIMEOUT_SECONDS:-300}
+    - AUTO_INTELLIGENCE_HEAL_COMMAND=${AUTO_INTELLIGENCE_HEAL_COMMAND:-/app/scripts/autoheal_unhealthy_apis.sh}
+    - REDIS_BLOCKED_CLIENTS_WARNING=${REDIS_BLOCKED_CLIENTS_WARNING:-10}
+    - REDIS_BLOCKED_CLIENTS_CRITICAL=${REDIS_BLOCKED_CLIENTS_CRITICAL:-30}
+    - REDIS_TIMEOUT_WARNING_PER_MIN=${REDIS_TIMEOUT_WARNING_PER_MIN:-0.2}
+    - REDIS_TIMEOUT_CRITICAL_PER_MIN=${REDIS_TIMEOUT_CRITICAL_PER_MIN:-1.0}
+    - REDIS_CACHE_HIT_WARNING_PERCENT=${REDIS_CACHE_HIT_WARNING_PERCENT:-35.0}
+    - REDIS_CACHE_HIT_CRITICAL_PERCENT=${REDIS_CACHE_HIT_CRITICAL_PERCENT:-20.0}
+    - REDIS_CACHE_HIT_MIN_LOOKUPS=${REDIS_CACHE_HIT_MIN_LOOKUPS:-3000}
+    - REDIS_CACHE_HIT_HARD_CRITICAL_MIN_LOOKUPS=${REDIS_CACHE_HIT_HARD_CRITICAL_MIN_LOOKUPS:-15000}
+    - REDIS_CACHE_HIT_PENALTY_REQUIRES_PRESSURE=${REDIS_CACHE_HIT_PENALTY_REQUIRES_PRESSURE:-true}
+    - REDIS_CACHE_HIT_PENALTY_HIGH_VOLUME_MIN_LOOKUPS=${REDIS_CACHE_HIT_PENALTY_HIGH_VOLUME_MIN_LOOKUPS:-50000}
+    - REDIS_MEMORY_WARNING_PERCENT=${REDIS_MEMORY_WARNING_PERCENT:-85.0}
+    - REDIS_MEMORY_CRITICAL_PERCENT=${REDIS_MEMORY_CRITICAL_PERCENT:-95.0}
+    - REDIS_STABILITY_TARGET_PERCENT=${REDIS_STABILITY_TARGET_PERCENT:-100.0}
+    - METRICS_BEARER_TOKEN=
+    - METRICS_ALLOW_UNAUTHENTICATED=${METRICS_ALLOW_UNAUTHENTICATED:-true}
+    - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+    - JWT_REFRESH_GRACE_MINUTES=${JWT_REFRESH_GRACE_MINUTES:-15}
+    - SYSTEM_FULL_RESTART_COMMAND=${SYSTEM_FULL_RESTART_COMMAND:-}
+    - SYSTEM_FULL_RESTART_REQUEST_FILE=${SYSTEM_FULL_RESTART_REQUEST_FILE:-}
+    - SYSTEM_FULL_RESTART_STATUS_FILE=${SYSTEM_FULL_RESTART_STATUS_FILE:-}
+    - EXAM_LOGS_PARTITION_MAINTENANCE_ENABLED=${EXAM_LOGS_PARTITION_MAINTENANCE_ENABLED:-true}
+    - EXAM_LOGS_PARTITION_MONTHS_AHEAD=${EXAM_LOGS_PARTITION_MONTHS_AHEAD:-12}
+    - EXAM_LOGS_PARTITION_RETENTION_MONTHS=${EXAM_LOGS_PARTITION_RETENTION_MONTHS:-18}
+    - EXAM_LOGS_ARCHIVE_RETENTION_DAYS=${EXAM_LOGS_ARCHIVE_RETENTION_DAYS:-30}
+    - DR_DRILL_ENABLED=${DR_DRILL_ENABLED:-false}
+    - DR_DRILL_TIMEOUT_SECONDS=${DR_DRILL_TIMEOUT_SECONDS:-1800}
+  depends_on:
+    db:
+      condition: service_healthy
+    pgbouncer:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  volumes:
+    - ./uploads:/app/uploads
+    - ./logs:/app/logs
+    - ./seb_configs:/app/seb_configs
+    - ./static:/app/static
+    - ./templates:/app/templates
+    - ./app:/app/app
+    - ./apk_builds:/app/apk_builds
+    - ./runtime_control:/app/runtime_control
+  logging: *default-logging
+  restart: unless-stopped
+  ulimits:
+    nofile:
+      soft: 65535
+      hard: 65535
+  deploy:
+    resources:
+      limits:
+        memory: 960M
+  healthcheck:
+    test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  networks:
+    - exam_network
+
+services:
+  # FastAPI Backends (horizontal replicas)
+  api:
+    <<: *api-service
+
+  api2:
+    <<: *api-service
+
+  api3:
+    <<: *api-service
+
+  api4:
+    <<: *api-service
+
+  api5:
+    <<: *api-service
+
+  api6:
+    <<: *api-service
+
+  api7:
+    <<: *api-service
+
+  api8:
+    <<: *api-service
+
+  # Control-plane API replicas (admin/monitoring/export paths).
+  # Keep this plane isolated so exam runtime is protected during admin spikes.
+  api_admin:
+    <<: *api-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 140 --backlog 4096 --timeout-keep-alive 10 --limit-max-requests ${LIMIT_MAX_REQUESTS_ADMIN:-120000} --no-access-log
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  api_admin2:
+    <<: *api-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 140 --backlog 4096 --timeout-keep-alive 10 --limit-max-requests ${LIMIT_MAX_REQUESTS_ADMIN:-120000} --no-access-log
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=exam_system
+      - POSTGRES_USER=examuser
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - TZ=Asia/Jakarta
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      postgres -c max_connections=420 -c shared_buffers=2560MB -c effective_cache_size=7GB -c maintenance_work_mem=512MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=300 -c random_page_cost=1.1 -c effective_io_concurrency=300 -c work_mem=4MB -c min_wal_size=1GB -c max_wal_size=4GB -c max_worker_processes=16 -c max_parallel_workers_per_gather=2 -c max_parallel_workers=8 -c max_parallel_maintenance_workers=2 -c autovacuum_max_workers=4 -c autovacuum_naptime=15s -c idle_in_transaction_session_timeout=45000
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 5632M
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U examuser -d exam_system" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exam_network
+
+  # PgBouncer Connection Pooler
+  pgbouncer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.pgbouncer
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=exam_system
+      - DB_USER=examuser
+      - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=5000
+      - DEFAULT_POOL_SIZE=260
+      - MIN_POOL_SIZE=60
+      - RESERVE_POOL_SIZE=100
+      - RESERVE_POOL_TIMEOUT=5
+      - MAX_DB_CONNECTIONS=360
+      - MAX_USER_CONNECTIONS=340
+      - SERVER_LIFETIME=7200
+      - SERVER_IDLE_TIMEOUT=300
+      - QUERY_WAIT_TIMEOUT=90
+      - LISTEN_BACKLOG=8192
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U examuser -d exam_system" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exam_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server --appendonly yes --appendfsync everysec --auto-aof-rewrite-percentage 100 --auto-aof-rewrite-min-size 64mb --maxmemory 1400mb --maxmemory-policy allkeys-lru --maxmemory-samples 7 --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --tcp-backlog 8192 --timeout 300 --tcp-keepalive 60
+    volumes:
+      - redis_data:/data
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1792M
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - exam_network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.production.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/certs:/etc/nginx/certs:ro
+      - ./docker/certbot/www:/var/www/certbot:ro
+      - ./static:/usr/share/nginx/html/static:ro
+      - ./templates:/usr/share/nginx/html/templates:ro
+    depends_on:
+      - api
+      - api2
+      - api3
+      - api4
+      - api5
+      - api6
+      - api7
+      - api8
+      - api_admin
+      - api_admin2
+    logging: *default-logging
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - exam_network
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+    command: celery -A app.tasks.scheduler worker --loglevel=warning --pool=solo --max-tasks-per-child=200
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/exam_system
+      - DB_POOL_SIZE=2
+      - DB_MAX_OVERFLOW=4
+      - DB_READ_POOL_SIZE=2
+      - DB_READ_MAX_OVERFLOW=4
+      - DB_POOL_TIMEOUT=20
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-240}
+      - DB_POOL_PRE_PING=${DB_POOL_PRE_PING:-false}
+      - DB_USE_NULL_POOL_WITH_PGBOUNCER=${DB_USE_NULL_POOL_WITH_PGBOUNCER:-true}
+      - DB_HOST=db
+      - DB_USER=examuser
+      - DB_NAME=exam_system
+      - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - ANSWER_WRITE_MODE=${ANSWER_WRITE_MODE:-direct}
+      - ANSWER_QUEUE_ENABLED=${ANSWER_QUEUE_ENABLED:-false}
+      - ANSWER_QUEUE_PERCENTAGE=${ANSWER_QUEUE_PERCENTAGE:-0}
+      - EXAM_PEAK_MODE=${EXAM_PEAK_MODE:-true}
+      - VIOLATION_ASYNC_ENABLED=${VIOLATION_ASYNC_ENABLED:-true}
+      - ADMIN_MONITORING_DETAIL_LEVEL=${ADMIN_MONITORING_DETAIL_LEVEL:-summary}
+      - MOBILE_APK_PRIMARY=${MOBILE_APK_PRIMARY:-true}
+      - SEB_DESKTOP_LEGACY_ENABLED=${SEB_DESKTOP_LEGACY_ENABLED:-false}
+      - SEB_QR_ENABLED=${SEB_QR_ENABLED:-false}
+      - SEB_DEBUG_ENDPOINTS_ENABLED=${SEB_DEBUG_ENDPOINTS_ENABLED:-false}
+      - APK_BUILD_ENDPOINT_ENABLED=${APK_BUILD_ENDPOINT_ENABLED:-false}
+      - TELEGRAM_ALERTING_ENABLED=${TELEGRAM_ALERTING_ENABLED:-false}
+      - HEAVY_EXPORT_ENABLED=${HEAVY_EXPORT_ENABLED:-false}
+      - EXAM_LOGS_PARTITION_MAINTENANCE_ENABLED=${EXAM_LOGS_PARTITION_MAINTENANCE_ENABLED:-true}
+      - EXAM_LOGS_PARTITION_MONTHS_AHEAD=${EXAM_LOGS_PARTITION_MONTHS_AHEAD:-12}
+      - EXAM_LOGS_PARTITION_RETENTION_MONTHS=${EXAM_LOGS_PARTITION_RETENTION_MONTHS:-18}
+      - EXAM_LOGS_ARCHIVE_RETENTION_DAYS=${EXAM_LOGS_ARCHIVE_RETENTION_DAYS:-30}
+      - DR_DRILL_ENABLED=${DR_DRILL_ENABLED:-false}
+      - DR_DRILL_TIMEOUT_SECONDS=${DR_DRILL_TIMEOUT_SECONDS:-1800}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SEB_DEFAULT_CONFIG_KEY=${SEB_DEFAULT_CONFIG_KEY}
+      - SEB_DEFAULT_BROWSER_EXAM_KEY=${SEB_DEFAULT_BROWSER_EXAM_KEY}
+      - SERVER_HWID=${SERVER_HWID}
+      - APP_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./app:/app/app
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import pathlib,sys;c=pathlib.Path('/proc/1/cmdline').read_bytes().decode('utf-8','ignore');sys.exit(0 if ('celery' in c and 'worker' in c) else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - exam_network
+
+  # Celery Beat
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+    command: celery -A app.tasks.scheduler beat --loglevel=warning
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/exam_system
+      - DB_HOST=db
+      - DB_USER=examuser
+      - DB_NAME=exam_system
+      - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SEB_DEFAULT_CONFIG_KEY=${SEB_DEFAULT_CONFIG_KEY}
+      - SEB_DEFAULT_BROWSER_EXAM_KEY=${SEB_DEFAULT_BROWSER_EXAM_KEY}
+      - SERVER_HWID=${SERVER_HWID}
+      - APP_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import pathlib,sys;c=pathlib.Path('/proc/1/cmdline').read_bytes().decode('utf-8','ignore');sys.exit(0 if ('celery' in c and 'beat' in c) else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - exam_network
+
+  # Native-Lean v2 shadow (Go). Nginx tetap ke Python sampai parity.
+  # docker compose -f docker-compose.production.yml --profile native-lean up -d go_server go_worker
+  go_server:
+    profiles: ["native-lean"]
+    image: ujian_online-go
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        BIN: server
+    environment:
+      - DATABASE_URL=postgresql://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/exam_system
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - EXAM_PEAK_MODE=${EXAM_PEAK_MODE:-true}
+      - ENFORCE_SXB=true
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - PYTHON_UPSTREAM=http://api:8000
+      - STATIC_DIR=/app/static
+      - TEMPLATE_DIR=/app/templates
+      - PORT=8000
+      - TZ=Asia/Jakarta
+    volumes:
+      - ./static:/app/static:ro
+      - ./templates:/app/templates:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - exam_network
+
+  go_worker:
+    profiles: ["native-lean"]
+    image: ujian_online-go
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        BIN: worker
+    environment:
+      - DATABASE_URL=postgresql://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/exam_system
+      - REDIS_URL=redis://redis:6379/0
+      - TZ=Asia/Jakarta
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    networks:
+      - exam_network
+
+  # Read Replica (Scaling Phase 3)
+  db_replica:
+    image: postgres:15-alpine
+    profiles: [ "scaling" ]
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - PGUSER=replicator
+      - PGPASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+    volumes:
+      - replica_data:/var/lib/postgresql/data
+    command: >
+      bash -c " if [ ! -s /var/lib/postgresql/data/pgdata/PG_VERSION ]; then
+        echo 'Cloning master...'
+        until pg_basebackup -h db -U replicator -D /var/lib/postgresql/data/pgdata -Fp -Xs -P -R; do
+          echo 'Waiting for master...'
+          sleep 5
+        done
+      fi docker-entrypoint.sh postgres -c hot_standby=on -c max_connections=300 "
+    depends_on:
+      - db
+      - redis
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+    networks:
+      - exam_network
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - exam_network
+
+  # Grafana - Monitoring Dashboards
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_URL:-http://localhost:3000}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - exam_network
+
+volumes:
+  postgres_data:
+  replica_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+
+networks:
+  exam_network:
+    driver: bridge

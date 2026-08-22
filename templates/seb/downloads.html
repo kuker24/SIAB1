@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Aplikasi Ujian - Ujian Online</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        .download-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .download-card {
+            width: 100%;
+            max-width: 950px;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .header-icon i {
+            font-size: 2.5rem;
+            color: #10b981;
+        }
+
+        .header-section h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-section p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .platform-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 1.25rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .platform-section:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .platform-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .platform-icon i {
+            margin: 0 0.25rem;
+        }
+
+        .platform-icon .fa-android {
+            color: #3ddc84;
+        }
+
+        .platform-icon .fa-apple {
+            color: #a3aaae;
+        }
+
+        .platform-icon .fa-windows {
+            color: #00a4ef;
+        }
+
+        .platform-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .platform-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            display: inline-block;
+            margin: 0.5rem 0 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .qr-wrapper img {
+            display: block;
+            width: 200px;
+            height: 200px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            margin-bottom: 1.5rem;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .instruction-list {
+            text-align: left;
+            margin-top: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            list-style: none;
+            padding: 0;
+        }
+
+        .instruction-list li {
+            margin-bottom: 0.75rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .instruction-list i {
+            color: #10b981;
+            margin-top: 0.2rem;
+            flex-shrink: 0;
+        }
+
+        .app-links {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .app-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .app-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .server-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 0.75rem;
+            text-align: center;
+        }
+
+        .server-info p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .server-info code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            color: #3b82f6;
+            font-family: 'Consolas', monospace;
+        }
+
+        @media (max-width: 768px) {
+            .platform-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-card {
+                padding: 1.5rem;
+            }
+
+            .qr-wrapper img {
+                width: 180px;
+                height: 180px;
+            }
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            padding: 0.75rem 1.25rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/student/" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Kembali ke Login
+    </a>
+
+    <div class="download-container">
+        <div class="download-card">
+            <!-- Header -->
+            <div class="header-section">
+                <div class="header-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>Setup Aplikasi Ujian</h1>
+                <p>Pilih metode konfigurasi sesuai perangkat Anda</p>
+            </div>
+
+            <div class="platform-grid">
+                <!-- Mobile Section (Android/iOS) -->
+                <div class="platform-section">
+                    <div class="platform-icon">
+                        <i class="fab fa-android"></i>
+                        <span style="color: var(--text-secondary); margin: 0 0.5rem;">/</span>
+                        <i class="fab fa-apple"></i>
+                    </div>
+                    <h2 class="platform-title">Android & iOS</h2>
+                    <p class="platform-subtitle">Scan QR menggunakan Exambro atau SEB</p>
+
+                    <div class="qr-wrapper">
+                        <img id="qr-code-image" src="/api/seb/qr-code?size=200" alt="QR Code Config">
+                    </div>
+
+                    <ul class="instruction-list">
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Buka aplikasi <strong>Exambro</strong> atau <strong>SEB</strong></span>
+                        </li>
+                        <li>
+                            <i class="fas fa-qrcode"></i>
+                            <span>Pilih menu <strong>Scan QR</strong></span>
+                        </li>
+                        <li>
+                            <i class="fas fa-play"></i>
+                            <span>Arahkan ke QR Code di atas untuk mulai</span>
+                        </li>
+                    </ul>
+
+                    <div class="app-links">
+                        <a href="https://play.google.com/store/apps/details?id=com.nicecode.secure.browser"
+                            target="_blank" class="app-link">
+                            <i class="fab fa-google-play" style="color: #3ddc84;"></i>
+                            Exambro
+                        </a>
+                        <a href="https://apps.apple.com/app/safe-exam-browser/id1104085758" target="_blank"
+                            class="app-link">
+                            <i class="fab fa-app-store" style="color: #a3aaae;"></i>
+                            SEB iOS
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Desktop Section (Windows/macOS) -->
+                <div class="platform-section">
+                    <div class="platform-icon">
+                        <i class="fab fa-windows"></i>
+                        <span style="color: var(--text-secondary); margin: 0 0.5rem;">/</span>
+                        <i class="fab fa-apple"></i>
+                    </div>
+                    <h2 class="platform-title">Windows & macOS</h2>
+                    <p class="platform-subtitle">Download file konfigurasi otomatis</p>
+
+                    <div style="padding: 1.5rem 0;">
+                        <i class="fas fa-file-download" style="font-size: 4rem; color: #3b82f6; opacity: 0.5;"></i>
+                    </div>
+
+                    <a href="/api/seb/download-config" class="download-btn" download>
+                        <i class="fas fa-download"></i>
+                        Download Config (.seb)
+                    </a>
+
+                    <ul class="instruction-list">
+                        <li>
+                            <i class="fas fa-info-circle"></i>
+                            <span>Wajib install <strong>Safe Exam Browser</strong> terlebih dahulu</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-file-import"></i>
+                            <span>Download file <strong>.seb</strong> di atas</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-mouse-pointer"></i>
+                            <span>Double-click file untuk mulai ujian</span>
+                        </li>
+                    </ul>
+
+                    <div class="app-links">
+                        <a href="https://safeexambrowser.org/download_en.html#Windows" target="_blank" class="app-link">
+                            <i class="fab fa-windows" style="color: #00a4ef;"></i>
+                            Windows
+                        </a>
+                        <a href="https://safeexambrowser.org/download_en.html#macOS" target="_blank" class="app-link">
+                            <i class="fab fa-apple" style="color: #a3aaae;"></i>
+                            macOS
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Info -->
+            <div class="server-info">
+                <p>
+                    <i class="fas fa-server" style="margin-right: 0.5rem;"></i>
+                    Server URL: <code id="server-url"></code>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Animation -->
+    <div class="area">
+        <ul class="circles">
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+        </ul>
+    </div>
+
+    <script>
+        // Display current server URL
+        document.getElementById('server-url').textContent = window.location.origin;
+    </script>
+</body>
+
+</html>

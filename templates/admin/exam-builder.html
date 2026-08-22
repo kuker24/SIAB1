@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Buat Ujian - Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <link rel="stylesheet" href="/static/css/exam-builder.css?v=20260418-richtext4">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <!-- Header Bar -->
+            <div class="builder-header">
+                <div class="builder-header-left">
+                    <a href="/admin/exams.html" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div class="save-status" id="save-status">
+                        <i class="fas fa-circle-check"></i> Tersimpan
+                    </div>
+                </div>
+                <div class="builder-header-center">
+                    <input type="text" id="exam-title" class="exam-title-input" placeholder="Judul Ujian"
+                        value="Ujian Tanpa Judul">
+                </div>
+                <div class="builder-header-right">
+                    <button class="btn btn-warning" id="save-draft-btn" onclick="manualSave()" title="Simpan Draft">
+                        <i class="fas fa-floppy-disk"></i> Simpan Draft
+                    </button>
+                    <button class="btn btn-secondary" onclick="togglePreview('builder')">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                    <button class="btn btn-secondary" onclick="togglePreview('simulate')" title="Simulasi urutan acak seperti siswa">
+                        <i class="fas fa-random"></i> Simulasi
+                    </button>
+                    <button class="btn btn-primary" onclick="publishExam()">
+                        <i class="fas fa-paper-plane"></i> Publish
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam Settings Card -->
+            <div class="builder-settings card">
+                <div class="settings-row">
+                    <div class="setting-item" style="min-width: 180px;">
+                        <label><i class="fas fa-book"></i> Bidang Studi</label>
+                        <div class="setting-input-group" style="gap: 0.25rem;">
+                            <select id="exam-subject" class="form-control"
+                                style="padding: 0.4rem 0.6rem; font-size: 0.85rem; min-width: 120px;">
+                                <option value="">-- Pilih --</option>
+                            </select>
+                            <button class="btn btn-sm btn-secondary" onclick="addNewSubject()"
+                                title="Tambah bidang studi baru" style="padding: 0.3rem 0.5rem;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="setting-item" style="min-width: 180px;">
+                        <label><i class="fas fa-tag"></i> Tipe Ujian</label>
+                        <div class="setting-input-group" style="gap: 0.25rem;">
+                            <select id="exam-type" class="form-control" onchange="handleExamTypeChange()"
+                                style="padding: 0.4rem 0.6rem; font-size: 0.85rem; min-width: 150px;">
+                                <option value="">-- Pilih Tipe --</option>
+                                <option value="Ujian Harian">📝 Ujian Harian</option>
+                                <option value="Ujian Mingguan">📅 Ujian Mingguan</option>
+                                <option value="Ujian Bulanan">📆 Ujian Bulanan</option>
+                                <option value="Ujian Tengah Semester">📋 UTS</option>
+                                <option value="Ujian Semester Ganjil">📘 UAS Ganjil</option>
+                                <option value="Ujian Semester Genap">📗 UAS Genap</option>
+                                <option value="Ujian Akhir Madrasah">🕌 Ujian Akhir Madrasah</option>
+                                <option value="custom">✏️ Custom...</option>
+                            </select>
+                            <input type="text" id="exam-type-custom" class="form-control"
+                                placeholder="Ketik tipe ujian..."
+                                style="display: none; padding: 0.4rem 0.6rem; font-size: 0.85rem; min-width: 130px;">
+                        </div>
+                    </div>
+                    <div class="setting-item" style="min-width: 140px;">
+                        <label><i class="fas fa-graduation-cap"></i> Tahun Ajaran</label>
+                        <select id="academic-year" class="form-control"
+                            style="padding: 0.4rem 0.6rem; font-size: 0.85rem; min-width: 120px;">
+                            <!-- Options will be generated dynamically -->
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-clock"></i> Durasi</label>
+                        <div class="setting-input-group">
+                            <input type="number" id="exam-duration" value="60" min="1">
+                            <span>menit</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-circle-check"></i> KKM</label>
+                        <div class="setting-input-group">
+                            <input type="number" id="exam-passing" value="70" min="0" max="100" style="width: 85px;">
+                            <span>/ 100</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-shuffle"></i> Acak Soal</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="shuffle-questions">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item"
+                        title="Mengacak opsi jawaban untuk soal pilihan ganda, PG Kompleks, Benar/Salah, dan Menjodohkan">
+                        <label><i class="fas fa-random"></i> Acak Opsi</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="shuffle-options">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-calendar-days"></i> Waktu</label>
+                        <button class="btn btn-sm btn-secondary" onclick="openTimeModal()">
+                            <i class="fas fa-pen-to-square"></i> Atur Jadwal
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-calculator"></i> Bobot Nilai</label>
+                        <button class="btn btn-sm btn-primary" onclick="openPointsConfigModal()"
+                            title="Atur bobot nilai otomatis per tipe soal">
+                            <i class="fas fa-sliders"></i> Atur Nilai
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-brain"></i> Default Soal</label>
+                        <button class="btn btn-sm btn-secondary tutorial-entry-btn" onclick="openBuilderDefaultsModal()"
+                            title="Atur default cerdas untuk soal baru">
+                            <i class="fas fa-gears"></i> Pengaturan
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <label><i class="fas fa-graduation-cap"></i> Tutorial</label>
+                        <button class="btn btn-sm btn-secondary tutorial-entry-btn" onclick="openTutorialModal()"
+                            title="Panduan cepat membuat ujian">
+                            <i class="fas fa-wand-magic-sparkles"></i> Tutorial
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Second Row: Teacher Attribution -->
+                <div class="settings-row"
+                    style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                    <div class="setting-item" style="min-width: 280px;">
+                        <label class="teacher-checkbox-label"
+                            style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                            <input type="checkbox" id="show-teacher-name" checked
+                                style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-user-tie" style="color: var(--primary);"></i>
+                                <span>Dilaksanakan atas nama:</span>
+                                <strong id="teacher-name-display" style="color: var(--primary);">Guru</strong>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="setting-item" style="flex: 1;">
+                        <small style="color: var(--text-secondary);">
+                            <i class="fas fa-info-circle"></i>
+                            Jika diaktifkan, nama Anda akan ditampilkan sebagai pelaksana ujian
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Third Row: Score & Review Settings -->
+                <div class="settings-row"
+                    style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                    <div class="setting-item" style="min-width: 250px;">
+                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                            <input type="checkbox" id="show-results"
+                                style="width: 18px; height: 18px; accent-color: var(--success);">
+                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-eye" style="color: var(--success);"></i>
+                                <span>Tampilkan nilai setelah ujian selesai</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="setting-item" style="flex: 1;">
+                        <small style="color: var(--text-secondary);">
+                            <i class="fas fa-info-circle"></i>
+                            Jika dinonaktifkan, siswa tidak akan melihat nilai mereka setelah selesai ujian
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Container -->
+            <div class="questions-container" id="questions-container">
+                <!-- Questions will be added here dynamically -->
+            </div>
+
+            <!-- Add Question Button -->
+            <div class="add-question-section">
+                <div class="add-question-buttons">
+                    <button class="add-question-btn" onclick="addQuestion('multiple_choice')" title="Pilihan Ganda">
+                        <i class="fas fa-list-ul"></i>
+                        <span>Pilihan Ganda</span>
+                    </button>
+                    <button class="add-question-btn" onclick="addQuestion('short_answer')" title="Isian Singkat">
+                        <i class="fas fa-pen-to-square"></i>
+                        <span>Isian Singkat</span>
+                    </button>
+                    <button class="add-question-btn" onclick="addQuestion('essay')" title="Essay">
+                        <i class="fas fa-align-left"></i>
+                        <span>Essay</span>
+                    </button>
+                    <button class="add-question-btn" onclick="addQuestion('true_false')" title="Benar/Salah">
+                        <i class="fas fa-check-double"></i>
+                        <span>Benar/Salah</span>
+                    </button>
+                    <button class="add-question-btn" onclick="addQuestion('multiple_choice_complex')"
+                        title="Pilihan Ganda Kompleks">
+                        <i class="fas fa-list-check"></i>
+                        <span>PG Kompleks</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-questions" id="empty-state">
+                <div class="empty-icon">📝</div>
+                <h3>Belum Ada Soal</h3>
+                <p>Klik tombol di atas untuk menambahkan soal pertama</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Time Settings Modal -->
+    <div class="modal-overlay" id="time-modal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-calendar-alt"></i> Atur Jadwal Ujian</h3>
+                <button class="modal-close" onclick="closeModal('time-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Duration Info -->
+                <div
+                    style="background: rgba(99, 102, 241, 0.1); padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 3px solid var(--primary);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <i class="fas fa-clock" style="color: var(--primary);"></i>
+                        <strong style="font-size: 0.9rem;">Durasi Ujian: <span id="duration-display">60</span>
+                            menit</strong>
+                    </div>
+                    <small style="color: var(--text-secondary); font-size: 0.8rem;">
+                        <i class="fas fa-info-circle"></i> Waktu selesai akan otomatis disesuaikan
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Waktu Mulai</label>
+                    <input type="datetime-local" id="start-time" class="form-control" onchange="autoUpdateEndTime()">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Waktu Selesai</label>
+                    <input type="datetime-local" id="end-time" class="form-control" onchange="checkDurationMismatch()">
+                    <div id="duration-warning"
+                        style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: rgba(245, 158, 11, 0.1); border-radius: 0.25rem; border-left: 3px solid #f59e0b;">
+                        <small style="color: #f59e0b;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Durasi antara waktu mulai dan selesai (<span id="calculated-duration">0</span> menit) tidak
+                            sesuai dengan durasi ujian yang diatur
+                        </small>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="setTimeNow()">
+                        <i class="fas fa-play-circle"></i> Mulai Sekarang
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="setTimeTomorrow()">
+                        <i class="fas fa-calendar-day"></i> Besok 08:00
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="setDuration(30)" title="Set durasi 30 menit">
+                        30 min
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="setDuration(60)" title="Set durasi 60 menit">
+                        60 min
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="setDuration(90)" title="Set durasi 90 menit">
+                        90 min
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="setDuration(120)" title="Set durasi 120 menit">
+                        120 min
+                    </button>
+                </div>
+            </div>
+            <div style="padding: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="closeModal('time-modal')">Batal</button>
+                <button class="btn btn-primary" onclick="saveTimeSettings()">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="preview-modal">
+        <div class="modal" style="max-width: 800px; max-height: 90vh;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="preview-modal-title"><i class="fas fa-eye"></i> Preview Ujian</h3>
+                <button class="modal-close" onclick="closeModal('preview-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="preview-content" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Preview will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Tutorial Modal -->
+    <div class="modal-overlay" id="tutorial-modal">
+        <div class="modal tutorial-modal">
+            <div class="modal-header tutorial-header">
+                <h3 class="modal-title"><i class="fas fa-graduation-cap"></i> Tutorial Cerdas Pembuatan Soal</h3>
+                <button class="modal-close" onclick="closeTutorialModal()">&times;</button>
+            </div>
+            <div class="modal-body tutorial-body">
+                <div class="tutorial-progress">
+                    <div class="tutorial-progress-bar" id="tutorial-progress-bar"></div>
+                </div>
+                <div class="tutorial-step-counter" id="tutorial-step-counter">Langkah 1 dari 8</div>
+                <div id="tutorial-slide" class="tutorial-slide"></div>
+            </div>
+            <div class="tutorial-footer">
+                <button class="btn btn-secondary" id="tutorial-prev-btn" onclick="prevTutorialStep()">
+                    <i class="fas fa-arrow-left"></i> Sebelumnya
+                </button>
+                <button class="btn btn-primary" id="tutorial-next-btn" onclick="nextTutorialStep()">
+                    Lanjut <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Builder Defaults Modal -->
+    <div class="modal-overlay" id="builder-defaults-modal">
+        <div class="modal" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-brain"></i> Pengaturan Default Soal</h3>
+                <button class="modal-close" onclick="closeModal('builder-defaults-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="display:grid; gap:0.9rem;">
+                <p style="margin:0; color:var(--text-secondary); font-size:0.9rem;">
+                    Atur perilaku default soal baru agar pembuatan ujian lebih cepat dan konsisten.
+                </p>
+
+                <div style="padding:0.75rem; border:1px solid var(--border-color); border-radius:0.55rem; background:rgba(15,23,42,0.35);">
+                    <strong style="display:block; margin-bottom:0.55rem; font-size:0.86rem;">Default Mode Cepat</strong>
+                    <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.45rem; cursor:pointer;">
+                        <input type="checkbox" id="default-mc-key-only">
+                        <span style="font-size:0.85rem;">Pilihan Ganda: langsung mode cepat (pilih kunci saja)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" id="default-pgk-key-only">
+                        <span style="font-size:0.85rem;">PG Kompleks (checkbox): langsung mode cepat</span>
+                    </label>
+                </div>
+
+                <div style="padding:0.75rem; border:1px solid var(--border-color); border-radius:0.55rem; background:rgba(15,23,42,0.35);">
+                    <strong style="display:block; margin-bottom:0.55rem; font-size:0.86rem;">Default Soal Bergambar</strong>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <span style="font-size:0.84rem; min-width:160px;">Saat soal pakai gambar:</span>
+                        <select id="default-image-layout-mode" class="form-control" style="max-width:240px;">
+                            <option value="model1">Gunakan Mode 1 (normal)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div style="padding:0.75rem; border:1px solid var(--border-color); border-radius:0.55rem; background:rgba(15,23,42,0.35);">
+                    <strong style="display:block; margin-bottom:0.55rem; font-size:0.86rem;">Bantuan Cerdas Acak</strong>
+                    <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.45rem; cursor:pointer;">
+                        <input type="checkbox" id="smart-auto-shuffle-options">
+                        <span style="font-size:0.85rem;">Default <strong>Acak Opsi</strong> = ON</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" id="smart-auto-shuffle-questions">
+                        <span style="font-size:0.85rem;">Default <strong>Acak Soal</strong> = ON</span>
+                    </label>
+                    <small style="display:block; margin-top:0.5rem; color:var(--text-secondary);">
+                        Toggle di bar atas akan otomatis sinkron dengan pengaturan ini.
+                    </small>
+                </div>
+
+                <div style="padding:0.75rem; border:1px solid var(--border-color); border-radius:0.55rem; background:rgba(15,23,42,0.35);">
+                    <strong style="display:block; margin-bottom:0.55rem; font-size:0.86rem;">Terapkan Sekarang</strong>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" id="apply-defaults-existing" checked>
+                        <span style="font-size:0.85rem;">Terapkan default ini juga ke soal yang sudah ada</span>
+                    </label>
+                </div>
+
+                <div id="builder-defaults-summary"
+                    style="padding:0.7rem; border-radius:0.5rem; border:1px solid rgba(56,189,248,0.3); background:rgba(56,189,248,0.08); color:#bae6fd; font-size:0.84rem;">
+                    Ringkasan default akan tampil di sini.
+                </div>
+            </div>
+            <div style="padding:1rem; display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button class="btn btn-secondary" onclick="closeModal('builder-defaults-modal')">Batal</button>
+                <button class="btn btn-primary" onclick="saveBuilderDefaults()">
+                    <i class="fas fa-save"></i> Simpan Pengaturan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Input Modal (replaces browser prompt) -->
+    <div class="modal-overlay" id="input-modal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="input-modal-title"><i class="fas fa-pen-to-square"></i> Input</h3>
+                <button class="modal-close" onclick="closeInputModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="input-modal-message" style="margin-bottom: 1rem; color: var(--text-secondary);"></p>
+                <input type="text" id="input-modal-input" class="form-control" placeholder="">
+            </div>
+            <div style="padding: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="closeInputModal()">Batal</button>
+                <button class="btn btn-primary" onclick="submitInputModal()">
+                    <i class="fas fa-check"></i> OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal (replaces browser confirm) -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="confirm-modal-title"><i class="fas fa-question-circle"></i> Konfirmasi</h3>
+                <button class="modal-close" onclick="closeConfirmModal(false)">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-message" style="text-align: center; font-size: 1rem;"></p>
+            </div>
+            <div style="padding: 1rem; display: flex; justify-content: center; gap: 0.75rem;">
+                <button class="btn btn-secondary" onclick="closeConfirmModal(false)">
+                    <i class="fas fa-times"></i> Batal
+                </button>
+                <button class="btn btn-danger" id="confirm-modal-btn" onclick="closeConfirmModal(true)">
+                    <i class="fas fa-check"></i> Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish Exam Modal - Class & Student Selection -->
+    <div class="modal-overlay" id="publish-modal">
+        <div class="modal"
+            style="max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                <h3 class="modal-title" style="color: white;">
+                    <i class="fas fa-rocket"></i> Publish Ujian
+                </h3>
+                <button class="modal-close" onclick="closePublishModal()" style="color: white;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 0; flex: 1; overflow-y: auto;">
+                <!-- Step Indicator -->
+                <div
+                    style="display: flex; padding: 1rem 1.5rem; background: var(--dark-card); border-bottom: 1px solid var(--border-color);">
+                    <div class="publish-step active" id="step-1-indicator">
+                        <span class="step-number">1</span>
+                        <span class="step-label">Pilih Kelas</span>
+                    </div>
+                    <div class="publish-step" id="step-2-indicator">
+                        <span class="step-number">2</span>
+                        <span class="step-label">Pilih Siswa</span>
+                    </div>
+                    <div class="publish-step" id="step-3-indicator">
+                        <span class="step-number">3</span>
+                        <span class="step-label">Konfirmasi</span>
+                    </div>
+                </div>
+
+                <!-- Exam Info Banner -->
+                <div
+                    style="padding: 1rem 1.5rem; background: rgba(99, 102, 241, 0.1); border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-file-alt" style="font-size: 1.5rem; color: var(--primary);"></i>
+                        <div>
+                            <div id="publish-exam-title" style="font-weight: 600; font-size: 1.1rem;"></div>
+                            <small id="publish-exam-info" style="color: var(--text-secondary);"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Class Selection -->
+                <div id="publish-step-1" class="publish-step-content" style="padding: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-users" style="color: var(--primary);"></i>
+                        Pilih Kelas yang Akan Ujian
+                    </h4>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+                        Centang kelas-kelas yang akan mengikuti ujian ini
+                    </p>
+
+                    <div id="class-list-container"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="margin-top: 1rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-info-circle" style="color: #60a5fa;"></i>
+                        <small style="color: var(--text-secondary);">Anda dapat memilih satu atau lebih kelas</small>
+                    </div>
+                </div>
+
+                <!-- Step 2: Student Selection -->
+                <div id="publish-step-2" class="publish-step-content" style="padding: 1.5rem; display: none;">
+                    <h4 style="margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-user-check" style="color: var(--primary);"></i>
+                        Pilih Siswa
+                    </h4>
+
+                    <!-- Quick Actions -->
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-sm btn-primary" onclick="selectAllStudents()">
+                            <i class="fas fa-check-double"></i> Pilih Semua
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="deselectAllStudents()">
+                            <i class="fas fa-times"></i> Batalkan Semua
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <input type="text" id="student-search" class="form-control" placeholder="Cari siswa..."
+                            style="max-width: 200px;" oninput="filterStudentList()">
+                    </div>
+
+                    <div id="student-list-container"
+                        style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="selected-count" style="color: var(--text-secondary);">0 siswa dipilih</span>
+                    </div>
+                </div>
+
+                <!-- Step 3: Confirmation -->
+                <div id="publish-step-3" class="publish-step-content" style="padding: 1.5rem; display: none;">
+                    <h4 style="margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-clipboard-check" style="color: var(--success);"></i>
+                        Konfirmasi Publish
+                    </h4>
+
+                    <div class="card" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3);">
+                        <div style="display: grid; gap: 1rem;">
+                            <div>
+                                <strong style="color: var(--success);"><i class="fas fa-book"></i> Ujian:</strong>
+                                <div id="confirm-exam-title" style="margin-top: 0.25rem;"></div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--success);"><i class="fas fa-users"></i> Kelas:</strong>
+                                <div id="confirm-classes" style="margin-top: 0.25rem;"></div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--success);"><i class="fas fa-user-graduate"></i> Jumlah
+                                    Siswa:</strong>
+                                <div id="confirm-student-count" style="margin-top: 0.25rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.5rem;">
+                        <p style="color: #f59e0b; font-weight: 500; margin-bottom: 0.5rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Perhatian:
+                        </p>
+                        <ul
+                            style="margin: 0; padding-left: 1.25rem; color: var(--text-secondary); font-size: 0.875rem;">
+                            <li>Ujian akan langsung aktif setelah dipublish</li>
+                            <li>Hanya siswa yang dipilih yang dapat mengakses ujian</li>
+                            <li>Anda dapat menambah siswa nanti di pengaturan ujian</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer"
+                style="display: flex; justify-content: space-between; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-secondary" id="publish-back-btn" onclick="publishStepBack()"
+                    style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+                <div style="flex: 1;"></div>
+                <button class="btn btn-primary" id="publish-next-btn" onclick="publishStepNext()">
+                    Lanjut <i class="fas fa-arrow-right"></i>
+                </button>
+                <button class="btn btn-success" id="publish-confirm-btn" onclick="confirmPublish()"
+                    style="display: none;">
+                    <i class="fas fa-rocket"></i> Publish Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .publish-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .publish-step .step-number {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--border-color);
+            border-radius: 50%;
+            font-weight: 600;
+        }
+
+        .publish-step.active {
+            color: var(--primary);
+        }
+
+        .publish-step.active .step-number {
+            background: var(--primary);
+            color: white;
+        }
+
+        .publish-step.completed .step-number {
+            background: var(--success);
+            color: white;
+        }
+
+        .class-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--dark-card);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .class-checkbox-item:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .class-checkbox-item.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .class-checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+
+        .student-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        .student-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .student-item:last-child {
+            border-bottom: none;
+        }
+
+        .student-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .student-item .student-info {
+            flex: 1;
+        }
+
+        .student-item .student-name {
+            font-weight: 500;
+        }
+
+        .student-item .student-class {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .student-item.hidden {
+            display: none;
+        }
+    </style>
+
+    <!-- Points Configuration Modal - Simple Version -->
+    <div class="modal-overlay" id="points-config-modal" style="overflow-y: auto;">
+        <div class="modal" style="max-width: 500px; margin: 2rem auto; max-height: none;">
+            <!-- Header -->
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-sliders-h"></i> Atur Bobot Nilai
+                </h3>
+                <button class="modal-close" onclick="closeModal('points-config-modal')">&times;</button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+                    Atur bobot nilai default untuk setiap tipe soal.
+                </p>
+
+                <!-- Pilihan Ganda -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-list-ul" style="color: #22c55e;"></i>
+                        Pilihan Ganda
+                    </label>
+                    <input type="number" id="points-multiple_choice" class="form-control" value="2" min="0.1" step="0.1"
+                        style="width: 100%;">
+                </div>
+
+                <!-- PG Kompleks -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-list-check" style="color: #8b5cf6;"></i>
+                        PG Kompleks (MCMA)
+                    </label>
+                    <input type="number" id="points-multiple_choice_complex" class="form-control" value="3.2" min="0.1"
+                        step="0.1" style="width: 100%;">
+                </div>
+
+                <!-- Benar/Salah -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-check-double" style="color: #f59e0b;"></i>
+                        Benar / Salah
+                    </label>
+                    <input type="number" id="points-true_false" class="form-control" value="3" min="0.1" step="0.1"
+                        style="width: 100%;">
+                </div>
+
+                <!-- Isian Singkat -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-pen-to-square" style="color: #06b6d4;"></i>
+                        Isian Singkat
+                    </label>
+                    <input type="number" id="points-short_answer" class="form-control" value="2.5" min="0.1" step="0.1"
+                        style="width: 100%;">
+                </div>
+
+                <!-- Essay -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-align-left" style="color: #ef4444;"></i>
+                        Essay / Uraian
+                    </label>
+                    <input type="number" id="points-essay" class="form-control" value="5" min="0.1" step="0.1"
+                        style="width: 100%;">
+                </div>
+
+                <!-- Info -->
+                <div
+                    style="background: rgba(99, 102, 241, 0.1); padding: 0.75rem; border-radius: 0.5rem; margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle" style="color: var(--primary);"></i>
+                    Nilai akan otomatis diterapkan ke soal baru. Klik "Terapkan" untuk mengupdate soal yang sudah ada.
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div
+                style="padding: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="resetPointsConfig()">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('points-config-modal')">Batal</button>
+                <button class="btn btn-success" onclick="savePointsConfigOnly()">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+                <button class="btn btn-primary" onclick="applyPointsConfig()">
+                    <i class="fas fa-check"></i> Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script>
+        // Role-based access control
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            // Redirect handled by requireAuth
+        }
+    </script>
+    <script src="/static/js/exam-builder.js?v=20260530-quote-attr1"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+</body>
+
+</html>

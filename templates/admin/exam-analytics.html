@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Analitik Ujian - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            padding: 1rem;
+        }
+
+        .difficulty-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .difficulty-bar:last-child {
+            border-bottom: none;
+        }
+
+        .difficulty-indicator {
+            width: 100px;
+            height: 8px;
+            background: var(--dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .difficulty-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .difficulty-fill.easy {
+            background: var(--success);
+        }
+
+        .difficulty-fill.medium {
+            background: var(--warning);
+        }
+
+        .difficulty-fill.hard {
+            background: var(--danger);
+        }
+
+        .score-trend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .score-trend-item:last-child {
+            border-bottom: none;
+        }
+
+        .performance-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .performance-score {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .performance-score.good {
+            color: var(--success);
+        }
+
+        .performance-score.average {
+            color: var(--warning);
+        }
+
+        .performance-score.poor {
+            color: var(--danger);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--dark-card);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .export-dropdown {
+            position: relative;
+        }
+
+        .export-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            min-width: 210px;
+            background: #1e293b;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 0.75rem;
+            box-shadow: 0 16px 32px rgba(2, 6, 23, 0.45);
+            overflow: hidden;
+            z-index: 120;
+            display: none;
+        }
+
+        .export-dropdown-menu.show {
+            display: block;
+        }
+
+        .export-dropdown-menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #e2e8f0;
+            text-decoration: none;
+            padding: 0.7rem 0.85rem;
+            font-size: 0.88rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        .export-dropdown-menu a:last-child {
+            border-bottom: none;
+        }
+
+        .export-dropdown-menu a:hover {
+            background: rgba(99, 102, 241, 0.18);
+            color: #f8fafc;
+        }
+
+        .export-dropdown-divider {
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            margin: 0.25rem 0;
+        }
+
+        .assessment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .assessment-metric {
+            background: var(--dark-card);
+            border-radius: 0.75rem;
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .assessment-metric .label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .assessment-metric .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .assessment-table-wrap {
+            overflow-x: auto;
+        }
+
+        .assessment-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        .assessment-table th,
+        .assessment-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.55rem 0.6rem;
+            font-size: 0.83rem;
+            text-align: left;
+        }
+
+        .assessment-table th {
+            background: rgba(15, 23, 42, 0.85);
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .assessment-table td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .assessment-controls {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding: 0.9rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .assessment-control-row {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .assessment-control-row .form-control {
+            min-width: 240px;
+            flex: 1 1 240px;
+        }
+
+        .assessment-scope-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+        }
+
+        .assessment-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.66);
+            z-index: 240;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .assessment-modal.show {
+            display: flex;
+        }
+
+        .assessment-modal-card {
+            width: min(560px, 100%);
+            max-height: 86vh;
+            overflow: hidden;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: #0f172a;
+            box-shadow: 0 24px 48px rgba(2, 6, 23, 0.5);
+        }
+
+        .assessment-modal-header,
+        .assessment-modal-footer {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .assessment-modal-footer {
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            border-bottom: none;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.6rem;
+        }
+
+        .assessment-modal-body {
+            padding: 0.9rem 1rem;
+            max-height: 56vh;
+            overflow-y: auto;
+        }
+
+        .assessment-class-checklist {
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .assessment-class-checklist label {
+            display: flex;
+            gap: 0.55rem;
+            align-items: center;
+            font-size: 0.88rem;
+            color: #e2e8f0;
+            padding: 0.45rem 0.55rem;
+            border-radius: 0.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .assessment-class-checklist input[type="checkbox"] {
+            accent-color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar - Loaded via JavaScript -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line" style="color: var(--primary);"></i>
+                    Analitik Ujian
+                </h1>
+                <div class="header-actions">
+                    <select id="exam-select" class="form-control"
+                        style="width: auto; min-width: 250px; margin-right: 1rem;">
+                        <option value="">Pilih Ujian...</option>
+                    </select>
+                    <div class="export-dropdown">
+                        <button type="button" class="btn btn-secondary" id="export-btn"
+                            onclick="toggleExportDropdown(event)">
+                            <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="export-dropdown-menu" id="export-dropdown-menu">
+                            <a href="#" onclick="exportAnalytics('pdf'); return false;">
+                                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Export PDF
+                            </a>
+                            <a href="#" onclick="exportAnalytics('docx'); return false;">
+                                <i class="fas fa-file-word" style="color:#3b82f6;"></i> Export DOCX
+                            </a>
+                            <a href="#" onclick="exportAnalytics('excel'); return false;">
+                                <i class="fas fa-file-excel" style="color:#22c55e;"></i> Export Excel
+                            </a>
+                            <div class="export-dropdown-divider"></div>
+                            <a href="#" onclick="exportAssessmentReport('pan'); return false;">
+                                <i class="fas fa-file-word" style="color:#8b5cf6;"></i> Analisis Hasil Asesmen - PAN
+                            </a>
+                            <a href="#" onclick="exportAssessmentReport('pap'); return false;">
+                                <i class="fas fa-file-word" style="color:#0ea5e9;"></i> Analisis Hasil Asesmen - PAP
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <!-- Tabs -->
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab(event, 'students')">
+                    <i class="fas fa-users"></i> Performa Siswa
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'questions')">
+                    <i class="fas fa-circle-question"></i> Analisis Soal
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'overview')">
+                    <i class="fas fa-chart-simple"></i> Overview
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'assessment')">
+                    <i class="fas fa-file-lines"></i> Analisis Asesmen
+                </button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="tab-overview" class="tab-content">
+                <div id="overview-placeholder" class="card" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-chart-pie"
+                        style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <h3>Pilih Ujian untuk Melihat Analitik</h3>
+                    <p style="color: var(--text-secondary);">Pilih ujian dari dropdown di atas untuk melihat statistik
+                        lengkap</p>
+                </div>
+
+                <div id="overview-content" style="display: none;">
+                    <!-- Stats Cards -->
+                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                        <div class="stat-card">
+                            <div class="stat-icon users"><i class="fas fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3 id="stat-participants">0</h3>
+                                <p>Total Peserta</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon active"><i class="fas fa-circle-check"></i></div>
+                            <div class="stat-info">
+                                <h3 id="stat-completed">0</h3>
+                                <p>Selesai</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon exams"><i class="fas fa-chart-column"></i></div>
+                            <div class="stat-info">
+                                <h3 id="stat-avg-score">0</h3>
+                                <p>Rata-rata Nilai</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon pending"><i class="fas fa-percent"></i></div>
+                            <div class="stat-info">
+                                <h3 id="stat-pass-rate">0%</h3>
+                                <p>Tingkat Kelulusan</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <!-- Score Distribution -->
+                        <div class="card">
+                            <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-simple"></i> Distribusi Nilai</h3>
+                            <div class="chart-container">
+                                <canvas id="distribution-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Score Range Stats -->
+                        <div class="card">
+                            <h3 style="margin-bottom: 1rem;"><i class="fas fa-trophy"></i> Statistik Nilai</h3>
+                            <div style="display: grid; gap: 1rem;">
+                                <div class="performance-card"
+                                    style="background: var(--dark-card); border-radius: 0.5rem;">
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Nilai Tertinggi
+                                    </div>
+                                    <div class="performance-score good" id="stat-highest">0</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div class="performance-card"
+                                        style="background: var(--dark-card); border-radius: 0.5rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Terendah</div>
+                                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--danger);"
+                                            id="stat-lowest">0</div>
+                                    </div>
+                                    <div class="performance-card"
+                                        style="background: var(--dark-card); border-radius: 0.5rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Pelanggaran</div>
+                                        <div style="font-size: 1.5rem; font-weight: 600; color: var(--warning);"
+                                            id="stat-violations">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Tab -->
+            <div id="tab-questions" class="tab-content">
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-list-check"></i> Analisis Tingkat Kesulitan Soal</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Persentase jawaban benar per soal. Soal dengan nilai rendah mungkin terlalu sulit atau
+                        membingungkan.
+                    </p>
+                    <div id="questions-analysis">
+                        <div class="empty-state">
+                            <i class="fas fa-circle-question"></i>
+                            <p>Pilih ujian untuk melihat analisis soal</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="tab-students" class="tab-content active">
+                <div class="analytics-grid">
+                    <!-- Class Performance -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-school"></i> Performa per Kelas</h3>
+                        <select id="class-select" class="form-control" style="margin-bottom: 1rem;" disabled>
+                            <option value="">Pilih Ujian Dulu...</option>
+                        </select>
+                        <div id="class-performance">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <p>Pilih ujian lalu pilih kelas untuk melihat performa</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Performers -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-award"></i> Top Performers</h3>
+                        <div id="top-performers">
+                            <div class="empty-state">
+                                <i class="fas fa-trophy"></i>
+                                <p>Data akan muncul setelah memilih kelas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessment Tab -->
+            <div id="tab-assessment" class="tab-content">
+                <div class="card">
+                    <h3 style="margin-bottom: 0.6rem;">
+                        <i class="fas fa-file-signature"></i> Analisis Hasil Asesmen (PAN / PAP)
+                    </h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Analisis asesmen menggunakan mode per-kelas atau gabungan kelas.
+                        Gabungan kelas hanya tersedia untuk Ujian Akhir Madrasah.
+                    </p>
+                    <div class="assessment-controls">
+                        <div class="assessment-control-row">
+                            <select id="assessment-class-select" class="form-control" disabled>
+                                <option value="">Pilih Ujian Dulu...</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary" id="assessment-combine-btn"
+                                onclick="openCombineClassesModal()" disabled>
+                                <i class="fas fa-object-group"></i> Gabungkan Kelas
+                            </button>
+                        </div>
+                        <div class="assessment-scope-badge" id="assessment-scope-badge">
+                            <i class="fas fa-filter"></i>
+                            <span>Mode aktif: Per Kelas</span>
+                        </div>
+                    </div>
+                    <div id="assessment-content">
+                        <div class="empty-state">
+                            <i class="fas fa-file-lines"></i>
+                            <p>Pilih ujian lalu pilih scope asesmen untuk melihat Analisis Asesmen</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="assessment-modal" id="combine-classes-modal">
+        <div class="assessment-modal-card">
+            <div class="assessment-modal-header">
+                <h3 style="margin:0; font-size: 1rem;">
+                    <i class="fas fa-layer-group"></i> Gabungkan Kelas (Khusus UAM)
+                </h3>
+            </div>
+            <div class="assessment-modal-body">
+                <p style="margin-top:0; color: var(--text-secondary); font-size: 0.86rem;">
+                    Pilih minimal 2 kelas untuk menggabungkan data asesmen.
+                </p>
+                <div id="combine-classes-list" class="assessment-class-checklist"></div>
+            </div>
+            <div class="assessment-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCombineClassesModal()">
+                    Batal
+                </button>
+                <button type="button" class="btn btn-primary" onclick="applyCombinedClasses()">
+                    Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=20260419-analytics-assessment"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script>
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        let distributionChart = null;
+        let currentExamId = null;
+        let allExams = [];
+        let currentExamData = null;
+        let currentQuestionAnalysisData = null;
+        let currentClassPerformanceData = null;
+        let currentClassName = '';
+        let currentClassExamId = null;
+        let currentAssessmentData = null;
+        let currentAssessmentClass = '';
+        let currentAssessmentClassNames = [];
+        let currentAssessmentScopeMode = 'single';
+        let currentAssessmentScopeKey = '';
+        let currentAssessmentExamId = null;
+        const classOptionsByExam = new Map();
+
+        const EXPORT_BRANDING = {
+            schoolName: 'MADRASAH ALIYAH NEGERI 1 ROKAN HULU',
+            reportSubtitle: 'Sistem Ujian Online - Dokumen Resmi',
+            logoPath: '/static/uploads/logo-man1.jpeg'
+        };
+        let exportLogoDataUrlPromise = null;
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function notifyAlert(message, type = 'info') {
+            const normalizedType = String(type || 'info').toLowerCase();
+            const toastType = normalizedType === 'danger' ? 'error' : normalizedType;
+            if (api && typeof api.showToast === 'function') {
+                api.showToast(String(message || ''), toastType);
+                return;
+            }
+            const logger = normalizedType === 'danger' ? console.error : console.log;
+            logger(String(message || ''));
+        }
+
+        function slugifyFilename(value) {
+            return String(value || 'export')
+                .trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '_')
+                .replace(/_+/g, '_');
+        }
+
+        function normalizeClassNameList(values) {
+            const source = Array.isArray(values) ? values : [];
+            const normalized = [];
+            const seen = new Set();
+            source.forEach((item) => {
+                const className = String(item || '').trim();
+                if (!className) return;
+                const key = className.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                normalized.push(className);
+            });
+            return normalized;
+        }
+
+        function buildAssessmentScopeKey(scope) {
+            if (!scope) return '';
+            if (scope.mode === 'combined') {
+                return `combined:${normalizeClassNameList(scope.classNames).join('|')}`;
+            }
+            const className = String(scope.className || '').trim();
+            return className ? `single:${className}` : '';
+        }
+
+        function normalizeExamTypeText(value) {
+            return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+
+        function isExamUamBySelf(examMeta) {
+            const examType = normalizeExamTypeText(examMeta?.exam_type);
+            if (examType.includes('ujian akhir madrasah') || examType.includes('ujian madrasah')) {
+                return true;
+            }
+
+            // Backward compatibility for legacy exams with empty exam_type
+            // but title already includes UM/UAM naming.
+            const title = normalizeExamTypeText(examMeta?.title);
+            if (!title) return false;
+            if (title.includes('ujian akhir madrasah') || title.includes('ujian madrasah')) {
+                return true;
+            }
+            if (/\buam\b/.test(title)) return true;
+            if (/\bum\b/.test(title)) return true;
+            return false;
+        }
+
+        function isExamUam(examMeta) {
+            if (!examMeta || typeof examMeta !== 'object') return false;
+            if (isExamUamBySelf(examMeta)) return true;
+
+            // Compatibility path for duplicated-title exams:
+            // if current exam metadata is legacy/incomplete, allow when
+            // sibling exam (same creator + same title) is marked UAM.
+            const currentId = Number(examMeta.id);
+            const creatorId = Number(examMeta.creator_id);
+            const title = normalizeExamTypeText(examMeta.title);
+            if (!title || !Number.isFinite(creatorId)) {
+                return false;
+            }
+
+            return allExams.some((candidate) => {
+                const candidateId = Number(candidate?.id);
+                const candidateCreatorId = Number(candidate?.creator_id);
+                if (Number.isFinite(currentId) && candidateId === currentId) {
+                    return false;
+                }
+                if (!Number.isFinite(candidateCreatorId) || candidateCreatorId !== creatorId) {
+                    return false;
+                }
+                if (normalizeExamTypeText(candidate?.title) !== title) {
+                    return false;
+                }
+                return isExamUamBySelf(candidate);
+            });
+        }
+
+        function isCurrentExamUam() {
+            return isExamUam(getCurrentExamMeta());
+        }
+
+        function getCurrentExamClassNames() {
+            if (!currentExamId) return [];
+            const cached = classOptionsByExam.get(String(currentExamId));
+            if (!cached || !Array.isArray(cached.classNames)) return [];
+            return normalizeClassNameList(cached.classNames);
+        }
+
+        function setAssessmentScopeBadge(scope) {
+            const badge = document.getElementById('assessment-scope-badge');
+            if (!badge) return;
+            const label = badge.querySelector('span');
+            if (!label) return;
+            if (!scope) {
+                label.textContent = 'Mode aktif: Per Kelas';
+                return;
+            }
+            if (scope.mode === 'combined') {
+                const names = normalizeClassNameList(scope.classNames);
+                label.textContent = names.length > 0
+                    ? `Mode aktif: Gabungan Kelas (${names.join(', ')})`
+                    : 'Mode aktif: Gabungan Kelas';
+                return;
+            }
+            const className = String(scope.className || '').trim();
+            label.textContent = className
+                ? `Mode aktif: Per Kelas (${className})`
+                : 'Mode aktif: Per Kelas';
+        }
+
+        function refreshAssessmentControls() {
+            const assessmentSelect = document.getElementById('assessment-class-select');
+            const combineBtn = document.getElementById('assessment-combine-btn');
+            const classNames = getCurrentExamClassNames();
+            const hasClasses = classNames.length > 0;
+            const canUseCombine = hasClasses && classNames.length >= 2 && isCurrentExamUam();
+
+            if (assessmentSelect && !hasClasses) {
+                assessmentSelect.value = '';
+            }
+
+            if (combineBtn) {
+                combineBtn.disabled = !canUseCombine;
+                if (!hasClasses) {
+                    combineBtn.title = 'Belum ada data kelas pada ujian ini';
+                } else if (!isCurrentExamUam()) {
+                    combineBtn.title = 'Gabungan kelas hanya untuk Ujian Akhir Madrasah';
+                } else if (classNames.length < 2) {
+                    combineBtn.title = 'Minimal 2 kelas untuk gabungan';
+                } else {
+                    combineBtn.title = 'Pilih beberapa kelas untuk analisis gabungan';
+                }
+            }
+        }
+
+        function resolveAssessmentScope(scopeInput = null) {
+            if (scopeInput && typeof scopeInput === 'object') {
+                if (scopeInput.mode === 'combined') {
+                    const classNames = normalizeClassNameList(scopeInput.classNames);
+                    if (classNames.length >= 2) {
+                        return { mode: 'combined', classNames };
+                    }
+                    return null;
+                }
+                const className = String(scopeInput.className || '').trim();
+                return className ? { mode: 'single', className } : null;
+            }
+
+            if (typeof scopeInput === 'string') {
+                const className = String(scopeInput || '').trim();
+                return className ? { mode: 'single', className } : null;
+            }
+
+            if (currentAssessmentScopeMode === 'combined') {
+                const classNames = normalizeClassNameList(currentAssessmentClassNames);
+                if (classNames.length >= 2) {
+                    return { mode: 'combined', classNames };
+                }
+            }
+
+            const className = String(document.getElementById('assessment-class-select')?.value || '').trim();
+            return className ? { mode: 'single', className } : null;
+        }
+
+        async function getExportLogoDataUrl() {
+            if (!exportLogoDataUrlPromise) {
+                exportLogoDataUrlPromise = (async () => {
+                    try {
+                        const response = await fetch(EXPORT_BRANDING.logoPath, { cache: 'force-cache' });
+                        if (!response.ok) return null;
+                        const blob = await response.blob();
+                        return await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = () => resolve(null);
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (error) {
+                        console.warn('Logo export tidak tersedia:', error);
+                        return null;
+                    }
+                })();
+            }
+            return exportLogoDataUrlPromise;
+        }
+
+        function triggerBrowserDownload(url, filename) {
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            window.setTimeout(() => {
+                anchor.remove();
+                URL.revokeObjectURL(url);
+            }, 1500);
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob(['\ufeff' + content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            triggerBrowserDownload(url, filename);
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            triggerBrowserDownload(url, filename);
+        }
+
+        async function init() {
+            await loadExams();
+            resetClassSelectionState();
+            bindEvents();
+        }
+
+        async function loadExams() {
+            try {
+                const exams = await api.getExams();
+                allExams = Array.isArray(exams) ? exams : [];
+                const select = document.getElementById('exam-select');
+                const formatExamLabel = (exam) => {
+                    const title = String(exam?.title || 'Tanpa Judul').trim() || 'Tanpa Judul';
+                    const subject = String(exam?.subject || '-').trim() || '-';
+                    const examType = String(exam?.exam_type || '-').trim() || '-';
+                    const examId = Number(exam?.id);
+                    const idLabel = Number.isFinite(examId) ? `#${examId}` : '#-';
+                    return `${title} • ${subject} • ${examType} • ${idLabel}`;
+                };
+                select.innerHTML = '<option value="">Pilih Ujian...</option>' +
+                    allExams.map(e => `<option value="${e.id}">${escapeHtml(formatExamLabel(e))}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load exams:', error);
+            }
+        }
+
+        function setStudentsPanelWaitingClass() {
+            document.getElementById('class-performance').innerHTML =
+                '<div class="empty-state"><i class="fas fa-users"></i><p>Pilih kelas untuk melihat performa</p></div>';
+            document.getElementById('top-performers').innerHTML =
+                '<div class="empty-state"><i class="fas fa-trophy"></i><p>Data akan muncul setelah memilih kelas</p></div>';
+        }
+
+        function setAssessmentPanelWaitingClass() {
+            currentAssessmentData = null;
+            currentAssessmentClass = '';
+            currentAssessmentClassNames = [];
+            currentAssessmentScopeMode = 'single';
+            currentAssessmentScopeKey = '';
+            currentAssessmentExamId = null;
+            setAssessmentScopeBadge(null);
+            document.getElementById('assessment-content').innerHTML =
+                '<div class="empty-state"><i class="fas fa-file-lines"></i><p>Pilih kelas atau gabungan kelas untuk melihat Analisis Asesmen</p></div>';
+        }
+
+        function resetAssessmentPanel() {
+            currentAssessmentData = null;
+            currentAssessmentClass = '';
+            currentAssessmentClassNames = [];
+            currentAssessmentScopeMode = 'single';
+            currentAssessmentScopeKey = '';
+            currentAssessmentExamId = null;
+            setAssessmentScopeBadge(null);
+            document.getElementById('assessment-content').innerHTML =
+                '<div class="empty-state"><i class="fas fa-file-lines"></i><p>Pilih ujian lalu pilih scope asesmen untuk melihat Analisis Asesmen</p></div>';
+        }
+
+        function resetClassSelectionState() {
+            const classSelect = document.getElementById('class-select');
+            classSelect.value = '';
+            classSelect.disabled = true;
+            classSelect.innerHTML = '<option value="">Pilih Ujian Dulu...</option>';
+            const assessmentClassSelect = document.getElementById('assessment-class-select');
+            assessmentClassSelect.value = '';
+            assessmentClassSelect.disabled = true;
+            assessmentClassSelect.innerHTML = '<option value="">Pilih Ujian Dulu...</option>';
+            currentClassName = '';
+            currentClassExamId = null;
+            currentClassPerformanceData = null;
+            document.getElementById('class-performance').innerHTML =
+                '<div class="empty-state"><i class="fas fa-users"></i><p>Pilih ujian lalu pilih kelas untuk melihat performa</p></div>';
+            document.getElementById('top-performers').innerHTML =
+                '<div class="empty-state"><i class="fas fa-trophy"></i><p>Data akan muncul setelah memilih kelas</p></div>';
+            resetAssessmentPanel();
+            refreshAssessmentControls();
+        }
+
+        async function loadExamClasses(examId) {
+            const select = document.getElementById('class-select');
+            const assessmentSelect = document.getElementById('assessment-class-select');
+            if (!examId) {
+                resetClassSelectionState();
+                return;
+            }
+
+            const examKey = String(examId);
+            const cached = classOptionsByExam.get(examKey);
+            if (cached) {
+                select.innerHTML = cached.optionsHtml;
+                select.disabled = Boolean(cached.disabled);
+                assessmentSelect.innerHTML = cached.optionsHtml;
+                assessmentSelect.disabled = Boolean(cached.disabled);
+                refreshAssessmentControls();
+                if (cached.empty) {
+                    document.getElementById('class-performance').innerHTML =
+                        '<div class="empty-state"><i class="fas fa-inbox"></i><p>Belum ada kelas yang memiliki hasil ujian untuk ujian ini</p></div>';
+                    document.getElementById('top-performers').innerHTML =
+                        '<div class="empty-state"><i class="fas fa-trophy"></i><p>Belum ada data</p></div>';
+                    document.getElementById('assessment-content').innerHTML =
+                        '<div class="empty-state"><i class="fas fa-file-lines"></i><p>Belum ada data kelas untuk analisis asesmen pada ujian ini</p></div>';
+                } else {
+                    setStudentsPanelWaitingClass();
+                    setAssessmentPanelWaitingClass();
+                }
+                return;
+            }
+
+            select.disabled = true;
+            select.innerHTML = '<option value="">Memuat Kelas...</option>';
+            assessmentSelect.disabled = true;
+            assessmentSelect.innerHTML = '<option value="">Memuat Kelas...</option>';
+            setStudentsPanelWaitingClass();
+
+            try {
+                const response = await api.getExamClasses(examId);
+                const classesRaw = Array.isArray(response?.classes) ? response.classes : [];
+                const classes = classesRaw.filter(item => String(item?.class_name || '').trim());
+                const classNames = normalizeClassNameList(classes.map(item => item.class_name));
+
+                if (classes.length === 0) {
+                    const emptyOption = '<option value="">Belum ada data kelas untuk ujian ini</option>';
+                    classOptionsByExam.set(examKey, {
+                        optionsHtml: emptyOption,
+                        disabled: true,
+                        empty: true,
+                        classNames: []
+                    });
+                    select.innerHTML = emptyOption;
+                    select.disabled = true;
+                    assessmentSelect.innerHTML = emptyOption;
+                    assessmentSelect.disabled = true;
+                    refreshAssessmentControls();
+                    document.getElementById('class-performance').innerHTML =
+                        '<div class="empty-state"><i class="fas fa-inbox"></i><p>Belum ada kelas yang memiliki hasil ujian untuk ujian ini</p></div>';
+                    document.getElementById('assessment-content').innerHTML =
+                        '<div class="empty-state"><i class="fas fa-file-lines"></i><p>Belum ada data kelas untuk analisis asesmen pada ujian ini</p></div>';
+                    return;
+                }
+
+                const optionsHtml = '<option value="">Pilih Kelas...</option>' + classes.map(item => {
+                    const className = String(item.class_name || '').trim();
+                    if (!className) return '';
+                    const participantCount = Number(item.participants || 0);
+                    const label = participantCount > 0
+                        ? `${escapeHtml(className)} (${participantCount} peserta)`
+                        : escapeHtml(className);
+                    return `<option value="${escapeHtml(className)}">${label}</option>`;
+                }).join('');
+
+                classOptionsByExam.set(examKey, {
+                    optionsHtml,
+                    disabled: false,
+                    empty: false,
+                    classNames
+                });
+                select.innerHTML = optionsHtml;
+                select.disabled = false;
+                assessmentSelect.innerHTML = optionsHtml;
+                assessmentSelect.disabled = false;
+                refreshAssessmentControls();
+                setAssessmentPanelWaitingClass();
+            } catch (error) {
+                console.error('Failed to load exam classes:', error);
+                select.innerHTML = '<option value="">Gagal memuat kelas ujian</option>';
+                select.disabled = true;
+                assessmentSelect.innerHTML = '<option value="">Gagal memuat kelas ujian</option>';
+                assessmentSelect.disabled = true;
+                refreshAssessmentControls();
+                notifyAlert('Gagal memuat daftar kelas untuk ujian terpilih', 'danger');
+                document.getElementById('assessment-content').innerHTML =
+                    '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Gagal memuat data analisis asesmen</p></div>';
+            }
+        }
+
+        function resetAnalyticsPanels() {
+            currentExamData = null;
+            currentQuestionAnalysisData = null;
+            document.getElementById('overview-placeholder').style.display = 'block';
+            document.getElementById('overview-content').style.display = 'none';
+            document.getElementById('questions-analysis').innerHTML =
+                '<div class="empty-state"><i class="fas fa-circle-question"></i><p>Pilih ujian untuk melihat analisis soal</p></div>';
+        }
+
+        function bindEvents() {
+            document.getElementById('exam-select').addEventListener('change', async (e) => {
+                const selectedExamId = e.target.value;
+                if (!selectedExamId) {
+                    currentExamId = null;
+                    resetAnalyticsPanels();
+                    resetClassSelectionState();
+                    return;
+                }
+
+                currentExamId = selectedExamId;
+                currentClassPerformanceData = null;
+                currentClassName = '';
+                currentClassExamId = null;
+                resetClassSelectionState();
+                await loadExamClasses(selectedExamId);
+                await Promise.all([
+                    loadExamAnalytics(selectedExamId),
+                    loadQuestionAnalysis(selectedExamId)
+                ]);
+            });
+
+            document.getElementById('class-select').addEventListener('change', async (e) => {
+                if (e.target.value) {
+                    const selectedClass = e.target.value;
+                    await loadClassPerformance(selectedClass);
+                } else {
+                    currentClassName = '';
+                    currentClassExamId = null;
+                    currentClassPerformanceData = null;
+                    setStudentsPanelWaitingClass();
+                }
+            });
+
+            document.getElementById('assessment-class-select').addEventListener('change', async (e) => {
+                const selectedClass = String(e.target.value || '').trim();
+                if (selectedClass) {
+                    currentAssessmentScopeMode = 'single';
+                    currentAssessmentClass = selectedClass;
+                    currentAssessmentClassNames = [];
+                    setAssessmentScopeBadge({ mode: 'single', className: selectedClass });
+                    await loadAssessmentAnalysis({ mode: 'single', className: selectedClass });
+                    return;
+                }
+                currentAssessmentScopeMode = 'single';
+                currentAssessmentClass = '';
+                currentAssessmentClassNames = [];
+                currentAssessmentScopeKey = '';
+                setAssessmentPanelWaitingClass();
+            });
+
+            document.addEventListener('click', (event) => {
+                const dropdown = document.getElementById('export-dropdown-menu');
+                const wrapper = document.querySelector('.export-dropdown');
+                if (!dropdown || !wrapper) return;
+                if (!wrapper.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            document.getElementById('combine-classes-modal').addEventListener('click', (event) => {
+                if (event.target && event.target.id === 'combine-classes-modal') {
+                    closeCombineClassesModal();
+                }
+            });
+        }
+
+        function switchTab(evt, tabId) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const clickedBtn = evt && evt.target ? evt.target.closest('.tab-btn') : null;
+            if (clickedBtn) clickedBtn.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        async function loadExamAnalytics(examId) {
+            try {
+                const data = await api.getExamAnalytics(examId);
+                currentExamData = data;
+
+                // Show content
+                document.getElementById('overview-placeholder').style.display = 'none';
+                document.getElementById('overview-content').style.display = 'block';
+
+                // Update stats
+                document.getElementById('stat-participants').textContent = data.total_participants;
+                document.getElementById('stat-completed').textContent = data.completed_sessions;
+                document.getElementById('stat-avg-score').textContent = data.average_score;
+                document.getElementById('stat-pass-rate').textContent = data.pass_rate + '%';
+                document.getElementById('stat-highest').textContent = data.highest_score;
+                document.getElementById('stat-lowest').textContent = data.lowest_score;
+                document.getElementById('stat-violations').textContent = data.violation_stats?.total_violations || 0;
+
+                // Render distribution chart
+                renderDistributionChart(data.score_distribution);
+
+            } catch (error) {
+                currentExamData = null;
+                notifyAlert('Gagal memuat analitik: ' + error.message, 'danger');
+            }
+        }
+
+        function renderDistributionChart(distribution) {
+            const ctx = document.getElementById('distribution-chart').getContext('2d');
+
+            if (distributionChart) distributionChart.destroy();
+
+            const labels = Object.keys(distribution);
+            const values = Object.values(distribution);
+
+            distributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Siswa',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)',   // 0-20 (red)
+                            'rgba(245, 158, 11, 0.7)', // 21-40 (amber)
+                            'rgba(234, 179, 8, 0.7)',  // 41-60 (yellow)
+                            'rgba(34, 197, 94, 0.7)',  // 61-80 (green)
+                            'rgba(16, 185, 129, 0.7)'  // 81-100 (emerald)
+                        ],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#9ca3af', stepSize: 1 },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadQuestionAnalysis(examId) {
+            const container = document.getElementById('questions-analysis');
+            if (!examId) {
+                currentQuestionAnalysisData = null;
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-circle-question"></i><p>Pilih ujian untuk melihat analisis soal</p></div>';
+                return;
+            }
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const data = await api.getQuestionDifficultyAnalysis(examId);
+                currentQuestionAnalysisData = data;
+
+                const questions = Array.isArray(data?.questions) ? data.questions : [];
+                if (questions.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Belum ada data</p></div>';
+                    return;
+                }
+
+                container.innerHTML = questions.map(q => `
+                    <div class="difficulty-bar">
+                        <div style="width: 40px; text-align: center;">
+                            <strong>#${q.question_number}</strong>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.875rem; margin-bottom: 0.25rem;">${q.question_text}</div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="difficulty-indicator">
+                                    <div class="difficulty-fill ${q.difficulty}" style="width: ${q.correct_rate}%;"></div>
+                                </div>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                                    ${q.correct_rate}% benar
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-${q.difficulty === 'easy' ? 'success' : q.difficulty === 'medium' ? 'warning' : 'danger'}">
+                                ${q.difficulty.toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                currentQuestionAnalysisData = null;
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Gagal memuat data</p></div>';
+            }
+        }
+
+        async function loadClassPerformance(className) {
+            const container = document.getElementById('class-performance');
+            const topContainer = document.getElementById('top-performers');
+
+            if (!currentExamId) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-list-check"></i><p>Pilih ujian terlebih dahulu</p></div>';
+                topContainer.innerHTML = '<div class="empty-state"><i class="fas fa-trophy"></i><p>Data akan muncul setelah memilih kelas</p></div>';
+                currentClassPerformanceData = null;
+                currentClassExamId = null;
+                return;
+            }
+
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            topContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const data = await api.getClassPerformance(className, currentExamId);
+                currentClassName = className;
+                currentClassExamId = Number(currentExamId);
+                currentClassPerformanceData = data;
+
+                container.innerHTML = `
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--dark-card); border-radius: 0.5rem;">
+                            <span>Total Siswa</span>
+                            <strong>${data.total_students}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--dark-card); border-radius: 0.5rem;">
+                            <span>Total Ujian Diikuti</span>
+                            <strong>${data.total_exams_taken}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--dark-card); border-radius: 0.5rem;">
+                            <span>Rata-rata Nilai</span>
+                            <strong style="color: ${data.average_score >= 70 ? 'var(--success)' : 'var(--warning)'}">
+                                ${data.average_score}
+                            </strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--dark-card); border-radius: 0.5rem;">
+                            <span>Tingkat Kelulusan</span>
+                            <strong>${data.pass_rate}%</strong>
+                        </div>
+                    </div>
+                `;
+
+                // Top performers
+                if (data.top_performers && data.top_performers.length > 0) {
+                    topContainer.innerHTML = data.top_performers.map((p, i) => `
+                        <div class="score-trend-item">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 24px; height: 24px; background: ${i < 3 ? 'var(--primary)' : 'var(--dark)'};
+                                     border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                                    ${i + 1}
+                                </div>
+                                <div>
+                                    <strong>${p.name}</strong>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${p.exams_taken} ujian</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 1.25rem; font-weight: 600; color: var(--success);">
+                                ${p.average_score}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    topContainer.innerHTML = '<div class="empty-state"><i class="fas fa-trophy"></i><p>Belum ada data</p></div>';
+                }
+
+            } catch (error) {
+                currentClassName = className;
+                currentClassExamId = Number(currentExamId);
+                currentClassPerformanceData = null;
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Gagal memuat data</p></div>';
+                topContainer.innerHTML = '<div class="empty-state"><i class="fas fa-trophy"></i><p>Data top performers tidak tersedia</p></div>';
+            }
+        }
+
+        function openCombineClassesModal() {
+            if (!currentExamId) {
+                notifyAlert('Pilih ujian terlebih dahulu', 'warning');
+                return;
+            }
+            if (!isCurrentExamUam()) {
+                notifyAlert('Gabungan kelas hanya tersedia untuk Ujian Akhir Madrasah', 'warning');
+                return;
+            }
+
+            const classNames = getCurrentExamClassNames();
+            if (classNames.length < 2) {
+                notifyAlert('Minimal 2 kelas tersedia untuk digabungkan', 'warning');
+                return;
+            }
+
+            const selectedSet = new Set(
+                currentAssessmentScopeMode === 'combined'
+                    ? normalizeClassNameList(currentAssessmentClassNames).map(item => item.toLowerCase())
+                    : []
+            );
+            if (selectedSet.size === 0) {
+                const selectedClass = String(document.getElementById('assessment-class-select')?.value || '').trim();
+                if (selectedClass) {
+                    selectedSet.add(selectedClass.toLowerCase());
+                }
+            }
+
+            const checklist = document.getElementById('combine-classes-list');
+            checklist.innerHTML = classNames.map((className) => {
+                const checked = selectedSet.has(String(className).toLowerCase()) ? 'checked' : '';
+                return `
+                    <label>
+                        <input type="checkbox" value="${escapeHtml(className)}" ${checked}>
+                        <span>${escapeHtml(className)}</span>
+                    </label>
+                `;
+            }).join('');
+
+            document.getElementById('combine-classes-modal').classList.add('show');
+        }
+
+        function closeCombineClassesModal() {
+            document.getElementById('combine-classes-modal').classList.remove('show');
+        }
+
+        async function applyCombinedClasses() {
+            const checked = Array.from(
+                document.querySelectorAll('#combine-classes-list input[type="checkbox"]:checked')
+            )
+                .map((input) => String(input.value || '').trim())
+                .filter(Boolean);
+            const classNames = normalizeClassNameList(checked);
+            if (classNames.length < 2) {
+                notifyAlert('Pilih minimal 2 kelas untuk mode gabungan', 'warning');
+                return;
+            }
+
+            currentAssessmentScopeMode = 'combined';
+            currentAssessmentClass = '';
+            currentAssessmentClassNames = classNames;
+            const assessmentSelect = document.getElementById('assessment-class-select');
+            if (assessmentSelect) {
+                assessmentSelect.value = '';
+            }
+            setAssessmentScopeBadge({ mode: 'combined', classNames });
+            closeCombineClassesModal();
+            await loadAssessmentAnalysis({ mode: 'combined', classNames });
+        }
+
+        async function loadAssessmentAnalysis(scopeInput = null) {
+            const container = document.getElementById('assessment-content');
+            if (!currentExamId) {
+                resetAssessmentPanel();
+                return;
+            }
+            const scope = resolveAssessmentScope(scopeInput);
+            if (!scope) {
+                setAssessmentPanelWaitingClass();
+                return;
+            }
+
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            try {
+                const requestPayload = scope.mode === 'combined'
+                    ? { classNames: scope.classNames }
+                    : scope.className;
+                const data = await api.getAssessmentAnalysis(currentExamId, requestPayload);
+                currentAssessmentData = data;
+                currentAssessmentScopeMode = scope.mode;
+                currentAssessmentClass = scope.mode === 'single' ? scope.className : '';
+                currentAssessmentClassNames = scope.mode === 'combined' ? normalizeClassNameList(scope.classNames) : [];
+                currentAssessmentScopeKey = buildAssessmentScopeKey(scope);
+                currentAssessmentExamId = Number(currentExamId);
+                setAssessmentScopeBadge(scope);
+
+                const stats = data?.stats || {};
+                const pan = data?.pan || {};
+                const pap = data?.pap || {};
+                const participants = Array.isArray(data?.participants) ? data.participants : [];
+                const panRows = Array.isArray(pan?.letter_distribution) ? pan.letter_distribution : [];
+                const papRows = Array.isArray(pap?.grade_distribution) ? pap.grade_distribution : [];
+
+                const panRowsHtml = panRows.length
+                    ? panRows.map((row) => `
+                        <tr>
+                            <td>${escapeHtml(row.grade || '-')}</td>
+                            <td>${escapeHtml(row.range || '-')}</td>
+                            <td class="num">${row.count || 0}</td>
+                            <td class="num">${toFixedSafe(row.percentage)}%</td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="4">Belum ada data PAN.</td></tr>';
+
+                const papRowsHtml = papRows.length
+                    ? papRows.map((row) => `
+                        <tr>
+                            <td>${escapeHtml(row.grade || '-')}</td>
+                            <td>${escapeHtml(row.range || '-')}</td>
+                            <td class="num">${row.count || 0}</td>
+                            <td class="num">${toFixedSafe(row.percentage)}%</td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="4">Belum ada data PAP.</td></tr>';
+
+                const participantRowsHtml = participants.length
+                    ? participants.map((row) => `
+                        <tr>
+                            <td class="num">${row.rank || '-'}</td>
+                            <td>${escapeHtml(row.name || '-')}</td>
+                            <td>${escapeHtml(row.student_class || '-')}</td>
+                            <td class="num">${toFixedSafe(row.score)}</td>
+                            <td class="num">${escapeHtml(row.pan_letter || '-')}</td>
+                            <td class="num">${escapeHtml(String(row.pan_scale10 ?? '-'))}</td>
+                            <td class="num">${toFixedSafe(row.t_score)}</td>
+                            <td class="num">${escapeHtml(row.pap_letter || '-')}</td>
+                            <td class="num">${escapeHtml(row.pap_status || '-')}</td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="9">Belum ada data peserta dengan nilai.</td></tr>';
+
+                container.innerHTML = `
+                    <div class="assessment-grid">
+                        <div class="assessment-metric">
+                            <div class="label">Scope Kelas</div>
+                            <div class="value">${escapeHtml(data.class_name || '-')}</div>
+                        </div>
+                        <div class="assessment-metric">
+                            <div class="label">Total Peserta</div>
+                            <div class="value">${stats.participant_count || 0}</div>
+                        </div>
+                        <div class="assessment-metric">
+                            <div class="label">Rata-rata (X̅)</div>
+                            <div class="value">${toFixedSafe(pan.mean)}</div>
+                        </div>
+                        <div class="assessment-metric">
+                            <div class="label">Simpangan Baku (s)</div>
+                            <div class="value">${toFixedSafe(pan.std_dev)}</div>
+                        </div>
+                        <div class="assessment-metric">
+                            <div class="label">KKM (PAP)</div>
+                            <div class="value">${toFixedSafe(pap.kkm, 0)}</div>
+                        </div>
+                        <div class="assessment-metric">
+                            <div class="label">Tuntas (PAP)</div>
+                            <div class="value">${pap.pass_count || 0} (${toFixedSafe(pap.pass_percentage)}%)</div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <div class="card">
+                            <h4 style="margin-bottom: 0.75rem;"><i class="fas fa-chart-bar"></i> Distribusi PAN (A-E)</h4>
+                            <div class="assessment-table-wrap">
+                                <table class="assessment-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nilai</th>
+                                            <th>Rentang</th>
+                                            <th>Jumlah</th>
+                                            <th>Persentase</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${panRowsHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h4 style="margin-bottom: 0.75rem;"><i class="fas fa-check-double"></i> Distribusi PAP (A-E)</h4>
+                            <div class="assessment-table-wrap">
+                                <table class="assessment-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nilai</th>
+                                            <th>Rentang</th>
+                                            <th>Jumlah</th>
+                                            <th>Persentase</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${papRowsHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 1rem;">
+                        <h4 style="margin-bottom: 0.75rem;"><i class="fas fa-list-ol"></i> Daftar Nilai Peserta</h4>
+                        <div class="assessment-table-wrap">
+                            <table class="assessment-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nama</th>
+                                        <th>Kelas</th>
+                                        <th>Skor</th>
+                                        <th>PAN</th>
+                                        <th>Skala 10</th>
+                                        <th>T-Score</th>
+                                        <th>PAP</th>
+                                        <th>Status KKM</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${participantRowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                currentAssessmentData = null;
+                currentAssessmentScopeKey = buildAssessmentScopeKey(scope);
+                currentAssessmentClass = scope.mode === 'single' ? scope.className : '';
+                currentAssessmentClassNames = scope.mode === 'combined' ? normalizeClassNameList(scope.classNames) : [];
+                currentAssessmentExamId = Number(currentExamId);
+                container.innerHTML =
+                    '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Gagal memuat analisis asesmen</p></div>';
+                notifyAlert('Gagal memuat Analisis Asesmen: ' + (error.message || error), 'danger');
+            }
+        }
+
+        function toggleExportDropdown(event) {
+            event.preventDefault();
+            if (!currentExamId) {
+                notifyAlert('Pilih ujian terlebih dahulu sebelum export', 'warning');
+                return;
+            }
+            const dropdown = document.getElementById('export-dropdown-menu');
+            dropdown.classList.toggle('show');
+        }
+
+        function getCurrentExamMeta() {
+            if (!currentExamId) return null;
+            const examIdNum = Number(currentExamId);
+            return allExams.find(exam => Number(exam.id) === examIdNum) || null;
+        }
+
+        function getDifficultyLabel(value) {
+            const key = String(value || '').toLowerCase();
+            if (key === 'easy') return 'Mudah';
+            if (key === 'medium') return 'Sedang';
+            if (key === 'hard') return 'Sulit';
+            return '-';
+        }
+
+        function toFixedSafe(value, digits = 2) {
+            const num = Number(value);
+            return Number.isFinite(num) ? num.toFixed(digits) : '0.00';
+        }
+
+        function buildAnalyticsExportHtml(payload) {
+            const {
+                examMeta,
+                overviewData,
+                questionData,
+                classData,
+                selectedClass,
+                exportedAt,
+                logoDataUrl
+            } = payload;
+            const distribution = overviewData?.score_distribution || {};
+            const totalCompleted = Number(overviewData?.completed_sessions || 0);
+            const order = ['0-20', '21-40', '41-60', '61-80', '81-100'];
+            const logoHtml = logoDataUrl
+                ? `<img src="${logoDataUrl}" alt="Logo Sekolah" style="width:70px;height:70px;object-fit:contain;">`
+                : '';
+
+            const distributionRowsHtml = order.map(label => {
+                const count = Number(distribution[label] || 0);
+                const percentage = totalCompleted > 0 ? ((count / totalCompleted) * 100) : 0;
+                return `
+                    <tr>
+                        <td>${label}</td>
+                        <td style="text-align:center;">${count}</td>
+                        <td style="text-align:center;">${percentage.toFixed(2)}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const questionRows = (questionData?.questions || []);
+            const questionRowsHtml = questionRows.length
+                ? questionRows.map((question, index) => `
+                    <tr>
+                        <td style="text-align:center;">${escapeHtml(question.question_number || index + 1)}</td>
+                        <td>${escapeHtml(question.question_text || '-')}</td>
+                        <td style="text-align:center;">${question.total_answers || 0}</td>
+                        <td style="text-align:center;">${question.correct_answers || 0}</td>
+                        <td style="text-align:center;">${toFixedSafe(question.correct_rate)}%</td>
+                        <td style="text-align:center;">${getDifficultyLabel(question.difficulty)}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="6" style="text-align:center;">Belum ada data analisis soal.</td></tr>';
+
+            let classSection = `
+                <p style="color:#475569; margin-top: 0;">Data performa siswa belum disertakan karena kelas belum dipilih saat export.</p>
+            `;
+            if (selectedClass) {
+                if (classData && Number(classData.total_students || 0) > 0) {
+                    const topPerformers = classData.top_performers || [];
+                    classSection = `
+                        <table class="mini-table" style="margin-bottom:12px;">
+                            <tr><td><strong>Kelas</strong></td><td>: ${escapeHtml(classData.class_name || selectedClass)}</td></tr>
+                            <tr><td><strong>Total Siswa</strong></td><td>: ${classData.total_students || 0}</td></tr>
+                            <tr><td><strong>Total Ujian Diikuti</strong></td><td>: ${classData.total_exams_taken || 0}</td></tr>
+                            <tr><td><strong>Rata-rata Nilai</strong></td><td>: ${toFixedSafe(classData.average_score)}</td></tr>
+                            <tr><td><strong>Tingkat Kelulusan</strong></td><td>: ${toFixedSafe(classData.pass_rate)}%</td></tr>
+                        </table>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Peringkat</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Rata-rata</th>
+                                    <th>Total Ujian</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${topPerformers.length ? topPerformers.map((performer, idx) => `
+                                    <tr>
+                                        <td style="text-align:center;">${idx + 1}</td>
+                                        <td>${escapeHtml(performer.name || '-')}</td>
+                                        <td style="text-align:center;">${toFixedSafe(performer.average_score)}</td>
+                                        <td style="text-align:center;">${performer.exams_taken || 0}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="4" style="text-align:center;">Belum ada data top performers.</td></tr>'}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    classSection = `
+                        <p style="color:#475569; margin-top: 0;">
+                            Kelas <strong>${escapeHtml(selectedClass)}</strong> dipilih, tetapi belum ada data performa siswa.
+                        </p>
+                    `;
+                }
+            }
+
+            return `<!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>Laporan Analitik Ujian</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; padding: 1.5rem; line-height: 1.55; }
+                        .header-table { width:100%; border-collapse: collapse; margin-bottom: 8px; }
+                        .header-table td { border:none; vertical-align: middle; }
+                        .header-title { text-align:center; font-size:16pt; font-weight:700; margin: 0; }
+                        .header-sub { text-align:center; font-size:10pt; color:#334155; margin: 2px 0; }
+                        .report-title { text-align:center; font-size:11.5pt; font-weight:700; color:#166534; margin-top:4px; }
+                        .meta-box { border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; padding:10px; margin: 14px 0; }
+                        .meta-table { width:100%; border-collapse: collapse; font-size:10.5pt; }
+                        .meta-table td { border:none; padding:2px 4px; vertical-align: top; }
+                        .meta-table td:first-child { font-weight:600; width: 180px; }
+                        h3.section-title { margin: 18px 0 8px; font-size: 12.5pt; color:#0f172a; }
+                        table { border-collapse: collapse; width:100%; margin-bottom: 12px; }
+                        th, td { border:1px solid #1f2937; padding:7px; font-size:9.5pt; vertical-align: top; }
+                        th { background:#111827; color:white; text-align:center; font-weight:700; }
+                        tbody tr:nth-child(even) { background: #f8fafc; }
+                        .kpi td:first-child { width: 260px; font-weight: 600; }
+                        .kpi td:last-child { text-align:center; font-weight: 600; }
+                        .mini-table td { border:none; padding:2px 0; font-size:10pt; }
+                    </style>
+                </head>
+                <body>
+                    <table class="header-table">
+                        <tr>
+                            <td style="width:80px; text-align:center;">${logoHtml}</td>
+                            <td>
+                                <p class="header-title">${EXPORT_BRANDING.schoolName}</p>
+                                <p class="header-sub">${EXPORT_BRANDING.reportSubtitle}</p>
+                                <p class="report-title">LAPORAN ANALITIK UJIAN</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="meta-box">
+                        <table class="meta-table">
+                            <tr><td>Judul Ujian</td><td>: ${escapeHtml(examMeta?.title || '-')}</td></tr>
+                            <tr><td>Mata Pelajaran</td><td>: ${escapeHtml(examMeta?.subject || '-')}</td></tr>
+                            <tr><td>Guru Pelaksana</td><td>: ${escapeHtml(examMeta?.teacher_name || examMeta?.creator?.full_name || '-')}</td></tr>
+                            <tr><td>KKM / Passing Score</td><td>: ${toFixedSafe(examMeta?.passing_score || 70)}</td></tr>
+                            <tr><td>Kelas (Tab Performa)</td><td>: ${escapeHtml(selectedClass || 'Belum dipilih')}</td></tr>
+                            <tr><td>Tanggal Export</td><td>: ${escapeHtml(exportedAt)}</td></tr>
+                        </table>
+                    </div>
+
+                    <h3 class="section-title">A. Overview</h3>
+                    <table class="kpi">
+                        <tbody>
+                            <tr><td>Total Peserta</td><td>${overviewData?.total_participants || 0}</td></tr>
+                            <tr><td>Sesi Selesai</td><td>${overviewData?.completed_sessions || 0}</td></tr>
+                            <tr><td>Sesi Aktif</td><td>${overviewData?.active_sessions || 0}</td></tr>
+                            <tr><td>Rata-rata Nilai</td><td>${toFixedSafe(overviewData?.average_score)}</td></tr>
+                            <tr><td>Nilai Tertinggi</td><td>${toFixedSafe(overviewData?.highest_score)}</td></tr>
+                            <tr><td>Nilai Terendah</td><td>${toFixedSafe(overviewData?.lowest_score)}</td></tr>
+                            <tr><td>Tingkat Kelulusan</td><td>${toFixedSafe(overviewData?.pass_rate)}%</td></tr>
+                            <tr><td>Total Pelanggaran</td><td>${overviewData?.violation_stats?.total_violations || 0}</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="section-title">B. Distribusi Nilai</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Rentang</th><th>Jumlah Siswa</th><th>Persentase</th></tr>
+                        </thead>
+                        <tbody>${distributionRowsHtml}</tbody>
+                    </table>
+
+                    <h3 class="section-title">C. Analisis Soal</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Ringkasan Soal</th>
+                                <th>Jawaban</th>
+                                <th>Benar</th>
+                                <th>% Benar</th>
+                                <th>Kesulitan</th>
+                            </tr>
+                        </thead>
+                        <tbody>${questionRowsHtml}</tbody>
+                    </table>
+
+                    <h3 class="section-title">D. Performa Siswa</h3>
+                    ${classSection}
+                </body>
+                </html>`;
+        }
+
+        function buildAnalyticsExportExcelHtml(payload) {
+            const {
+                examMeta,
+                overviewData,
+                questionData,
+                classData,
+                selectedClass,
+                exportedAt,
+                logoDataUrl
+            } = payload;
+
+            const distribution = overviewData?.score_distribution || {};
+            const order = ['0-20', '21-40', '41-60', '61-80', '81-100'];
+            const totalCompleted = Number(overviewData?.completed_sessions || 0);
+            const logoHtml = logoDataUrl
+                ? `<img src="${logoDataUrl}" alt="Logo Sekolah" style="width:64px;height:64px;object-fit:contain;">`
+                : '';
+
+            let html = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; }
+                        table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+                        th, td { border: 1px solid #000; padding: 6px; font-size: 10pt; vertical-align: top; }
+                        th { background: #111827; color: #fff; font-weight: bold; text-align: center; }
+                        .title { font-size: 14pt; font-weight: bold; text-align: center; color: #0f172a; }
+                        .subtitle { font-size: 10pt; text-align: center; color: #334155; }
+                        .meta td { border: none; font-size: 10pt; padding: 2px 0; }
+                        .meta td:first-child { font-weight: bold; width: 180px; }
+                    </style>
+                </head>
+                <body>
+                    <table style="border:none;">
+                        <tr>
+                            <td style="border:none; width:80px; text-align:center;">${logoHtml}</td>
+                            <td style="border:none;">
+                                <div class="title">${EXPORT_BRANDING.schoolName}</div>
+                                <div class="subtitle">${EXPORT_BRANDING.reportSubtitle}</div>
+                                <div class="subtitle" style="font-weight:bold;">LAPORAN ANALITIK UJIAN</div>
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="meta">
+                        <tr><td>Judul Ujian</td><td>: ${escapeHtml(examMeta?.title || '-')}</td></tr>
+                        <tr><td>Mata Pelajaran</td><td>: ${escapeHtml(examMeta?.subject || '-')}</td></tr>
+                        <tr><td>Guru Pelaksana</td><td>: ${escapeHtml(examMeta?.teacher_name || examMeta?.creator?.full_name || '-')}</td></tr>
+                        <tr><td>KKM / Passing Score</td><td>: ${toFixedSafe(examMeta?.passing_score || 70)}</td></tr>
+                        <tr><td>Kelas (Tab Performa)</td><td>: ${escapeHtml(selectedClass || 'Belum dipilih')}</td></tr>
+                        <tr><td>Tanggal Export</td><td>: ${escapeHtml(exportedAt)}</td></tr>
+                    </table>
+                    <table>
+                        <tr><th colspan="2">A. OVERVIEW</th></tr>
+                        <tr><td>Total Peserta</td><td>${overviewData?.total_participants || 0}</td></tr>
+                        <tr><td>Sesi Selesai</td><td>${overviewData?.completed_sessions || 0}</td></tr>
+                        <tr><td>Sesi Aktif</td><td>${overviewData?.active_sessions || 0}</td></tr>
+                        <tr><td>Rata-rata Nilai</td><td>${toFixedSafe(overviewData?.average_score)}</td></tr>
+                        <tr><td>Nilai Tertinggi</td><td>${toFixedSafe(overviewData?.highest_score)}</td></tr>
+                        <tr><td>Nilai Terendah</td><td>${toFixedSafe(overviewData?.lowest_score)}</td></tr>
+                        <tr><td>Tingkat Kelulusan</td><td>${toFixedSafe(overviewData?.pass_rate)}%</td></tr>
+                        <tr><td>Total Pelanggaran</td><td>${overviewData?.violation_stats?.total_violations || 0}</td></tr>
+                    </table>
+                    <table>
+                        <tr><th colspan="3">B. DISTRIBUSI NILAI</th></tr>
+                        <tr><th>Rentang</th><th>Jumlah</th><th>Persentase</th></tr>
+                        ${order.map(label => {
+                            const count = Number(distribution[label] || 0);
+                            const percentage = totalCompleted > 0 ? ((count / totalCompleted) * 100) : 0;
+                            return `<tr><td>${label}</td><td style="text-align:center;">${count}</td><td style="text-align:center;">${percentage.toFixed(2)}%</td></tr>`;
+                        }).join('')}
+                    </table>
+                    <table>
+                        <tr><th colspan="6">C. ANALISIS SOAL</th></tr>
+                        <tr>
+                            <th>No</th>
+                            <th>Ringkasan Soal</th>
+                            <th>Jawaban</th>
+                            <th>Benar</th>
+                            <th>% Benar</th>
+                            <th>Kesulitan</th>
+                        </tr>
+                        ${(questionData?.questions || []).length ? (questionData.questions || []).map((question, index) => `
+                            <tr>
+                                <td style="text-align:center;">${escapeHtml(question.question_number || index + 1)}</td>
+                                <td>${escapeHtml(question.question_text || '-')}</td>
+                                <td style="text-align:center;">${question.total_answers || 0}</td>
+                                <td style="text-align:center;">${question.correct_answers || 0}</td>
+                                <td style="text-align:center;">${toFixedSafe(question.correct_rate)}%</td>
+                                <td style="text-align:center;">${getDifficultyLabel(question.difficulty)}</td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="6" style="text-align:center;">Belum ada data analisis soal.</td></tr>'}
+                    </table>`;
+
+            if (selectedClass && classData && Number(classData.total_students || 0) > 0) {
+                html += `
+                    <table>
+                        <tr><th colspan="2">D. PERFORMA SISWA - ${escapeHtml(classData.class_name || selectedClass)}</th></tr>
+                        <tr><td>Total Siswa</td><td>${classData.total_students || 0}</td></tr>
+                        <tr><td>Total Ujian Diikuti</td><td>${classData.total_exams_taken || 0}</td></tr>
+                        <tr><td>Rata-rata Nilai</td><td>${toFixedSafe(classData.average_score)}</td></tr>
+                        <tr><td>Nilai Tertinggi</td><td>${toFixedSafe(classData.highest_score)}</td></tr>
+                        <tr><td>Nilai Terendah</td><td>${toFixedSafe(classData.lowest_score)}</td></tr>
+                        <tr><td>Tingkat Kelulusan</td><td>${toFixedSafe(classData.pass_rate)}%</td></tr>
+                    </table>
+                    <table>
+                        <tr><th colspan="4">TOP PERFORMERS</th></tr>
+                        <tr><th>Peringkat</th><th>Nama</th><th>Rata-rata</th><th>Total Ujian</th></tr>
+                        ${(classData.top_performers || []).length ? (classData.top_performers || []).map((performer, idx) => `
+                            <tr>
+                                <td style="text-align:center;">${idx + 1}</td>
+                                <td>${escapeHtml(performer.name || '-')}</td>
+                                <td style="text-align:center;">${toFixedSafe(performer.average_score)}</td>
+                                <td style="text-align:center;">${performer.exams_taken || 0}</td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="4" style="text-align:center;">Belum ada data top performers.</td></tr>'}
+                    </table>`;
+            } else {
+                html += `
+                    <table>
+                        <tr><th>D. PERFORMA SISWA</th></tr>
+                        <tr><td>${selectedClass ? `Kelas ${escapeHtml(selectedClass)} belum memiliki data performa siswa.` : 'Data performa siswa belum disertakan karena kelas belum dipilih saat export.'}</td></tr>
+                    </table>`;
+            }
+
+            html += '</body></html>';
+            return html;
+        }
+
+        async function exportAnalytics(format) {
+            closeExportDropdown();
+            if (!currentExamId) {
+                notifyAlert('Pilih ujian terlebih dahulu sebelum export', 'warning');
+                return;
+            }
+
+            try {
+                if (!currentExamData) {
+                    await loadExamAnalytics(currentExamId);
+                }
+                if (!currentQuestionAnalysisData) {
+                    await loadQuestionAnalysis(currentExamId);
+                }
+
+                const classSelect = document.getElementById('class-select');
+                const selectedClass = classSelect?.value || '';
+                if (
+                    selectedClass &&
+                    (
+                        currentClassName !== selectedClass ||
+                        !currentClassPerformanceData ||
+                        Number(currentClassExamId) !== Number(currentExamId)
+                    )
+                ) {
+                    await loadClassPerformance(selectedClass);
+                }
+
+                const examMeta = getCurrentExamMeta() || { id: currentExamId };
+                const exportedAt = new Date().toLocaleString('id-ID', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const filenameBase = `analitik_ujian_${slugifyFilename(examMeta.title || `exam_${currentExamId}`)}_${new Date().toISOString().slice(0, 10)}`;
+
+                if (format === 'pdf') {
+                    const query = new URLSearchParams();
+                    if (selectedClass) query.append('class_name', selectedClass);
+                    const url = `/api/exams/${currentExamId}/analytics/pdf${query.toString() ? `?${query.toString()}` : ''}`;
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: api.getHeaders()
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+                    const blob = await response.blob();
+                    downloadBlob(blob, `${filenameBase}.pdf`);
+                    notifyAlert('PDF analitik berhasil didownload', 'success');
+                    return;
+                }
+
+                const logoDataUrl = await getExportLogoDataUrl();
+                const payload = {
+                    examMeta,
+                    overviewData: currentExamData,
+                    questionData: currentQuestionAnalysisData,
+                    classData: selectedClass ? currentClassPerformanceData : null,
+                    selectedClass,
+                    exportedAt,
+                    logoDataUrl
+                };
+
+                if (format === 'docx') {
+                    const content = buildAnalyticsExportHtml(payload);
+                    downloadFile(content, `${filenameBase}.docx`, 'application/msword');
+                    notifyAlert('DOCX analitik berhasil didownload', 'success');
+                    return;
+                }
+
+                if (format === 'excel') {
+                    const content = buildAnalyticsExportExcelHtml(payload);
+                    downloadFile(content, `${filenameBase}.xls`, 'application/vnd.ms-excel');
+                    notifyAlert('Excel analitik berhasil didownload', 'success');
+                    return;
+                }
+            } catch (error) {
+                console.error('Export analytics error:', error);
+                notifyAlert(`Gagal export: ${error.message || error}`, 'danger');
+            }
+        }
+
+        function getFilenameFromDisposition(contentDisposition, fallbackName) {
+            if (!contentDisposition) return fallbackName;
+            const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+            if (utf8Match && utf8Match[1]) {
+                return decodeURIComponent(utf8Match[1]);
+            }
+            const plainMatch = contentDisposition.match(/filename=\"?([^\";]+)\"?/i);
+            if (plainMatch && plainMatch[1]) {
+                return plainMatch[1];
+            }
+            return fallbackName;
+        }
+
+        async function exportAssessmentReport(model) {
+            closeExportDropdown();
+            if (!currentExamId) {
+                notifyAlert('Pilih ujian terlebih dahulu sebelum export', 'warning');
+                return;
+            }
+
+            const activeScope = resolveAssessmentScope();
+            if (!activeScope) {
+                notifyAlert('Pilih kelas atau gabungan kelas terlebih dahulu untuk export Analisis Asesmen', 'warning');
+                return;
+            }
+            if (activeScope.mode === 'combined' && !isCurrentExamUam()) {
+                notifyAlert('Gabungan kelas hanya tersedia untuk Ujian Akhir Madrasah', 'warning');
+                return;
+            }
+
+            const normalizedModel = String(model || '').toLowerCase();
+            if (!['pan', 'pap'].includes(normalizedModel)) {
+                notifyAlert('Tipe export asesmen tidak valid', 'danger');
+                return;
+            }
+
+            try {
+                const activeScopeKey = buildAssessmentScopeKey(activeScope);
+                if (!currentAssessmentData || currentAssessmentScopeKey !== activeScopeKey || Number(currentAssessmentExamId) !== Number(currentExamId)) {
+                    await loadAssessmentAnalysis(activeScope);
+                }
+
+                const params = new URLSearchParams({ model: normalizedModel });
+                if (activeScope.mode === 'combined') {
+                    params.append('class_names', normalizeClassNameList(activeScope.classNames).join(','));
+                } else {
+                    params.append('class_name', String(activeScope.className || '').trim());
+                }
+                const endpoint = `/analytics/exam/${currentExamId}/assessment/export?${params.toString()}`;
+                const response = await api.requestRaw('GET', endpoint, {
+                    timeoutMs: 120000
+                });
+
+                if (!response.ok) {
+                    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+                    if (contentType.includes('application/json')) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+                    const errorText = await response.text().catch(() => '');
+                    throw new Error(errorText || `HTTP ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const scopeLabel = activeScope.mode === 'combined'
+                    ? `gabungan_${normalizeClassNameList(activeScope.classNames).join('_')}`
+                    : String(activeScope.className || '');
+                const fallback = `analisis_asesmen_${normalizedModel}_${slugifyFilename(scopeLabel)}.docx`;
+                const filename = getFilenameFromDisposition(
+                    response.headers.get('Content-Disposition'),
+                    fallback
+                );
+                downloadBlob(blob, filename);
+                notifyAlert(`Export Analisis Asesmen ${normalizedModel.toUpperCase()} berhasil`, 'success');
+            } catch (error) {
+                console.error('Export assessment error:', error);
+                notifyAlert(`Gagal export Analisis Asesmen: ${error.message || error}`, 'danger');
+            }
+        }
+
+        function closeExportDropdown() {
+            const dropdown = document.getElementById('export-dropdown-menu');
+            if (dropdown) dropdown.classList.remove('show');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

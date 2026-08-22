@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Monitoring - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Core CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css?v=3.2">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css?v=3.2">
+    <link rel="stylesheet" href="/static/css/utilities.css">
+    <link rel="stylesheet" href="/static/css/admin/monitoring.css?v=20260309-recovery-center1">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar - Loaded via JavaScript -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <!-- Redesigned Header with LIVE Badge -->
+            <div class="page-header"
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h1 class="page-title" style="display: flex; align-items: center; gap: 0.75rem; margin: 0;">
+                        <i class="fas fa-satellite-dish" style="color: var(--success);"></i>
+                        Monitoring Ujian
+                    </h1>
+                    <span id="live-badge" class="live-badge">
+                        <span class="live-pulse"></span>
+                        LIVE
+                    </span>
+                </div>
+
+
+                <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                    <select id="exam-filter" class="form-control"
+                        style="width: auto; min-width: 200px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(99, 102, 241, 0.3); color: #e2e8f0;">
+                        <option value="">Semua Ujian Aktif</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshData()" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="card" id="admin-lite-mode-banner"
+                style="margin-bottom: 1rem; border-left: 4px solid #38bdf8; background: rgba(56, 189, 248, 0.08);">
+                <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
+                    <i class="fas fa-gauge-high" style="color: #38bdf8; margin-top: 0.15rem;"></i>
+                    <div>
+                        <strong style="color: #bae6fd; display: block; margin-bottom: 0.25rem;">Mode admin ringkas saat ujian ramai</strong>
+                        <span style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">
+                            Prioritaskan pantauan agregat, sesi aktif, dan final submit siswa. Buka detail siswa/pelanggaran hanya saat perlu investigasi.
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pause Control Panel -->
+            <div id="pause-control-panel" class="pause-control-panel" style="display: none;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h3 style="margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-pause-circle" style="color: var(--danger);"></i>
+                            Kontrol Pause Ujian
+                        </h3>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                            Pause timer semua siswa saat terjadi gangguan jaringan
+                        </p>
+                    </div>
+                    <div id="pause-status" style="display: flex; align-items: center; gap: 1rem;">
+                        <div id="pause-timer-display" style="display: none;">
+                            <span style="color: var(--text-secondary);">Paused:</span>
+                            <span id="pause-timer" class="pause-timer">00:00</span>
+                        </div>
+                        <button id="pause-btn" class="pause-btn pause" onclick="toggleExamPause()">
+                            <i class="fas fa-pause"></i>
+                            <span>PAUSE UJIAN</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon active"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-active">0</h3>
+                        <p>Peserta Aktif</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon exams"><i class="fas fa-file-lines"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-exams">0</h3>
+                        <p>Ujian Berlangsung</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon pending"><i class="fas fa-triangle-exclamation"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-violations">0</h3>
+                        <p>Pelanggaran</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon users"><i class="fas fa-circle-check"></i></div>
+                    <div class="stat-info">
+                        <h3 id="total-completed">0</h3>
+                        <p>Selesai</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card ops-section" id="ops-summary-card" style="display: none;">
+                <div class="ops-header-row">
+                    <div>
+                        <h2 style="color: #ffffff; margin: 0 0 0.35rem 0;">
+                            <i class="fas fa-shield-halved" style="color: #22c55e;"></i> Monitoring Inti Sistem
+                        </h2>
+                        <div class="ops-chip-row">
+                            <span id="ops-overall-status" class="ops-chip unknown">Overall: Unknown</span>
+                            <span id="ops-resource-mode-status" class="ops-chip unknown">Mode: Unknown</span>
+                            <span id="ops-auto-restart-status" class="ops-chip unknown">Auto Restart WIB: Unknown</span>
+                            <span id="ops-updated-at" class="ops-updated">Belum ada data</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadOpsSummary(true)">
+                            <i class="fas fa-arrows-rotate"></i> Refresh Ops
+                        </button>
+                        <button id="ops-toggle-auto-restart-btn" class="btn btn-sm btn-outline-success"
+                            onclick="toggleAutoRestartFromOps()">
+                            <i class="fas fa-calendar-plus"></i> Jadwalkan Auto Restart
+                        </button>
+                        <button id="ops-auto-mode-btn" class="btn btn-sm btn-outline-success"
+                            onclick="toggleAutoModeFromOps()">
+                            <i class="fas fa-brain"></i> Auto Performa
+                        </button>
+                        <button id="ops-auto-heal-btn" class="btn btn-sm btn-outline-info"
+                            onclick="toggleAutoHealingFromOps()">
+                            <i class="fas fa-heart-pulse"></i> Auto Healing
+                        </button>
+                        <button id="ops-auto-heal-run-btn" class="btn btn-sm btn-outline-warning"
+                            onclick="runAutoHealingNowFromOps()">
+                            <i class="fas fa-wand-magic-sparkles"></i> Heal Sekarang
+                        </button>
+                        <button id="ops-restart-safe-btn" class="btn btn-sm btn-danger"
+                            onclick="restartSystemSafelyFromOps()">
+                            <i class="fas fa-power-off"></i> Restart Full Antar Sesi
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ops-summary-message" style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 0.35rem;">
+                    Memuat ringkasan monitoring...
+                </div>
+                <div id="ops-resource-mode-notes" class="ops-detail-card" style="margin-bottom: 0.5rem;">
+                    Mode resource belum dimuat.
+                </div>
+                <div id="ops-autorestart-detail" class="ops-detail-card">
+                    Status auto restart terjadwal belum tersedia.
+                </div>
+                <div id="ops-layer-grid" class="ops-layer-grid"></div>
+                <div class="ops-hints">
+                    <h4>Hint Akar Masalah</h4>
+                    <ul id="ops-hints-list">
+                        <li>Belum ada data.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modal-overlay" id="ops-auto-restart-modal" style="display: none;"
+                onclick="if (event.target === this) closeOpsAutoRestartModal()">
+                <div class="modal ops-overlay-modal"
+                    style="max-width: 760px; width: min(92vw, 760px); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+                    <div class="modal-header"
+                        style="background: linear-gradient(135deg, #0f766e, #0f172a); flex-shrink: 0;">
+                        <h3 class="modal-title"
+                            style="color: white; display: flex; align-items: center; gap: 0.75rem; margin: 0;">
+                            <i class="fas fa-calendar-plus"></i>
+                            Jadwalkan Auto Restart WIB
+                        </h3>
+                        <button class="modal-close" onclick="closeOpsAutoRestartModal()"
+                            style="color: white;">×</button>
+                    </div>
+
+                    <div class="modal-body auto-restart-modal-body" style="padding: 1.25rem; overflow-y: auto;">
+                        <div class="ops-detail-card" style="margin-top: 0;">
+                            <div style="display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                                <strong>Mode Eksekusi Scheduler</strong>
+                                <span id="ops-auto-restart-mode-chip" class="auto-restart-mode-chip">-</span>
+                            </div>
+                            <div id="ops-auto-restart-mode-hint" class="auto-restart-helper">
+                                Menunggu status backend restart...
+                            </div>
+                        </div>
+
+                        <div class="auto-restart-helper">
+                            Tambahkan satu atau lebih jadwal restart antar sesi. Semua input dibaca sebagai waktu
+                            <strong>WIB</strong>. Saat disimpan, daftar pending yang tampil di popup ini akan
+                            menggantikan daftar jadwal pending sebelumnya.
+                        </div>
+
+                        <div id="ops-auto-restart-schedule-list" class="auto-restart-schedule-list"></div>
+
+                        <div style="display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                            <button type="button" class="btn btn-outline-success" onclick="addOpsAutoRestartScheduleRow()">
+                                <i class="fas fa-plus"></i> Tambah Jadwal
+                            </button>
+                            <div class="auto-restart-helper">
+                                Gunakan jeda minimal 20-30 menit antar sesi agar restart punya waktu selesai bersih.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer"
+                        style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.25rem; border-top: 1px solid var(--border-color); flex-shrink: 0;">
+                        <button type="button" class="btn btn-secondary" onclick="closeOpsAutoRestartModal()">
+                            Batal
+                        </button>
+                        <button type="button" id="ops-auto-restart-save-btn" class="btn btn-success"
+                            onclick="saveOpsAutoRestartSchedule()">
+                            <i class="fas fa-floppy-disk"></i> Simpan Jadwal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Sessions -->
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <h2 style="color: #ffffff;"><i class="fas fa-desktop" style="color: var(--secondary);"></i> Sesi
+                        Aktif</h2>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <button id="fm-launch-btn" class="fm-launch-btn" onclick="launchFullscreenMonitor()">
+                            <i class="fas fa-tv"></i> Live Monitor (<span id="fm-selected-count">0</span>)
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="refreshData()">
+                            <i class="fas fa-rotate"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="sessions-container">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Real-time Session Status Modal -->
+    <div class="modal-overlay" id="session-status-modal" style="display: none;">
+        <div class="modal"
+            style="max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #6366f1); flex-shrink: 0;">
+                <h3 class="modal-title"
+                    style="color: white; display: flex; align-items: center; gap: 0.75rem; margin: 0;">
+                    <div class="pulse-indicator"></div>
+                    Status Monitor Real-time
+                </h3>
+                <button class="modal-close" onclick="closeSessionStatusModal()" style="color: white;">×</button>
+            </div>
+
+            <!-- Exam Info Banner -->
+            <div class="exam-info-banner exam-info-banner-split">
+                <div>
+                    <span id="modal-exam-title" style="font-weight: 600; color: var(--text-primary);"
+                        class="text-light">Ujian Tanpa Judul</span>
+                    <span id="modal-student-count" style="color: var(--text-secondary);" class="text-light"> • 0 siswa
+                        total</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="modal-open-recovery-btn" class="btn btn-sm btn-danger"
+                        onclick="openRecoveryCenter(currentExamIdForModal); event.stopPropagation();"
+                        title="Buka Recovery Center (reopen sesi siswa)">
+                        <i class="fas fa-heart"></i> Recovery Center
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Cards (4 cards) -->
+            <div class="status-cards-grid">
+                <div class="status-card status-active">
+                    <div class="status-label">SEDANG UJIAN</div>
+                    <div class="status-count" id="count-active">0</div>
+                </div>
+                <div class="status-card status-ready">
+                    <div class="status-label">SIAP / MENUNGGU</div>
+                    <div class="status-count" id="count-ready">0</div>
+                </div>
+                <div class="status-card status-pending">
+                    <div class="status-label">BELUM MULAI</div>
+                    <div class="status-count" id="count-pending">0</div>
+                </div>
+                <div class="status-card status-finished">
+                    <div class="status-label">SELESAI</div>
+                    <div class="status-count" id="count-finished">0</div>
+                </div>
+            </div>
+
+            <div class="session-filter-bar">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                    <button class="session-filter-btn active" data-status-filter="all"
+                        onclick="setSessionTableStatusFilter('all')">Semua</button>
+                    <button class="session-filter-btn" data-status-filter="active"
+                        onclick="setSessionTableStatusFilter('active')">Sedang Ujian</button>
+                    <button class="session-filter-btn" data-status-filter="ready"
+                        onclick="setSessionTableStatusFilter('ready')">Siap</button>
+                    <button class="session-filter-btn" data-status-filter="pending"
+                        onclick="setSessionTableStatusFilter('pending')">Belum Masuk</button>
+                    <button class="session-filter-btn" data-status-filter="finished"
+                        onclick="setSessionTableStatusFilter('finished')">Selesai</button>
+                </div>
+                <input id="session-table-search" type="text" class="form-control session-search-input"
+                    oninput="setSessionTableSearch(this.value)" placeholder="Cari nama / username / kelas..." />
+            </div>
+
+            <!-- Student Table -->
+            <div class="modal-body modal-session-body" style="padding: 0; flex: 1; overflow: hidden;">
+                <div class="session-table-wrapper">
+                    <table class="session-table">
+                        <thead>
+                            <tr>
+                                <th>SISWA</th>
+                                <th>STATUS</th>
+                                <th>PERANGKAT</th>
+                                <th>AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="session-students-tbody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 2rem;">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="online-indicator"></div>
+                    <span id="last-update-time" style="font-size: 0.85rem; color: var(--text-secondary);">Diperbarui
+                        15:32:11</span>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button class="btn btn-danger" onclick="cleanupSessionsModal()">
+                        <i class="fas fa-trash-can"></i> Cleanup
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeSessionStatusModal()">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recovery Center Modal -->
+    <div class="modal-overlay" id="recovery-center-modal" style="display: none;">
+        <div class="modal"
+            style="max-width: 1050px; max-height: 92vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(190, 24, 93, 0.95)); flex-shrink: 0;">
+                <h3 class="modal-title"
+                    style="color: white; display: flex; align-items: center; gap: 0.75rem; margin: 0;">
+                    <i class="fas fa-heart"></i> Recovery Center
+                </h3>
+                <button class="modal-close" onclick="closeRecoveryCenter()" style="color: white;">×</button>
+            </div>
+
+            <div class="exam-info-banner exam-info-banner-split">
+                <div>
+                    <span id="recovery-exam-title" class="text-light" style="font-weight: 600;">Ujian</span>
+                    <span class="text-light" style="color: var(--text-secondary);"> • </span>
+                    <span id="recovery-count-label" class="text-light">0 kandidat</span>
+                </div>
+                <div id="recovery-last-update" class="text-light" style="font-size: 0.8rem;">-</div>
+            </div>
+
+            <div class="session-filter-bar" style="border-bottom: 1px solid rgba(239, 68, 68, 0.25);">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                    <button class="session-filter-btn active" data-recovery-filter="all"
+                        onclick="setRecoveryFilter('all')">Semua</button>
+                    <button class="session-filter-btn" data-recovery-filter="network_issue"
+                        onclick="setRecoveryFilter('network_issue')">Jaringan</button>
+                    <button class="session-filter-btn" data-recovery-filter="user_submit"
+                        onclick="setRecoveryFilter('user_submit')">Submit Normal</button>
+                    <button class="session-filter-btn" data-recovery-filter="cheating_detected"
+                        onclick="setRecoveryFilter('cheating_detected')">Pelanggaran</button>
+                    <button class="session-filter-btn" data-recovery-filter="admin_decision"
+                        onclick="setRecoveryFilter('admin_decision')">Keputusan Pengawas</button>
+                    <button class="session-filter-btn" data-recovery-filter="only_actionable"
+                        onclick="toggleRecoveryActionableOnly()">Hanya Bisa Dibuka</button>
+                </div>
+                <input id="recovery-search" type="text" class="form-control session-search-input"
+                    oninput="setRecoverySearch(this.value)" placeholder="Cari nama / username / kelas..." />
+            </div>
+
+            <div class="modal-body modal-session-body" style="padding: 0; flex: 1; overflow: hidden;">
+                <div class="session-table-wrapper">
+                    <table class="session-table">
+                        <thead>
+                            <tr>
+                                <th>SISWA</th>
+                                <th>STATUS AKHIR</th>
+                                <th>ALASAN</th>
+                                <th>PELANGGARAN</th>
+                                <th>AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recovery-candidates-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem;">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-top: 1px solid var(--border-color); flex-shrink: 0;">
+                <div style="font-size: 0.8rem; color: var(--text-secondary);" id="recovery-summary-line">
+                    Menunggu data recovery...
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="closeRecoveryCenter()">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/sidebar-loader.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/admin/monitoring.js?v=20260531-adminpoll1"></script>
+
+    <!-- Modern Modals Library (Standalone) -->
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+
+    <!-- Fullscreen Live Monitor Overlay -->
+    <div id="fullscreen-monitor" class="fullscreen-monitor-overlay">
+        <div class="fm-header">
+            <h1><i class="fas fa-satellite-dish"></i> LIVE MONITOR</h1>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span id="fm-exam-names" style="color: #94a3b8; font-size: 0.9rem;"></span>
+                <button id="fm-sound-btn" class="fm-sound-toggle active" onclick="toggleViolationSound()">
+                    <i class="fas fa-volume-high"></i> Suara
+                </button>
+                <button class="fm-close-btn" onclick="closeFullscreenMonitor()">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+            </div>
+        </div>
+
+        <div class="fm-stats-bar">
+            <div class="fm-stat total">
+                <i class="fas fa-users"></i>
+                <span><strong id="fm-stat-total">0</strong> Total</span>
+            </div>
+            <div class="fm-stat online">
+                <i class="fas fa-circle"></i>
+                <span><strong id="fm-stat-online">0</strong> Online</span>
+            </div>
+            <div class="fm-stat violations">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span><strong id="fm-stat-violations">0</strong> Pelanggaran</span>
+            </div>
+            <div class="fm-stat submitted">
+                <i class="fas fa-check-circle"></i>
+                <span><strong id="fm-stat-submitted">0</strong> Selesai</span>
+            </div>
+        </div>
+
+        <div class="fm-main">
+            <div class="fm-students-grid-container">
+                <div id="fm-students-grid" class="fm-students-grid">
+                    <!-- Student cards will be rendered here -->
+                    <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                        <div class="spinner" style="margin: 0 auto 1rem;"></div>
+                        <p style="color: #94a3b8;">Memuat data siswa...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fm-violations-sidebar">
+                <div class="fm-violations-header">
+                    <h3><i class="fas fa-bell"></i> Violation Feed</h3>
+                </div>
+                <div id="fm-violations-list" class="fm-violations-list">
+                    <div style="text-align: center; padding: 2rem; color: #64748b;">
+                        <i class="fas fa-shield-check" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                        <p>Belum ada pelanggaran</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Violation Sound (hidden audio element) -->
+    <audio id="violation-sound" preload="auto">
+        <source
+            src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleWMEGWyh4PlSMB0HhoKvwLhNHAQ5p7/GbUoeMoqjw7BBKR0znLWxY0ExL3ymrpg7Pi85p6KJNUk7OpKOfjVLQD+IgGorXFBRdnRhJmhcc2xrTylyaXJgX0l0eXRaVE94gHJRUk6BiXJMVFCLknJJWE+RmXNJXk6VnHNJYU2Wn3NJYkyWoHNJYUuWoXVIYEqWondHXkmVo3hGXEeTpHlFWkWQpnpDS0KNp3tCRz+Jp3w/Qjt+o309PTd3n357Ny9tl314MihnkHt0LSVfin1xJh5Vgn1rHhZLdn1lFAxDa31dCwQ/ZX9ZAwA8Y4BXAAA7ZIBUAgE8ZoBTBgU+aoBTCws/bYFTEBA/b4RTFRI/cYVUGBQ+c4dWHBY+dYpYHxg+d41bIho+eZBeJRs9epRhJxw8e5hkKx08e5xnLh06e6BrMR44e6NuNBs3e6ZxNhk1e6l0ORYye6x3PBMwe692PxAtea95QQ0re7B7QwooeK97RQclda59RwQida9/SAEfcq+BSAAbb6+BSgAWa6+DTQAVaK6ETwAUZ6yEUgATZqqFVQASY6iFWAAPYKWGWwANXKKGXgAKWaCGYQAIV56GZQAGVZ2HaAEFU5yHawIEUpuIbgQDUpuJcQYDUZuKdAgDUZuLdwoEUZyNegsCUZyPfg0BUZyQgRABUJ2Rhg=="
+            type="audio/wav">
+    </audio>
+</body>
+
+</html>

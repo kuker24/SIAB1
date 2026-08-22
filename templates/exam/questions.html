@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="exam-container" class="exam-container" data-session-id="{{ session.id }}" data-exam-id="{{ exam.id }}"
+    data-duration="{{ exam.duration_minutes }}" data-questions='{{ questions | tojson }}'>
+
+    <!-- Main Content -->
+    <main class="exam-main">
+        <!-- Header -->
+        <header class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0; font-size: 1.5rem;">{{ exam.title }}</h1>
+                <p style="margin: 0.5rem 0 0; color: var(--text-secondary); font-size: 0.875rem;">
+                    {{ exam.question_count }} Soal • {{ exam.duration_minutes }} Menit
+                </p>
+            </div>
+            <div class="timer">
+                <div class="timer-label"
+                    style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Waktu Tersisa</div>
+                <div id="timer-value" class="timer-value">--:--</div>
+            </div>
+        </header>
+
+        <!-- Question Container -->
+        <div id="question-container">
+            <!-- Questions will be rendered here by JavaScript -->
+            <div class="card" style="text-align: center; padding: 3rem;">
+                <p style="color: var(--text-secondary);">Memuat soal...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="exam-sidebar">
+        <!-- Question Navigator -->
+        <div class="question-nav card">
+            <div class="question-nav-title">Navigasi Soal</div>
+            <div id="question-navigator" class="question-nav-grid">
+                <!-- Navigator buttons will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="card" style="margin-top: 1rem;">
+            <div class="question-nav-title">Progress</div>
+            <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                Terjawab: <span id="answered-count">0</span> / {{ exam.question_count }}
+            </p>
+        </div>
+
+        <!-- Submit Button -->
+        <button class="btn btn-danger btn-lg" style="width: 100%; margin-top: 1rem;"
+            onclick="window.examSystem.submitExam()">
+            📤 Kumpulkan Ujian
+        </button>
+
+        <!-- Violation Counter -->
+        <div class="card" style="margin-top: 1rem; text-align: center;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Pelanggaran</div>
+            <div id="violation-count" style="font-size: 1.5rem; font-weight: 600; color: var(--danger);">0</div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize exam with data
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.examSystem && window.examSystem.questions.length === 0) {
+            const questionsData = {{ questions | tojson | safe
+        }
+    };
+    window.examSystem.setQuestions(questionsData);
+        }
+    });
+</script>
+{% endblock %}

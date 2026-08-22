@@ -1,0 +1,41 @@
+{
+    "errors": {
+        "seb_required": "Ujian ini harus diakses melalui Aplikasi Ujian (APK) atau Safe Exam Browser",
+        "invalid_seb_config": "Konfigurasi SEB tidak valid",
+        "time_up": "Waktu ujian telah habis",
+        "connection_lost": "Koneksi terputus. Mencoba reconnect...",
+        "violation_detected": "PERINGATAN: Terdeteksi aktivitas mencurigakan!",
+        "max_attempts_reached": "Batas percobaan sudah tercapai",
+        "exam_not_started": "Ujian belum dimulai",
+        "exam_ended": "Ujian sudah berakhir",
+        "session_not_found": "Sesi ujian tidak ditemukan",
+        "unauthorized": "Tidak memiliki akses",
+        "invalid_credentials": "Username atau password salah"
+    },
+    "messages": {
+        "answer_saved": "Jawaban berhasil disimpan",
+        "exam_submitted": "Ujian berhasil dikumpulkan",
+        "auto_submit_warning": "Ujian akan dikumpulkan otomatis dalam {} detik",
+        "violation_warning": "Peringatan: Anda sudah melakukan {} pelanggaran",
+        "last_warning": "PERINGATAN TERAKHIR! Ujian akan dikumpulkan otomatis pada pelanggaran berikutnya",
+        "force_submitted": "Ujian dikumpulkan otomatis karena pelanggaran",
+        "welcome": "Selamat datang di Sistem Ujian Online",
+        "login_success": "Login berhasil",
+        "logout_success": "Logout berhasil",
+        "registration_success": "Registrasi berhasil"
+    },
+    "labels": {
+        "exam": "Ujian",
+        "question": "Soal",
+        "answer": "Jawaban",
+        "time_remaining": "Waktu tersisa",
+        "submit": "Kumpulkan",
+        "next": "Selanjutnya",
+        "previous": "Sebelumnya",
+        "start_exam": "Mulai Ujian",
+        "end_exam": "Selesai Ujian",
+        "score": "Nilai",
+        "passed": "Lulus",
+        "failed": "Tidak Lulus"
+    }
+}

@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_HOME="$(cd "$(dirname "$0")" && pwd)"
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+WRAPPER_PROPS="$APP_HOME/gradle/wrapper/gradle-wrapper.properties"
+GRADLE_VERSION="8.7"
+DIST_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+
+if [ -f "$WRAPPER_PROPS" ]; then
+  PROP_URL="$(grep -E '^distributionUrl=' "$WRAPPER_PROPS" | cut -d= -f2- | tr -d '\r' | sed 's/\\:/:/g')"
+  if [ -n "${PROP_URL:-}" ]; then
+    DIST_URL="$PROP_URL"
+    GRADLE_VERSION="$(echo "$DIST_URL" | sed -n 's/.*gradle-\([0-9][0-9.]*\).*/\1/p')"
+  fi
+fi
+
+choose_java() {
+  if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    echo "$JAVA_HOME/bin/java"
+    return
+  fi
+  command -v java
+}
+
+JAVA_BIN="$(choose_java)"
+if [ -z "${JAVA_BIN:-}" ]; then
+  echo "ERROR: Java not found. Set JAVA_HOME." >&2
+  exit 1
+fi
+
+if [ -f "$WRAPPER_JAR" ]; then
+  exec "$JAVA_BIN" -jar "$WRAPPER_JAR" "$@"
+fi
+
+CACHE_ROOT="${GRADLE_USER_HOME:-$HOME/.gradle}"
+DIST_DIR="$CACHE_ROOT/wrapper/dists/gradle-${GRADLE_VERSION}-bin"
+mkdir -p "$DIST_DIR"
+MARKER="$(echo -n "$DIST_URL" | cksum | awk '{print $1}')"
+UNPACK="$DIST_DIR/$MARKER"
+GRADLE_BIN=""
+if [ -d "$UNPACK" ]; then
+  GRADLE_BIN="$(find "$UNPACK" -maxdepth 3 -type f -name gradle -path '*/bin/gradle' 2>/dev/null | head -n 1)"
+fi
+
+if [ -z "${GRADLE_BIN:-}" ]; then
+  ZIP="$DIST_DIR/gradle-${GRADLE_VERSION}-bin.zip"
+  if [ ! -f "$ZIP" ]; then
+    echo "Downloading Gradle ${GRADLE_VERSION}..."
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL "$DIST_URL" -o "$ZIP"
+    elif command -v wget >/dev/null 2>&1; then
+      wget -q "$DIST_URL" -O "$ZIP"
+    else
+      echo "ERROR: curl or wget required to download Gradle." >&2
+      exit 1
+    fi
+  fi
+  rm -rf "$UNPACK"
+  mkdir -p "$UNPACK"
+  unzip -q -o "$ZIP" -d "$UNPACK"
+  GRADLE_BIN="$(find "$UNPACK" -maxdepth 3 -type f -name gradle -path '*/bin/gradle' 2>/dev/null | head -n 1)"
+fi
+
+if [ -z "${GRADLE_BIN:-}" ] || [ ! -x "$GRADLE_BIN" ]; then
+  echo "ERROR: Gradle ${GRADLE_VERSION} binary not found after download." >&2
+  exit 1
+fi
+
+exec "$GRADLE_BIN" "$@"

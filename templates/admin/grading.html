@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Penilaian Essay & Isian Singkat - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <style>
+        .grading-layout {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 1.5rem;
+            height: calc(100vh - 200px);
+        }
+
+        .essay-list {
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .essay-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid transparent;
+        }
+
+        .essay-item:hover {
+            transform: translateX(4px);
+            border-left-color: var(--primary);
+        }
+
+        .essay-item.active {
+            border-left-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .essay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .essay-exam {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .essay-preview {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .grading-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        .answer-box {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            white-space: pre-wrap;
+            line-height: 1.8;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 1.1rem;
+        }
+
+        .answer-box.short-answer {
+            font-size: 1.25rem;
+            font-weight: 500;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .correct-answer-hint {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .correct-answer-hint .label {
+            font-size: 0.75rem;
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .grade-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        /* Simplified Grade Display */
+        .grade-display-section {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+            border-radius: 0.5rem;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .grade-display-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .grade-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+
+        .grade-max-points {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Quick Grade Buttons - Primary UI */
+        .quick-grades {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .quick-grades.essay-grades {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .quick-grades.short-answer-grades {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .quick-grade-btn {
+            padding: 0.75rem 0.75rem;
+            border-radius: 0.5rem;
+            border: 2px solid var(--border-color);
+            background: var(--dark-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-grade-btn i {
+            font-size: 1.2rem;
+        }
+
+        .quick-grade-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .quick-grade-btn.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.2));
+            transform: scale(1.05);
+        }
+
+        .quick-grade-btn.correct {
+            border-color: rgba(34, 197, 94, 0.5);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .quick-grade-btn.correct:hover,
+        .quick-grade-btn.correct.selected {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--success);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        .quick-grade-btn.wrong {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .quick-grade-btn.wrong:hover,
+        .quick-grade-btn.wrong.selected {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--danger);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+
+
+        .empty-grading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        .empty-grading i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .type-badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .type-badge.essay {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+        }
+
+        .type-badge.short-answer {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .grading-summary-note {
+            display: none;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 0.75rem;
+            background: rgba(99, 102, 241, 0.08);
+            color: var(--text-secondary);
+        }
+
+        .grading-summary-note strong {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 1024px) {
+            .grading-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .essay-list {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar - Loaded via JavaScript -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">
+                    <i class="fas fa-pen-to-square" style="color: var(--primary);"></i>
+                    Penilaian Essay & Isian Singkat
+                </h1>
+                <div class="header-actions">
+                    <div id="grading-detail-toolbar" style="display: flex; gap: 1rem; align-items: center; margin-right: 1rem;">
+                        <select id="exam-filter" class="form-control" style="width: auto; min-width: 200px;">
+                            <option value="">Semua Ujian</option>
+                        </select>
+                        <div class="badge badge-warning" id="pending-count">
+                            <i class="fas fa-clock"></i>
+                            <span>0 pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div id="grading-summary-note" class="grading-summary-note">
+                <i class="fas fa-gauge-high" style="color: var(--primary);"></i>
+                <strong>Mode ringkas admin:</strong>
+                halaman ini hanya memuat angka ringkasan agar dashboard penilaian tetap ringan.
+                Detail jawaban pending untuk dinilai tersedia pada role guru/teacher dan developer untuk ujian yang dibuat sendiri.
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-card">
+                    <div class="stat-icon pending"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-pending">0</h3>
+                        <p>Total Menunggu</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);"><i class="fas fa-align-left"
+                            style="color: #a78bfa;"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-essay">0</h3>
+                        <p>Essay Pending</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);"><i class="fas fa-pen-to-square"
+                            style="color: #60a5fa;"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-short">0</h3>
+                        <p>Isian Singkat Pending</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active"><i class="fas fa-circle-check"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-graded-today">0</h3>
+                        <p>Dinilai Hari Ini</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Grading Layout -->
+            <div id="grading-detail-section" class="grading-layout">
+                <!-- Left: Answer List -->
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">
+                        <i class="fas fa-list"></i> Jawaban Pending
+                    </h3>
+
+                    <!-- Filter Tabs -->
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-type="" onclick="setTypeFilter(this, '')">
+                            Semua <span id="filter-count-all" class="badge badge-secondary"
+                                style="margin-left: 0.25rem;">0</span>
+                        </button>
+                        <button class="filter-tab" data-type="essay" onclick="setTypeFilter(this, 'essay')">
+                            <i class="fas fa-align-left"></i> Essay
+                        </button>
+                        <button class="filter-tab" data-type="short_answer"
+                            onclick="setTypeFilter(this, 'short_answer')">
+                            <i class="fas fa-pen-to-square"></i> Isian Singkat
+                        </button>
+                    </div>
+
+                    <div id="essay-list" class="essay-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div id="pagination" style="margin-top: 1rem;"></div>
+                </div>
+
+                <!-- Right: Grading Panel -->
+                <div id="grading-panel" class="grading-panel">
+                    <div class="empty-grading">
+                        <i class="fas fa-hand-pointer"></i>
+                        <p>Pilih jawaban dari daftar untuk mulai menilai</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script>
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        // State
+        const currentUser = auth.getUser ? auth.getUser() : null;
+        const currentRole = String(currentUser?.role || '').toLowerCase();
+        const summaryOnlyRoles = new Set(['admin']);
+        const summaryOnlyMode = summaryOnlyRoles.has(currentRole);
+
+        let pendingAnswers = [];
+        let allAnswers = []; // Store all answers for filtering
+        let currentPage = 1;
+        let perPage = 20;
+        let totalPages = 0;
+        let selectedAnswer = null;
+        let currentExamFilter = null;
+        let currentTypeFilter = ''; // 'essay', 'short_answer', or '' for all
+
+        function applyRoleMode() {
+            if (!summaryOnlyMode) return;
+
+            const toolbar = document.getElementById('grading-detail-toolbar');
+            const detailSection = document.getElementById('grading-detail-section');
+            const summaryNote = document.getElementById('grading-summary-note');
+
+            if (toolbar) toolbar.style.display = 'none';
+            if (detailSection) detailSection.style.display = 'none';
+            if (summaryNote) summaryNote.style.display = 'block';
+        }
+
+        // Initialize
+        async function init() {
+            applyRoleMode();
+            await loadStats();
+
+            if (summaryOnlyMode) {
+                return;
+            }
+
+            await loadExams();
+            await loadAnswers();
+            bindEvents();
+        }
+
+        async function loadExams() {
+            if (summaryOnlyMode) return;
+
+            try {
+                let exams = await api.getExams();
+                if (currentRole === 'developer') {
+                    const currentUserId = Number(currentUser?.id || 0);
+                    exams = exams.filter(exam => Number(exam.creator_id) === currentUserId);
+                }
+
+                const select = document.getElementById('exam-filter');
+                select.innerHTML = '<option value="">Semua Ujian</option>' +
+                    exams.map(e => `<option value="${e.id}">${e.title}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load exams:', error);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const stats = await api.getGradingStats();
+                document.getElementById('stat-pending').textContent = stats.total_pending || 0;
+                document.getElementById('stat-essay').textContent = stats.essay_pending || 0;
+                document.getElementById('stat-short').textContent = stats.short_answer_pending || 0;
+                document.getElementById('stat-graded-today').textContent = stats.recently_graded || 0;
+                document.getElementById('pending-count').querySelector('span').textContent =
+                    `${stats.total_pending || 0} pending`;
+                document.getElementById('filter-count-all').textContent = stats.total_pending || 0;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        function setTypeFilter(btn, type) {
+            if (summaryOnlyMode) return;
+
+            currentTypeFilter = type;
+            currentPage = 1;
+
+            // Update active state
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Filter and render
+            filterAndRenderAnswers();
+        }
+
+        function filterAndRenderAnswers() {
+            if (summaryOnlyMode) return;
+
+            let filtered = allAnswers;
+
+            if (currentTypeFilter) {
+                filtered = allAnswers.filter(a => a.question_type === currentTypeFilter);
+            }
+
+            pendingAnswers = filtered;
+            renderAnswerList();
+        }
+
+        async function loadAnswers() {
+            if (summaryOnlyMode) return;
+
+            const container = document.getElementById('essay-list');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const response = await api.getPendingEssays(currentExamFilter, currentPage, perPage);
+                allAnswers = response.pending || [];
+                totalPages = response.total_pages || 1;
+
+                // Apply type filter
+                filterAndRenderAnswers();
+
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Gagal memuat data</p></div>`;
+                console.error('Failed to load answers:', error);
+            }
+        }
+
+        function renderAnswerList() {
+            if (summaryOnlyMode) return;
+
+            const container = document.getElementById('essay-list');
+
+            if (pendingAnswers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 2rem; text-align: center;">
+                        <i class="fas fa-check-circle" style="color: var(--success); font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                        <p>Semua jawaban sudah dinilai!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = pendingAnswers.map(answer => {
+                const typeClass = answer.question_type === 'essay' ? 'essay' : 'short-answer';
+                const typeLabel = answer.question_type === 'essay' ? 'Essay' : 'Isian Singkat';
+                const typeIcon = answer.question_type === 'essay' ? 'fa-align-left' : 'fa-keyboard';
+
+                return `
+                    <div class="card essay-item" data-id="${answer.answer_id}" onclick="selectAnswer(${answer.answer_id})">
+                        <div class="essay-header">
+                            <strong>${answer.student_name}</strong>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span class="type-badge ${typeClass}"><i class="fas ${typeIcon}"></i> ${typeLabel}</span>
+                                <span class="badge badge-primary">${answer.max_points} poin</span>
+                            </div>
+                        </div>
+                        <div class="essay-exam"><i class="fas fa-file-lines"></i> ${answer.exam_title}</div>
+                        <div class="essay-preview">${answer.question_text}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render pagination
+            renderPagination();
+        }
+
+        function renderPagination() {
+            if (summaryOnlyMode) return;
+
+            const container = document.getElementById('pagination');
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div style="display: flex; justify-content: center; gap: 0.5rem;">';
+
+            // Previous
+            if (currentPage > 1) {
+                html += `<button class="btn btn-sm btn-secondary" onclick="goToPage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
+            }
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += `<button class="btn btn-sm btn-primary">${i}</button>`;
+                } else {
+                    html += `<button class="btn btn-sm btn-secondary" onclick="goToPage(${i})">${i}</button>`;
+                }
+            }
+
+            // Next
+            if (currentPage < totalPages) {
+                html += `<button class="btn btn-sm btn-secondary" onclick="goToPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            if (summaryOnlyMode) return;
+
+            currentPage = page;
+            loadAnswers();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleString('id-ID', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        async function selectAnswer(answerId) {
+            if (summaryOnlyMode) return;
+
+            const answer = pendingAnswers.find(a => a.answer_id === answerId) || allAnswers.find(a => a.answer_id === answerId);
+            if (!answer) return;
+
+            selectedAnswer = answer;
+
+            // Update UI active state
+            document.querySelectorAll('.essay-item').forEach(el => {
+                el.classList.remove('active');
+                if (parseInt(el.dataset.id) === answerId) el.classList.add('active');
+            });
+
+            const isShortAnswer = answer.question_type === 'short_answer';
+            const typeClass = isShortAnswer ? 'short-answer' : 'essay';
+            const typeLabel = isShortAnswer ? 'Isian Singkat' : 'Essay';
+            const typeIcon = isShortAnswer ? 'fa-keyboard' : 'fa-align-left';
+            const gradingModeBadge = ''; // Placeholder
+
+            let correctAnswerHint = '';
+            if (answer.correct_answer) {
+                 correctAnswerHint = `
+                    <div class="correct-answer-hint">
+                        <div class="label"><i class="fas fa-check"></i> Kunci Jawaban</div>
+                        <div>${escapeHtml(answer.correct_answer)}</div>
+                    </div>
+                `;
+            }
+
+            // Generate buttons HTML
+            let quickGradeButtons = '';
+            if (isShortAnswer) {
+                // 0, 50, 100
+                 quickGradeButtons = [0, 0.5, 1].map(p => {
+                    const val = answer.max_points * p;
+                    let label = 'Salah';
+                    let icon = 'fa-times';
+                    let btnClass = 'wrong';
+
+                    if (p === 1) { label = 'Benar'; icon = 'fa-check'; btnClass = 'correct'; }
+                    else if (p === 0.5) { label = 'Sebagian'; icon = 'fa-minus'; btnClass = ''; }
+
+                    return `
+                        <button class="quick-grade-btn ${btnClass}" data-value="${val}" onclick="setGrade(${val})">
+                            <i class="fas ${icon}"></i>
+                            <span>${label}</span>
+                        </button>
+                    `;
+                 }).join('');
+            } else {
+                // 0, 25, 50, 75, 100
+                quickGradeButtons = [0, 0.25, 0.5, 0.75, 1].map(p => {
+                    const val = answer.max_points * p;
+                    const percent = p * 100;
+                    return `
+                        <button class="quick-grade-btn" data-value="${val}" onclick="setGrade(${val})">
+                            <i class="fas fa-star" style="opacity: ${0.3 + p * 0.7}"></i>
+                            <span>${percent}%</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            // Render grading panel
+            const panel = document.getElementById('grading-panel');
+            panel.innerHTML = `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3><i class="fas fa-circle-question"></i> Soal</h3>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span class="type-badge ${typeClass}"><i class="fas ${typeIcon}"></i> ${typeLabel}</span>
+                            ${gradingModeBadge}
+                            <span class="badge badge-secondary">${escapeHtml(answer.student_class) || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <p style="line-height: 1.8; font-size: 1.1rem;">${escapeHtml(answer.question_text)}</p>
+                    ${correctAnswerHint}
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">
+                        <i class="fas fa-user"></i> Jawaban ${escapeHtml(answer.student_name)}
+                    </h3>
+                    <div class="answer-box ${isShortAnswer ? 'short-answer' : ''}">
+                        ${answer.answer_text ? escapeHtml(answer.answer_text).replace(/\n/g, '<br>') : '<em style="color: var(--text-secondary);">Tidak ada jawaban</em>'}
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">
+                        <i class="fas fa-clock"></i> ${formatDate(answer.submitted_at)}
+                    </div>
+                </div>
+
+                <div class="card grade-form">
+                    <div class="grade-display-section">
+                        <div class="grade-display-label">Nilai</div>
+                        <div class="grade-display" id="grade-display">-</div>
+                        <div class="grade-max-points">dari ${answer.max_points} poin</div>
+                    </div>
+
+                    <div class="quick-grades ${isShortAnswer ? 'short-answer-grades' : 'essay-grades'}">
+                        ${quickGradeButtons}
+                    </div>
+
+
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-secondary" onclick="skipAnswer()" style="flex: 1;">Lewati</button>
+                        <button id="submit-btn" class="btn btn-primary" onclick="submitGrade()" disabled style="flex: 2;">Simpan Nilai</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateGradeDisplay(value) {
+            // Remove rounding logic: always use flexible decimals (max 2)
+            // Using parseFloat ensures 3.00 displays as 3, but 2.5 displays as 2.5
+            const displayValue = parseFloat(value).toFixed(2).replace(/\.00$/, '');
+            document.getElementById('grade-display').textContent = displayValue;
+
+            // Enable submit button
+            document.getElementById('submit-btn').disabled = false;
+
+            // Update selected state on buttons
+            document.querySelectorAll('.quick-grade-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (parseFloat(btn.dataset.value) === parseFloat(value)) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
+        function setGrade(value) {
+            if (summaryOnlyMode) return;
+            updateGradeDisplay(value);
+        }
+
+        async function submitGrade() {
+            if (summaryOnlyMode) return;
+
+            if (!selectedAnswer) {
+                console.warn('⚠️ No answer selected');
+                return;
+            }
+
+            // Get points from the grade display (NOT from slider which doesn't exist!)
+            const gradeDisplayText = document.getElementById('grade-display').textContent;
+            const points = parseFloat(gradeDisplayText);
+
+            if (isNaN(points) || gradeDisplayText === '-') {
+                console.error('❌ No grade selected');
+                showToast('Pilih nilai terlebih dahulu!', 'error', 3000);
+                return;
+            }
+
+            console.log('💾 Submitting grade:', { answer_id: selectedAnswer.answer_id, points });
+
+            try {
+                await api.gradeEssay(selectedAnswer.answer_id, points, null);
+
+                console.log('✅ Grade saved successfully');
+                console.log('📢 Calling showToast...');
+                console.log('📢 showToast function exists?', typeof showToast);
+
+                showToast('Nilai berhasil disimpan!', 'success', 3000);
+
+                console.log('📢 showToast called');
+
+                // Remove from lists
+                const allIndex = allAnswers.findIndex(a => a.answer_id === selectedAnswer.answer_id);
+                if (allIndex > -1) allAnswers.splice(allIndex, 1);
+
+                const currentIndex = pendingAnswers.findIndex(a => a.answer_id === selectedAnswer.answer_id);
+                if (currentIndex > -1) pendingAnswers.splice(currentIndex, 1);
+
+                if (pendingAnswers.length > 0) {
+                    const nextIndex = Math.min(currentIndex, pendingAnswers.length - 1);
+                    const nextAnswer = pendingAnswers[nextIndex];
+
+                    if (nextAnswer && nextAnswer.answer_id) {
+                        renderAnswerList();
+                        selectAnswer(nextAnswer.answer_id);
+                    } else {
+                        console.warn('⚠️ Next answer is invalid, reloading...');
+                        await loadAnswers();
+                    }
+                } else {
+                    // Reload
+                    await loadAnswers();
+                    document.getElementById('grading-panel').innerHTML = `
+                        <div class="empty-grading">
+                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                            <p>Semua jawaban pada halaman ini sudah dinilai!</p>
+                            <button class="btn btn-primary" onclick="loadAnswers()" style="margin-top: 1rem;">Muat Ulang</button>
+                        </div>
+                    `;
+                }
+
+                // Update stats
+                loadStats();
+
+            } catch (error) {
+                console.error('❌ Grading error:', error);
+                showToast('Gagal menyimpan nilai: ' + (error.message || 'Terjadi kesalahan'), 'error', 5000);
+            }
+        }
+
+        function skipAnswer() {
+            if (summaryOnlyMode) return;
+
+            if (!selectedAnswer || pendingAnswers.length === 0) return;
+            const currentIndex = pendingAnswers.findIndex(a => a.answer_id === selectedAnswer.answer_id);
+            const nextIndex = (currentIndex + 1) % pendingAnswers.length;
+            selectAnswer(pendingAnswers[nextIndex].answer_id);
+        }
+
+        function bindEvents() {
+            if (summaryOnlyMode) return;
+
+            document.getElementById('exam-filter').addEventListener('change', (e) => {
+                currentExamFilter = e.target.value || null;
+                currentPage = 1;
+                loadAnswers();
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (summaryOnlyMode || !selectedAnswer) return;
+
+            // Number keys for quick grading
+            if (e.key >= '0' && e.key <= '9' && !e.target.matches('input, textarea')) {
+                const percent = parseInt(e.key) * 10;
+                const maxPoints = selectedAnswer.max_points;
+                setGrade(maxPoints * percent / 100);
+            }
+
+            // Enter to submit
+            if (e.key === 'Enter' && e.ctrlKey) {
+                submitGrade();
+            }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

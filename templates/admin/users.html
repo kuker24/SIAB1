@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Manajemen Pengguna - Admin Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/admin.css" rel="stylesheet">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <style>
+        /* Users specific styles that are not in admin.css yet or specific overrides */
+        .user-avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-admin {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .role-developer {
+            background: rgba(168, 85, 247, 0.12);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.28);
+        }
+
+        .role-teacher {
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .role-student {
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .role-guruplus {
+            background: rgba(59, 130, 246, 0.14);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.28);
+        }
+
+        /* Custom Checkbox */
+        .custom-checkbox {
+            appearance: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        .custom-checkbox:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .custom-checkbox {
+                width: 2.5rem;
+                height: 2.5rem;
+                min-width: 2.5rem;
+                min-height: 2.5rem;
+            }
+        }
+
+        /* Role Selection Cards */
+        .role-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .role-option-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .role-option-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary);
+        }
+
+        .role-option-card.selected {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        .role-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="preload">
+    <script>
+        window.addEventListener('load', () => {
+            document.body.classList.remove('preload');
+        });
+    </script>
+
+    <div class="app-container">
+        <!-- Sidebar - Loaded via JavaScript -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title"><i class="fas fa-users" style="color: var(--secondary);"></i> Manajemen Pengguna
+                </h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="fas fa-user-plus"></i> Tambah User
+                    </button>
+                    <a href="/admin/bulk-users.html" class="btn btn-secondary">
+                        <i class="fas fa-users"></i> Tambah Massal
+                    </a>
+                    <button class="btn btn-secondary" id="btn-export-csv" onclick="exportUsers()">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <!-- Filters -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <div class="search-box" style="flex: 1; min-width: 200px;">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input type="text" id="search-users" class="form-control" placeholder="Cari nama, username..."
+                            autocomplete="off">
+                    </div>
+                    <select class="form-control" id="filter-role" style="width: auto; min-width: 140px;">
+                        <option value="">Semua Role</option>
+                        <option value="student">Siswa</option>
+                        <option value="guruplus">GuruPlus</option>
+                        <option value="teacher">Guru</option>
+                        <option value="admin">Admin</option>
+                        <option value="developer">Developer</option>
+                    </select>
+                    <select class="form-control" id="filter-class" style="width: auto; min-width: 140px;">
+                        <option value="">Semua Kelas</option>
+                        <!-- Populated via JS -->
+                    </select>
+                    <select class="form-control" id="filter-status" style="width: auto; min-width: 140px;">
+                        <option value="">Semua Status</option>
+                        <option value="true">Aktif</option>
+                        <option value="false">Non-Aktif</option>
+                    </select>
+                    <button class="btn btn-danger" id="btn-batch-delete" disabled onclick="batchDelete()">
+                        <i class="fas fa-trash-can"></i> Hapus (<span id="selected-count">0</span>)
+                    </button>
+                    <button class="btn btn-secondary btn-icon" id="btn-refresh" title="Refresh" onclick="loadUsers()">
+                        <i class="fas fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="card">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="40" style="text-align: center;">
+                                    <input class="custom-checkbox" type="checkbox" id="select-all-users"
+                                        onchange="toggleSelectAll()">
+                                </th>
+                                <th>Pengguna</th>
+                                <th>Role</th>
+                                <th>Kelas / Jabatan</th>
+                                <th>Status</th>
+                                <th>Bergabung</th>
+                                <th width="100">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr>
+                                <td colspan="7" class="loading">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="padding: 1rem 0; text-align: center;">
+                <small class="text-muted">Total: <span id="total-users-count">0</span> pengguna</small>
+                <!-- Simple Pagination -->
+                <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 0.5rem;">
+                    <button class="btn btn-sm btn-secondary" id="prev-page" disabled onclick="changePage(-1)">
+                        <i class="fas fa-chevron-left"></i> Prev
+                    </button>
+                    <span id="page-indicator"
+                        style="display: flex; align-items: center; font-size: 0.9rem; color: var(--text-secondary);">
+                        Page 1
+                    </span>
+                    <button class="btn btn-sm btn-secondary" id="next-page" disabled onclick="changePage(1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create/Edit User Modal -->
+    <div class="modal-overlay" id="user-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">
+                    <i class="fas fa-user-plus" style="color: var(--primary);"></i> Tambah Pengguna
+                </h3>
+                <button class="modal-close" onclick="closeModal('user-modal')">&times;</button>
+            </div>
+            <form id="user-form">
+                <input type="hidden" name="id" id="user-id">
+
+                <!-- Role Selection -->
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="form-label">Jenis Pengguna</label>
+                    <div class="role-selection">
+                        <div class="role-option-card selected" onclick="selectRole('student')" id="role-student">
+                            <span class="role-icon"><i class="fas fa-user-graduate"
+                                    style="color: var(--success);"></i></span>
+                            <div>Siswa</div>
+                        </div>
+                        <div class="role-option-card" onclick="selectRole('teacher')" id="role-teacher">
+                            <span class="role-icon"><i class="fas fa-chalkboard-user"
+                                    style="color: var(--warning);"></i></span>
+                            <div>Guru</div>
+                        </div>
+                        <div class="role-option-card" onclick="selectRole('guruplus')" id="role-guruplus">
+                            <span class="role-icon"><i class="fas fa-user-plus"
+                                    style="color: #60a5fa;"></i></span>
+                            <div>GuruPlus</div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="role" id="role-input" value="student">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap *</label>
+                    <input type="text" class="form-control" name="full_name" required
+                        placeholder="Contoh: Ahmad Wijaya">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" name="username" required placeholder="ahmad.wijaya">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password <span id="password-hint">*</span></label>
+                        <input type="password" class="form-control" name="password" id="password-input"
+                            placeholder="Minimal 6 karakter">
+                    </div>
+                </div>
+
+                <!-- Dynamic Fields -->
+                <div id="student-fields">
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Kelas</label>
+                            <input type="text" class="form-control" name="student_class"
+                                placeholder="Contoh: XII IPA 1">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="teacher-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Jabatan / Mapel</label>
+                        <input type="text" class="form-control" name="job_title" placeholder="Contoh: Guru Matematika">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="is_active" class="custom-checkbox" checked>
+                        <span>Akun Aktif</span>
+                    </label>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('user-modal')">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="save-btn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/mobile-nav.js"></script>
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <!-- Modern Modal Library -->
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+
+    <script>
+        // Check Auth
+        if (!auth.requireAuth(['admin', 'developer'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        let allUsers = [];
+        let currentPage = 1;
+        const itemsPerPage = 50;
+        let totalUsers = 0;
+        let totalPages = 1;
+        let selectedUserIds = new Set();
+        const DEVELOPER_ROLE = 'developer';
+        const GURUPLUS_ROLE = 'guruplus';
+        const GURUPLUS_CLASS = 'GuruPlus';
+        const currentActor = auth.getUser() || {};
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"'`]/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#96;'
+            }[char] || char));
+        }
+
+        function debounce(fn, wait = 300) {
+            let timer = null;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), wait);
+            };
+        }
+
+        function isDeveloperActor() {
+            return String(currentActor.role || '').toLowerCase() === DEVELOPER_ROLE;
+        }
+
+        function canManageGuruPlus() {
+            return isDeveloperActor();
+        }
+
+        function initRoleControls() {
+            if (!canManageGuruPlus()) {
+                document.getElementById('role-guruplus')?.remove();
+            }
+        }
+
+        function getRoleDisplayName(role) {
+            const labels = {
+                [DEVELOPER_ROLE]: 'Developer',
+                admin: 'Admin',
+                teacher: 'Guru',
+                student: 'Siswa',
+                [GURUPLUS_ROLE]: 'GuruPlus'
+            };
+            return labels[role] || role;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initRoleControls();
+            loadClassFilter();
+            loadUsers();
+        });
+
+        function collectUserFilters() {
+            const search = document.getElementById('search-users').value.trim();
+            const role = document.getElementById('filter-role').value;
+            const studentClass = document.getElementById('filter-class').value;
+            const status = document.getElementById('filter-status').value;
+            const filters = {};
+            if (search) filters.search_query = search;
+            if (role) filters.role = role;
+            if (studentClass) filters.student_class = studentClass;
+            if (status) filters.is_active = status;
+            return filters;
+        }
+
+        async function loadUsers() {
+            const tableBody = document.getElementById('users-table-body');
+            tableBody.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+
+            try {
+                const result = await api.advancedSearchUsers(
+                    collectUserFilters(),
+                    currentPage,
+                    itemsPerPage
+                );
+                allUsers = Array.isArray(result.users) ? result.users : [];
+                totalUsers = Number(result.total || allUsers.length || 0);
+                totalPages = Math.max(1, Number(result.total_pages || Math.ceil(totalUsers / itemsPerPage) || 1));
+                if (currentPage > totalPages) {
+                    currentPage = totalPages;
+                    return loadUsers();
+                }
+
+                renderUsers();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                tableBody.innerHTML = `<tr><td colspan="7" class="empty-state" style="color: var(--danger);"><i class="fas fa-triangle-exclamation"></i> Gagal memuat data</td></tr>`;
+            }
+        }
+
+        async function loadClassFilter() {
+            try {
+                const classes = await api.getStudentClasses();
+                populateClassFilter(classes || []);
+            } catch (error) {
+                console.warn('Gagal memuat daftar kelas:', error);
+            }
+        }
+
+        function populateClassFilter(classes) {
+            const select = document.getElementById('filter-class');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Semua Kelas</option>';
+
+            Array.from(new Set(classes)).sort().forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = cls;
+                select.appendChild(opt);
+            });
+
+            select.value = currentVal;
+        }
+
+        function getFilteredUsers() {
+            // Data already comes filtered from the server; this helper is kept for export/actions.
+            return allUsers;
+        }
+
+        function renderUsers() {
+            document.getElementById('total-users-count').textContent = totalUsers.toLocaleString('id-ID');
+
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            if (allUsers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="fas fa-users"></i> Tidak ada pengguna ditemukan</td></tr>`;
+                updatePaginationControls(totalPages);
+                updateBatchButton();
+                return;
+            }
+
+            const allowGuruPlusActions = canManageGuruPlus();
+            const fragment = document.createDocumentFragment();
+            allUsers.forEach(u => {
+                const canManageDeveloperAccount = u.role !== DEVELOPER_ROLE || isDeveloperActor();
+                if (!canManageDeveloperAccount) {
+                    selectedUserIds.delete(u.id);
+                }
+                const fullName = escapeHtml(u.full_name || '-');
+                const username = escapeHtml(u.username || '-');
+                const role = escapeHtml(u.role || '');
+                const roleLabel = escapeHtml(getRoleDisplayName(u.role));
+                const classOrJob = escapeHtml((u.role === 'student' || u.role === GURUPLUS_ROLE) ? (u.student_class || '-') : (u.job_title || '-'));
+                const createdAt = u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-';
+                const avatar = escapeHtml((u.full_name || u.username || '?').charAt(0).toUpperCase());
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center;">
+                        ${canManageDeveloperAccount
+                            ? `<input class="custom-checkbox user-checkbox" type="checkbox" value="${u.id}"
+                                ${selectedUserIds.has(u.id) ? 'checked' : ''} onchange="toggleSelectUser(${u.id})">`
+                            : `<i class="fas fa-lock" title="Akun developer hanya dapat dikelola developer" style="color: var(--warning);"></i>`}
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div class="user-avatar-small">${avatar}</div>
+                            <div>
+                                <div style="font-weight: 600;">${fullName}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">@${username}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="role-badge role-${role}">${roleLabel}</span></td>
+                    <td>${classOrJob}</td>
+                    <td>
+                        <span class="badge badge-${u.is_active ? 'success' : 'danger'}">
+                            ${u.is_active ? 'Aktif' : 'Non-Aktif'}
+                        </span>
+                    </td>
+                    <td>${createdAt}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            ${canManageDeveloperAccount ? `
+                            <button class="btn btn-sm btn-secondary" onclick="editUser(${u.id})" title="Edit">
+                                <i class="fas fa-pen-to-square"></i>
+                            </button>` : ''}
+                            ${allowGuruPlusActions && u.role === 'teacher' ? `
+                            <button class="btn btn-sm btn-primary" onclick="toggleGuruPlusRole(${u.id}, '${GURUPLUS_ROLE}')" title="Tambah Role Siswa (GuruPlus)">
+                                <i class="fas fa-user-plus"></i>
+                            </button>` : ''}
+                            ${allowGuruPlusActions && u.role === GURUPLUS_ROLE ? `
+                            <button class="btn btn-sm btn-secondary" onclick="toggleGuruPlusRole(${u.id}, 'teacher')" title="Kembalikan ke Guru">
+                                <i class="fas fa-user-minus"></i>
+                            </button>` : ''}
+                            ${u.role !== 'admin' && u.role !== DEVELOPER_ROLE ? `
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})" title="Hapus">
+                                <i class="fas fa-trash-can"></i>
+                            </button>` : ''}
+                        </div>
+                    </td>
+                `;
+                fragment.appendChild(tr);
+            });
+            tbody.appendChild(fragment);
+
+            updatePaginationControls(totalPages);
+            updateBatchButton();
+        }
+
+        function updatePaginationControls(totalPagesValue) {
+            const safeTotalPages = Math.max(1, Number(totalPagesValue || 1));
+            document.getElementById('prev-page').disabled = currentPage <= 1;
+            document.getElementById('next-page').disabled = currentPage >= safeTotalPages;
+            document.getElementById('page-indicator').textContent = `Page ${currentPage} of ${safeTotalPages}`;
+        }
+
+        function changePage(delta) {
+            const nextPage = Math.min(Math.max(1, currentPage + delta), totalPages);
+            if (nextPage === currentPage) return;
+            currentPage = nextPage;
+            loadUsers();
+        }
+
+        const reloadUsersDebounced = debounce(() => {
+            currentPage = 1;
+            selectedUserIds.clear();
+            updateBatchButton();
+            loadUsers();
+        }, 300);
+
+        // Filtering: server-side to avoid rendering/searching huge user lists in the browser.
+        document.getElementById('search-users').addEventListener('input', reloadUsersDebounced);
+        document.getElementById('filter-role').addEventListener('change', reloadUsersDebounced);
+        document.getElementById('filter-class').addEventListener('change', reloadUsersDebounced);
+        document.getElementById('filter-status').addEventListener('change', reloadUsersDebounced);
+
+        // Selection Logic
+        function toggleSelectAll() {
+            const master = document.getElementById('select-all-users');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+
+            checkboxes.forEach(cb => {
+                const id = parseInt(cb.value);
+                if (cb.disabled) {
+                    cb.checked = false;
+                    selectedUserIds.delete(id);
+                    return;
+                }
+                cb.checked = master.checked;
+                if (master.checked) selectedUserIds.add(id);
+                else selectedUserIds.delete(id);
+            });
+            updateBatchButton();
+        }
+
+        function toggleSelectUser(id) {
+            const user = allUsers.find(u => u.id === id);
+            if (user && user.role === DEVELOPER_ROLE && !isDeveloperActor()) {
+                selectedUserIds.delete(id);
+                showToast('Akun developer hanya dapat dikelola developer', 'warning');
+                updateBatchButton();
+                return;
+            }
+            if (selectedUserIds.has(id)) selectedUserIds.delete(id);
+            else selectedUserIds.add(id);
+            updateBatchButton();
+        }
+
+        function updateBatchButton() {
+            selectedUserIds = new Set(Array.from(selectedUserIds).filter((id) => {
+                const user = allUsers.find((u) => u.id === id);
+                return !!user && (user.role !== DEVELOPER_ROLE || isDeveloperActor());
+            }));
+            const btn = document.getElementById('btn-batch-delete');
+            const count = selectedUserIds.size;
+            document.getElementById('selected-count').textContent = count;
+            btn.disabled = count === 0;
+        }
+
+        // Modal Logic
+        function openCreateModal() {
+            document.getElementById('user-form').reset();
+            document.getElementById('user-id').value = '';
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-user-plus" style="color: var(--primary);"></i> Tambah Pengguna';
+            document.getElementById('password-hint').textContent = '*';
+            document.getElementById('password-input').required = true;
+            selectRole('student'); // Default
+            openModal('user-modal');
+        }
+
+        function editUser(id) {
+            const user = allUsers.find(u => u.id === id);
+            if (!user) return;
+            if (user.role === DEVELOPER_ROLE && !isDeveloperActor()) {
+                showToast('Akun developer hanya dapat dikelola developer', 'warning');
+                return;
+            }
+            if (user.role === GURUPLUS_ROLE && !canManageGuruPlus()) {
+                showToast('Role GuruPlus hanya dapat dikelola developer', 'warning');
+                return;
+            }
+
+            document.getElementById('user-id').value = user.id;
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-user-pen" style="color: var(--warning);"></i> Edit Pengguna';
+
+            const form = document.getElementById('user-form');
+            form.full_name.value = user.full_name;
+            form.username.value = user.username;
+            form.is_active.checked = user.is_active;
+            form.student_class.value = user.student_class || '';
+            form.job_title.value = user.job_title || '';
+
+            // Password optional for edit
+            document.getElementById('password-hint').textContent = '(Opsional)';
+            document.getElementById('password-input').required = false;
+
+            selectRole(user.role);
+            openModal('user-modal');
+        }
+
+        function selectRole(role) {
+            if (role === GURUPLUS_ROLE && !canManageGuruPlus()) {
+                showToast('Role GuruPlus hanya dapat dipilih developer', 'warning');
+                return;
+            }
+
+            // Update UI
+            document.querySelectorAll('.role-option-card').forEach(el => el.classList.remove('selected'));
+            const roleCard = document.getElementById(`role-${role}`);
+            if (roleCard) roleCard.classList.add('selected');
+            document.getElementById('role-input').value = role;
+
+            // Toggle fields
+            if (role === 'student') {
+                document.getElementById('student-fields').style.display = 'block';
+                document.getElementById('teacher-fields').style.display = 'none';
+            } else if (role === 'teacher') {
+                document.getElementById('student-fields').style.display = 'none';
+                document.getElementById('teacher-fields').style.display = 'block';
+            } else if (role === GURUPLUS_ROLE) {
+                document.getElementById('student-fields').style.display = 'none';
+                document.getElementById('teacher-fields').style.display = 'block';
+                const form = document.getElementById('user-form');
+                if (form?.student_class) form.student_class.value = GURUPLUS_CLASS;
+            } else {
+                document.getElementById('student-fields').style.display = 'none';
+                document.getElementById('teacher-fields').style.display = 'none';
+            }
+        }
+
+        // Submit Form
+        document.getElementById('user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('save-btn');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Menyimpan...';
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.is_active = formData.get('is_active') === 'on';
+
+            if (data.role === GURUPLUS_ROLE && !canManageGuruPlus()) {
+                showToast('Role GuruPlus hanya dapat dikelola developer', 'error');
+                btn.disabled = false;
+                btn.innerText = originalText;
+                return;
+            }
+
+            // Clean up empty fields based on role
+            if (data.role === 'student') {
+                delete data.job_title;
+            } else if (data.role === GURUPLUS_ROLE) {
+                data.student_class = GURUPLUS_CLASS;
+            } else if (data.role === 'teacher') {
+                delete data.student_class;
+            } else {
+                delete data.student_class;
+                delete data.job_title;
+            }
+
+            if (!data.password && data.id) {
+                delete data.password; // Don't send empty password on edit
+            }
+
+            try {
+                if (data.id) {
+                    await api.updateUser(data.id, data);
+                    showToast('Pengguna berhasil diperbarui', 'success');
+                } else {
+                    delete data.id;
+                    await api.createUser(data);
+                    showToast('Pengguna berhasil ditambahkan', 'success');
+                }
+                closeModal('user-modal');
+                loadUsers();
+            } catch (error) {
+                showToast(error.message || 'Gagal menyimpan data', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        });
+
+        async function toggleGuruPlusRole(id, targetRole) {
+            if (!canManageGuruPlus()) {
+                showToast('Akses ditolak. Hanya developer yang dapat mengubah role GuruPlus', 'error');
+                return;
+            }
+            const user = allUsers.find(u => u.id === id);
+            if (!user) return;
+
+            const toGuruPlus = targetRole === GURUPLUS_ROLE;
+            const title = toGuruPlus ? 'Tambah Role Siswa (GuruPlus)' : 'Kembalikan Role Guru';
+            const message = toGuruPlus
+                ? `Ubah ${user.full_name} menjadi GuruPlus agar bisa ikut ujian asesmen?`
+                : `Kembalikan ${user.full_name} ke role Guru?`;
+
+            const confirmed = await showConfirm(message, title, { type: toGuruPlus ? 'warning' : 'info' });
+            if (!confirmed) return;
+
+            try {
+                const payload = toGuruPlus
+                    ? { role: GURUPLUS_ROLE, student_class: GURUPLUS_CLASS }
+                    : { role: 'teacher', student_class: null };
+                await api.updateUser(id, payload);
+                showToast(
+                    toGuruPlus
+                        ? 'Role berhasil diubah ke GuruPlus'
+                        : 'Role berhasil dikembalikan ke Guru',
+                    'success'
+                );
+                await loadUsers();
+            } catch (error) {
+                showToast(error.message || 'Gagal mengubah role', 'error');
+            }
+        }
+
+        async function deleteUser(id) {
+            const user = allUsers.find(u => u.id === id);
+            if (user && user.role === DEVELOPER_ROLE && !isDeveloperActor()) {
+                showToast('Akun developer hanya dapat dikelola developer', 'warning');
+                return;
+            }
+            const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.', 'Hapus Pengguna', { type: 'danger' });
+            if (!confirmed) return;
+
+            try {
+                await api.delete(`/users/${id}`);
+                showToast('Pengguna berhasil dihapus', 'success');
+                loadUsers();
+            } catch (error) {
+                showToast(error.message || 'Gagal menghapus pengguna', 'error');
+            }
+        }
+
+        async function batchDelete() {
+            const count = selectedUserIds.size;
+            if (count === 0) return;
+
+            const confirmed = await showConfirm(`Hapus ${count} pengguna terpilih?`, 'Hapus Massal', { type: 'danger' });
+            if (!confirmed) return;
+
+            let successCount = 0;
+            const ids = Array.from(selectedUserIds);
+
+            // Sequential delete to handle potential errors gracefully
+            for (const id of ids) {
+                try {
+                    await api.delete(`/users/${id}`);
+                    successCount++;
+                } catch (e) {
+                    console.error(`Failed to delete ${id}`, e);
+                }
+            }
+
+            selectedUserIds.clear();
+            updateBatchButton();
+            document.getElementById('select-all-users').checked = false;
+
+            showToast(`${successCount} pengguna berhasil dihapus`, 'success');
+            loadUsers();
+        }
+
+
+
+        async function exportUsers() {
+            try {
+                await api.exportUsers(collectUserFilters(), 'csv');
+                showToast('Export CSV diproses sesuai filter aktif', 'success');
+            } catch (error) {
+                showToast(error.message || 'Gagal export CSV', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

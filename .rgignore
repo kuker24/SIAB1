@@ -1,0 +1,7 @@
+Ujian Online.zip
+.venv/
+.venv-*/
+.pytest_cache/
+apk_builds/
+flutter_client_code/build/
+Ujian Online/flutter_client_code/build/

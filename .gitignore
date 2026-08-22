@@ -1,0 +1,91 @@
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+
+# Test/type/lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Runtime logs
+*.log
+
+# Flutter generated build outputs
+flutter_client_code/build/
+
+# Local generated APK outputs
+apk_builds/
+
+# Virtual environments
+.venv/
+.venv-*/
+
+# Runtime control secrets
+runtime_control/ssh_keys/*
+!runtime_control/ssh_keys/.gitkeep
+
+# Common local temp artifacts
+*.tmp
+*.temp
+*.swp
+
+# Local AI/agent/editor state (personal, non-committed)
+.claude/
+.codex
+.codex/
+.opencode/
+.playwright-cli/
+.serena/
+.codebase-memory/
+
+# Node/Dart generated dependencies
+node_modules/
+.dart_tool/
+flutter_client_code/.dart_tool/
+flutter_client_code/.packages
+flutter_client_code/.flutter-plugins*
+
+# Runtime/generated uploads and private media
+uploads/*
+!uploads/.gitkeep
+static/uploads/*
+!static/uploads/.gitkeep
+
+# TLS certificates and private deployment keys
+docker/certs/*
+!docker/certs/.gitkeep
+SSH/
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local deployment access tooling and private runbooks
+akses-vps-root/
+docs/VPS_*.md
+
+# Local backup/archive/report artifacts
+*.bak
+*.bak_*
+*.backup
+*.zip
+*.tar.gz
+*.tgz
+*.sql
+*.db
+backups/
+recovery_sistem/
+reports/
+MT/
+
+# Generated exam-import artifacts; may contain unpublished questions/answers
+exam_data_*.json
+parsed_soal_*.json

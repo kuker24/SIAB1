@@ -1,0 +1,245 @@
+<!--
+    Admin Sidebar Navigation Component
+    Include with: {% include 'components/sidebar.html' %}
+    Requires: auth.js loaded before this component
+-->
+<aside class="sidebar" id="main-sidebar">
+    <div class="sidebar-header">
+        <i class="fas fa-graduation-cap"></i>
+        <h1>Ujian Online</h1>
+    </div>
+
+    <ul class="nav-menu" id="nav-menu">
+        <!-- 1. Dashboard - All Roles -->
+        <li class="nav-item" id="menu-dashboard">
+            <a href="/admin/dashboard.html" class="nav-link" data-page="dashboard">
+                <i class="fas fa-gauge-high"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+        <!-- 2. Ujian & Soal - Admin & Teacher -->
+        <li class="nav-item has-submenu admin-teacher-only" id="menu-exam-management">
+            <a href="javascript:void(0)" class="nav-link submenu-toggle" data-page="exams">
+                <i class="fas fa-folder-open"></i>
+                <span>Ujian & Soal</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <ul class="submenu">
+                <li><a href="/admin/exams.html" data-page="exams"><i class="fas fa-list-check"></i> Manajemen Ujian</a>
+                </li>
+                <li><a href="/admin/exam-templates.html" data-page="exam-templates"><i
+                            class="fas fa-file-circle-plus"></i> Template Ujian</a></li>
+            </ul>
+        </li>
+
+        <!-- 3. Hasil & Analitik - Admin & Teacher -->
+        <li class="nav-item has-submenu admin-teacher-only" id="menu-results-analytics">
+            <a href="javascript:void(0)" class="nav-link submenu-toggle" data-page="results">
+                <i class="fas fa-chart-column"></i>
+                <span>Hasil & Analitik</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <ul class="submenu">
+                <li><a href="/admin/results.html" data-page="results"><i class="fas fa-square-poll-vertical"></i> Semua
+                        Hasil</a></li>
+                <li><a href="/admin/grading.html" data-page="grading"><i class="fas fa-pen-to-square"></i> Penilaian
+                        Manual</a></li>
+                <li class="admin-only"><a href="/admin/analytics.html" data-page="analytics"><i
+                            class="fas fa-chart-pie"></i> Statistik & Laporan</a></li>
+                <li><a href="/admin/exam-analytics.html" data-page="exam-analytics"><i
+                            class="fas fa-magnifying-glass-chart"></i> Analitik Ujian</a></li>
+            </ul>
+        </li>
+
+        <!-- 4. Pengguna & Monitor - Admin Only -->
+        <li class="nav-item has-submenu admin-teacher-only" id="menu-users-monitor">
+            <a href="javascript:void(0)" class="nav-link submenu-toggle" data-page="users">
+                <i class="fas fa-users-gear"></i>
+                <span>Pengguna & Monitor</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <ul class="submenu">
+                <li class="admin-only"><a href="/admin/users.html" data-page="users"><i class="fas fa-users"></i>
+                        Manajemen Pengguna</a></li>
+                <li class="admin-only"><a href="/admin/system-monitor.html" data-page="system-monitor"><i
+                            class="fas fa-server"></i> System Monitor</a></li>
+                <li><a href="/admin/monitoring.html" data-page="monitoring"><i class="fas fa-computer"></i> Sesi
+                        Aktif</a></li>
+                <li class="admin-only"><a href="/admin/violations.html" data-page="violations"><i class="fas fa-triangle-exclamation"></i>
+                        Pelanggaran</a></li>
+            </ul>
+        </li>
+
+        <!-- 5. Pengaturan - Admin Only -->
+        <li class="nav-item admin-only has-submenu" id="settings-menu-container">
+            <a href="javascript:void(0)" class="nav-link submenu-toggle" data-page="settings">
+                <i class="fas fa-gears"></i>
+                <span>Pengaturan</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <ul class="submenu">
+                <li id="settings-general-item" style="display: none;"><a href="/admin/settings.html"
+                        data-page="settings"><i class="fas fa-sliders"></i> Umum</a></li>
+                <li><a href="/admin/account-security.html" data-page="account-security"><i
+                            class="fas fa-shield-halved"></i> Keamanan Akun</a></li>
+                <li><a href="/admin/seb-builder.html" data-page="seb-builder"><i class="fas fa-screwdriver-wrench"></i>
+                        SEB Builder</a></li>
+                <li><a href="/admin/activity.html" data-page="activity"><i class="fas fa-clock-rotate-left"></i> Log
+                        Aktivitas</a></li>
+            </ul>
+        </li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <a href="#" class="nav-link logout-link" id="logout-btn"
+            onclick="if(window.auth) window.auth.confirmLogout(); return false;">
+            <i class="fas fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+<button class="mobile-menu-toggle" id="mobile-menu-toggle">
+    <i class="fas fa-bars"></i>
+</button>
+
+<script>
+    (function () {
+        // Prevent double initialization
+        if (window.sidebarInitialized) {
+            return;
+        }
+        window.sidebarInitialized = true;
+
+        function initSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            const mobileToggle = document.getElementById('mobile-menu-toggle');
+            const submenuToggles = document.querySelectorAll('.submenu-toggle');
+            const currentPath = window.location.pathname;
+            const currentPage = currentPath.split('/').pop().replace('.html', '') || 'dashboard';
+
+            // Mobile toggle
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768 && sidebar) {
+                    if (!sidebar.contains(e.target) && !mobileToggle?.contains(e.target)) {
+                        sidebar.classList.remove('active');
+                    }
+                }
+            });
+
+            // Submenu toggles
+            submenuToggles.forEach((toggle) => {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const parent = toggle.closest('.has-submenu');
+                    parent.classList.toggle('open');
+                });
+            });
+
+            // Set active state
+            let activeLinkFound = false;
+            document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+                const page = link.getAttribute('data-page');
+                if (currentPage === page) {
+                    link.classList.add('active');
+                    activeLinkFound = true;
+                    const parentSubmenu = link.closest('.has-submenu');
+                    if (parentSubmenu) {
+                        parentSubmenu.classList.add('open');
+                        const parentToggle = parentSubmenu.querySelector('.nav-link.submenu-toggle');
+                        if (parentToggle) parentToggle.classList.add('active');
+                    }
+                }
+            });
+
+            // Fallback active state
+            if (!activeLinkFound) {
+                const pageMap = {
+                    'exam-templates': 'exam-templates',
+                    'grading': 'grading',
+                    'analytics': 'analytics',
+                    'exam-analytics': 'exam-analytics',
+                    'system-monitor': 'system-monitor',
+                    'monitoring': 'monitoring',
+                    'violations': 'violations',
+                    'account-security': 'account-security',
+                    'seb-builder': 'seb-builder',
+                    'activity': 'activity'
+                };
+
+                const targetPage = pageMap[currentPage] || currentPage;
+                const targetLink = document.querySelector(`a[data-page="${targetPage}"]`);
+
+                if (targetLink) {
+                    targetLink.classList.add('active');
+                    const parent = targetLink.closest('.has-submenu');
+                    if (parent) {
+                        parent.classList.add('open');
+                        const parentToggle = parent.querySelector('.nav-link.submenu-toggle');
+                        if (parentToggle) parentToggle.classList.add('active');
+                    }
+                }
+            }
+
+            // Role visibility
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (user) {
+                const isPengawas = user.role === 'teacher' && String(user.job_title || '').toLowerCase().includes('pengawas');
+
+                if (isPengawas) {
+                    const dashboardMenu = document.getElementById('menu-dashboard');
+                    const examMenu = document.getElementById('menu-exam-management');
+                    const resultsMenu = document.getElementById('menu-results-analytics');
+                    const usersMonitorMenu = document.getElementById('menu-users-monitor');
+                    const settingsMenu = document.getElementById('settings-menu-container');
+
+                    if (dashboardMenu) dashboardMenu.remove();
+                    if (examMenu) examMenu.remove();
+                    if (resultsMenu) resultsMenu.remove();
+                    if (settingsMenu) settingsMenu.remove();
+
+                    if (usersMonitorMenu) {
+                        const topToggle = usersMonitorMenu.querySelector('.nav-link.submenu-toggle');
+                        const iconEl = topToggle?.querySelector('i');
+                        const textEl = topToggle?.querySelector('span');
+                        if (iconEl) iconEl.className = 'fas fa-shield-halved';
+                        if (textEl) textEl.textContent = 'Monitor Ujian';
+
+                        const submenu = usersMonitorMenu.querySelector('.submenu');
+                        if (submenu) {
+                            submenu.innerHTML = `
+                                <li><a href="/admin/exams.html" data-page="exams"><i class="fas fa-list-check"></i> Manajemen Ujian</a></li>
+                                <li><a href="/admin/monitoring.html" data-page="monitoring"><i class="fas fa-computer"></i> Sesi Aktif</a></li>
+                                <li><a href="/admin/violations.html" data-page="violations"><i class="fas fa-triangle-exclamation"></i> Pelanggaran</a></li>
+                                <li><a href="/admin/account-security.html" data-page="account-security"><i class="fas fa-user-shield"></i> Keamanan Akun</a></li>
+                            `;
+                        }
+
+                        usersMonitorMenu.classList.add('open');
+                    }
+                }
+
+                if (user.role !== 'admin' && user.role !== 'developer') {
+                    document.querySelectorAll('.admin-only').forEach(el => el.remove());
+                }
+                if (user.role !== 'admin' && user.role !== 'developer' && user.role !== 'teacher') {
+                    document.querySelectorAll('.admin-teacher-only').forEach(el => el.remove());
+                }
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSidebar);
+        } else {
+            initSidebar();
+        }
+    })();
+</script>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Dashboard - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- Responsive Design -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+</head>
+
+<body class="preload">
+    <script>
+        window.addEventListener('load', () => {
+            document.body.classList.remove('preload');
+        });
+    </script>
+    <div class="app-container">
+        <!-- Sidebar - Loaded via JavaScript -->
+        <div id="sidebar-container"></div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container"></div>
+
+
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Dashboard</h1>
+                <div class="header-actions">
+                    <div class="user-dropdown">
+                        <button class="user-btn">
+                            <div class="user-avatar" id="user-avatar">A</div>
+                            <div>
+                                <div id="user-name" style="font-weight: 600;">Admin</div>
+                                <div id="user-role" style="font-size: 0.75rem; color: var(--text-secondary);">
+                                    Administrator</div>
+                            </div>
+                            <i class="fas fa-chevron-down" style="margin-left: 0.5rem;"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-user-circle"></i>
+                                <span>Profil</span>
+                            </a>
+                            <a href="#" id="logout-btn-2" class="dropdown-item" style="color: var(--danger);">
+                                <i class="fas fa-right-from-bracket"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon users">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-users">-</h3>
+                        <p>Total Pengguna</p>
+                    </div>
+                </div>
+                <div class="stat-card" id="draft-stat-card" style="cursor: pointer;"
+                    onclick="window.location.href='/admin/exams.html?filter=draft'"
+                    title="Klik untuk melihat ujian draft">
+                    <div class="stat-icon"
+                        style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));">
+                        <i class="fas fa-pen-to-square" style="color: #f59e0b;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="draft-exams" style="color: #f59e0b;">-</h3>
+                        <p>Draft Ujian</p>
+                    </div>
+                </div>
+                <div class="stat-card" onclick="window.location.href='/admin/exams.html?filter=published'"
+                    style="cursor: pointer;" title="Klik untuk melihat ujian published">
+                    <div class="stat-icon exams">
+                        <i class="fas fa-circle-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="published-exams">-</h3>
+                        <p>Ujian Published</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active">
+                        <i class="fas fa-circle-play"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="active-sessions">-</h3>
+                        <p>Sesi Aktif</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon pending">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="pending-exams">-</h3>
+                        <p>Ujian Mendatang</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions (Redesigned) -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <h2 style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-bolt-lightning" style="color: var(--warning);"></i>
+                    Aksi Cepat
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <a href="/admin/exam-builder.html" class="quick-action-card"
+                        style="text-decoration: none; padding: 1.5rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.1)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 1rem; text-align: center; transition: all 0.3s; display: block;">
+                        <i class="fas fa-file-circle-plus" style="font-size: 2rem; margin-bottom: 0.75rem; color: var(--primary); display: block;"></i>
+                        <div style="font-weight: 600; color: var(--text-primary);">Buat Ujian Baru</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Buat ujian
+                            dengan soal baru</div>
+                    </a>
+                    <a href="/admin/users.html?action=create" class="quick-action-card" id="add-user-action"
+                        style="text-decoration: none; padding: 1.5rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1)); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 1rem; text-align: center; transition: all 0.3s; display: block;">
+                        <i class="fas fa-user-plus" style="font-size: 2rem; margin-bottom: 0.75rem; color: var(--success); display: block;"></i>
+                        <div style="font-weight: 600; color: var(--text-primary);">Tambah Pengguna</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Daftarkan
+                            siswa/guru baru</div>
+                    </a>
+                    <a href="/admin/monitoring.html" class="quick-action-card"
+                        style="text-decoration: none; padding: 1.5rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1)); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 1rem; text-align: center; transition: all 0.3s; display: block;">
+                        <i class="fas fa-eye" style="font-size: 2rem; margin-bottom: 0.75rem; color: var(--warning); display: block;"></i>
+                        <div style="font-weight: 600; color: var(--text-primary);">Monitoring Ujian</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Pantau ujian
+                            berlangsung</div>
+                    </a>
+                    <a href="/admin/results.html" class="quick-action-card"
+                        style="text-decoration: none; padding: 1.5rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 1rem; text-align: center; transition: all 0.3s; display: block;">
+                        <i class="fas fa-chart-simple" style="font-size: 2rem; margin-bottom: 0.75rem; color: #8b5cf6; display: block;"></i>
+                        <div style="font-weight: 600; color: var(--text-primary);">Lihat Hasil</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Analisis
+                            nilai siswa</div>
+                    </a>
+                </div>
+            </div>
+
+            <style>
+                .quick-action-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                }
+            </style>
+
+            <!-- Recent Exams -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2>
+                        <i class="fas fa-clock-rotate-left" style="color: var(--secondary);"></i>
+                        Ujian Terbaru
+                    </h2>
+                    <a href="/admin/exams.html" class="btn btn-sm btn-secondary">
+                        Lihat Semua
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Judul</th>
+                                <th>Durasi</th>
+                                <th>Waktu Mulai</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-exams-table">
+                            <tr>
+                                <td colspan="5" class="loading">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/js/mobile-nav.js"></script>
+    <!-- SSS+++++ Performance Optimizer -->
+    <script src="/static/js/performance-optimizer.js"></script>
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/profile-modal.js?v=20260430-perf1"></script>
+    <script src="/static/js/custom-confirm.js"></script>
+    <script src="/static/js/header-user.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script src="/static/js/dashboard-widgets.js"></script>
+    <script>
+        // Check auth
+        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+            // Will redirect to login
+        }
+
+        // ========================================
+        // TIMEZONE FORMATTER (WIB - Asia/Jakarta)
+        // ========================================
+        function formatWIB(dateString, options = {}) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const defaultOptions = {
+                timeZone: 'Asia/Jakarta',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleString('id-ID', { ...defaultOptions, ...options });
+        }
+        // ========================================
+
+        // Logout handler - REMOVED: Already handled in header-user.js
+
+        // Profile button handler - open profile modal
+        const profileBtn = document.querySelector('.dropdown-item[href="#"]:not(#logout-btn-2)');
+        if (profileBtn && typeof ProfileModal !== 'undefined') {
+            profileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                ProfileModal.open();
+            });
+        }
+
+        // Update header user info and avatar
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (currentUser.full_name) {
+            document.getElementById('user-name').textContent = currentUser.full_name;
+            document.getElementById('user-role').textContent =
+                { developer: 'Developer', admin: 'Administrator', teacher: 'Guru', student: 'Siswa' }[currentUser.role] || currentUser.role;
+
+            // Update avatar
+            const avatarEl = document.getElementById('user-avatar');
+            if (avatarEl) {
+                if (currentUser.profile_picture) {
+                    avatarEl.innerHTML = `<img src="${currentUser.profile_picture}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else {
+                    avatarEl.textContent = currentUser.full_name.charAt(0).toUpperCase();
+                }
+            }
+        }
+
+        // Load dashboard data
+        let dashboardLoading = false;
+
+        async function loadDashboard() {
+            if (dashboardLoading) return;
+            dashboardLoading = true;
+
+            const user = auth.getUser();
+            const isAdmin = user && (user.role === 'admin' || user.role === 'developer');
+
+            try {
+                const stats = await api.getDashboardStats();
+
+                // User card (admin only) to avoid expensive full-user fetch on each refresh.
+                const userStatCard = document.querySelector('.stat-card:first-child');
+                if (isAdmin) {
+                    if (userStatCard) userStatCard.style.display = '';
+                    document.getElementById('total-users').textContent = stats.total_users || 0;
+                } else if (userStatCard) {
+                    userStatCard.style.display = 'none';
+                }
+
+                // Hide "Tambah Pengguna" button for teacher
+                if (!isAdmin) {
+                    const addUserBtn = document.querySelector('a[href="/admin/users.html?action=create"]');
+                    if (addUserBtn) addUserBtn.style.display = 'none';
+                }
+
+                // Update display
+                const draftEl = document.getElementById('draft-exams');
+                const publishedEl = document.getElementById('published-exams');
+                if (draftEl) draftEl.textContent = stats.draft_exams || 0;
+                if (publishedEl) publishedEl.textContent = stats.published_exams || 0;
+                document.getElementById('active-sessions').textContent = stats.active_sessions || 0;
+                document.getElementById('pending-exams').textContent = stats.upcoming_exams || 0;
+
+                // Render recent exams
+                renderRecentExams(stats.recent_exams || []);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                const message = typeof error === 'string' ? error :
+                    (error.message || error.detail || 'Gagal memuat data dashboard');
+                showAlert(message, 'danger');
+            } finally {
+                dashboardLoading = false;
+            }
+        }
+
+        function renderRecentExams(exams) {
+            const tbody = document.getElementById('recent-exams-table');
+
+            if (exams.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>Belum ada ujian</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = exams.map(exam => {
+                const now = new Date();
+                const start = new Date(exam.start_time);
+                const end = new Date(exam.end_time);
+
+                let status, statusClass;  // Check if draft first
+                if (!exam.is_published) {
+                    status = 'Draft';
+                    statusClass = 'secondary';
+                } else if (now < start) {
+                    status = 'Mendatang';
+                    statusClass = 'warning';
+                } else if (now >= start && now <= end) {
+                    status = 'Berlangsung';
+                    statusClass = 'success';
+                } else {
+                    status = 'Selesai';
+                    statusClass = 'primary';
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <strong>${exam.title}</strong>
+                            ${exam.is_published ? '<span class="badge badge-success" style="margin-left: 0.5rem;">Published</span>' : '<span class="badge badge-warning" style="margin-left: 0.5rem;">Draft</span>'}
+                        </td>
+                        <td>${formatDuration(exam.duration_minutes)}</td>
+                        <td>${formatWIB(exam.start_time)}</td>
+                        <td><span class="badge badge-${statusClass}">${status}</span></td>
+                        <td>
+                            <a href="/admin/exams.html?id=${exam.id}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Initialize
+        loadDashboard();
+
+        // Auto-refresh dashboard with lighter summary endpoint.
+        let dashboardRefreshInterval = null;
+
+        function startDashboardAutoRefresh() {
+            // Clear any existing interval
+            if (dashboardRefreshInterval) {
+                clearInterval(dashboardRefreshInterval);
+            }
+
+            // Refresh every 60 seconds to reduce background polling load.
+            dashboardRefreshInterval = setInterval(() => {
+                console.log('🔄 Auto-refreshing dashboard...');
+                loadDashboard();
+            }, 60000);
+
+            console.log('✅ Dashboard auto-refresh started (60s interval)');
+        }
+
+        function stopDashboardAutoRefresh() {
+            if (dashboardRefreshInterval) {
+                clearInterval(dashboardRefreshInterval);
+                dashboardRefreshInterval = null;
+                console.log('⏸️ Dashboard auto-refresh stopped');
+            }
+        }
+
+        // Start auto-refresh on page load
+        startDashboardAutoRefresh();
+
+        // Stop refresh when user leaves page (cleanup)
+        window.addEventListener('beforeunload', stopDashboardAutoRefresh);
+
+        // Hide admin-only elements for teachers
+        const user = auth.getUser();
+        if (user && user.role === 'teacher') {
+            // Hide add user quick action card
+            const addUserAction = document.getElementById('add-user-action');
+            if (addUserAction) addUserAction.style.display = 'none';
+        }
+    </script>
+    <style>
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</body>
+
+</html>

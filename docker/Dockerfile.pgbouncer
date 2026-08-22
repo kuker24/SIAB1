@@ -1,0 +1,16 @@
+FROM alpine:3.20
+
+RUN apk add --no-cache pgbouncer postgresql-client bash
+
+COPY docker/pgbouncer/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+    && addgroup -S pgbouncer \
+    && adduser -S -D -H -h /var/lib/pgbouncer -s /sbin/nologin -G pgbouncer pgbouncer \
+    && mkdir -p /etc/pgbouncer \
+    && chown -R pgbouncer:pgbouncer /etc/pgbouncer
+
+USER pgbouncer
+
+EXPOSE 6432
+
+ENTRYPOINT ["/entrypoint.sh"]

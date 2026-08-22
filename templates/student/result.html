@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil Ujian - Ujian Online</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/student.css">
+</head>
+
+<body>
+    <div class="student-container">
+        <div class="card" style="max-width: 600px; margin: 2rem auto; text-align: center;">
+            <div id="result-icon" style="margin-bottom: 1rem;">
+                <i class="fas fa-trophy" style="font-size: 5rem; color: var(--warning);"></i>
+            </div>
+
+            <h1 style="margin-bottom: 0.5rem;" id="result-title">Ujian Selesai!</h1>
+            <p id="result-metadata" style="color: var(--text-secondary); margin-bottom: 0.5rem; display: none;">
+                📚 <span id="result-subject"></span> • 📋 <span id="result-exam-type"></span>
+            </p>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;" id="result-subtitle">Berikut hasil ujian Anda
+            </p>
+
+            <div class="result-circle" id="result-circle">
+                <div class="result-score" id="score">0</div>
+                <div style="color: var(--text-secondary);">Nilai</div>
+            </div>
+
+            <div id="result-status" style="margin-bottom: 2rem;">
+                <span class="badge badge-success" style="font-size: 1.25rem; padding: 0.75rem 1.5rem;">🎉 LULUS</span>
+            </div>
+
+            <div class="card" style="background: var(--dark-card); margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; text-align: center;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="correct-count">0
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Benar</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="wrong-count">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Salah</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);"
+                            id="total-count">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Total Soal</div>
+                    </div>
+                </div>
+            </div>
+
+            <a href="/student/dashboard.html" class="btn btn-primary btn-block">
+                <i class="fas fa-house"></i> Kembali ke Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=20260306-phase4"></script>
+    <script src="/static/js/auth.js?v=20260226-hotfix1"></script>
+    <script>
+        // Get result from session storage
+        const result = JSON.parse(sessionStorage.getItem('exam_result'));
+
+        if (!result) {
+            window.location.href = '/student/dashboard.html';
+        } else {
+            document.getElementById('score').textContent = result.score;
+            document.getElementById('correct-count').textContent = result.correct;
+            document.getElementById('wrong-count').textContent = result.total - result.correct;
+            document.getElementById('total-count').textContent = result.total;
+
+            // Show exam metadata if available
+            if (result.subject || result.exam_type) {
+                const subjectSpan = document.getElementById('result-subject');
+                const examTypeSpan = document.getElementById('result-exam-type');
+                const metadataEl = document.getElementById('result-metadata');
+
+                if (subjectSpan) subjectSpan.textContent = result.subject || '-';
+                if (examTypeSpan) examTypeSpan.textContent = result.exam_type || '-';
+                if (metadataEl) metadataEl.style.display = 'block';
+            }
+
+            const circle = document.getElementById('result-circle');
+            const status = document.getElementById('result-status');
+            const icon = document.getElementById('result-icon');
+
+            if (result.passed) {
+                circle.classList.add('passed');
+                status.innerHTML = '<span class="badge badge-success" style="font-size: 1.25rem; padding: 0.75rem 1.5rem;">🎉 LULUS</span>';
+                icon.innerHTML = '<i class="fas fa-trophy" style="font-size: 5rem; color: var(--warning);"></i>';
+            } else {
+                circle.classList.add('failed');
+                status.innerHTML = '<span class="badge badge-danger" style="font-size: 1.25rem; padding: 0.75rem 1.5rem;">TIDAK LULUS</span>';
+                icon.innerHTML = '<i class="fas fa-circle-xmark" style="font-size: 5rem; color: var(--danger);"></i>';
+            }
+
+            // Clear session storage
+            sessionStorage.removeItem('exam_result');
+            sessionStorage.removeItem('current_exam_id');
+            sessionStorage.removeItem('current_session');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Exam Browser - Ujian Online</title>
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark-bg: #0f172a;
+            --dark-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg), #1a1a2e);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header i {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+        }
+
+        .card {
+            background: var(--dark-card);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .exam-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .exam-info h2 {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .exam-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .platform-section h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .platform-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .platform-card:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .platform-card i {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .platform-card.windows i {
+            color: #00a4ef;
+        }
+
+        .platform-card.macos i {
+            color: #a3aaae;
+        }
+
+        .platform-card.ios i {
+            color: #fff;
+        }
+
+        .platform-card.android i {
+            color: #3ddc84;
+        }
+
+        .platform-card h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .platform-card p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .qr-section {
+            text-align: center;
+        }
+
+        .qr-code {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .qr-code img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step;
+        }
+
+        .steps li {
+            counter-increment: step;
+            padding: 1rem;
+            padding-left: 3.5rem;
+            position: relative;
+            border-left: 2px solid var(--primary);
+            margin-left: 1rem;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: -1.25rem;
+            top: 1rem;
+            width: 2rem;
+            height: 2rem;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .steps li:last-child {
+            border-left-color: transparent;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-info {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .seb-detected {
+            display: none;
+        }
+
+        .seb-not-detected {
+            display: block;
+        }
+
+        /* When SEB is detected */
+        body.seb-mode .seb-detected {
+            display: block;
+        }
+
+        body.seb-mode .seb-not-detected {
+            display: none;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .copy-btn:hover {
+            color: var(--secondary);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .platform-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <i class="fas fa-shield-alt"></i>
+            <h1>Safe Exam Browser</h1>
+            <p>Ujian ini memerlukan Safe Exam Browser untuk keamanan</p>
+        </div>
+
+        <!-- Exam Info -->
+        <div class="card" id="exam-info">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <!-- SEB Detected - Show Start Button -->
+        <div class="seb-detected">
+            <div class="card">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Safe Exam Browser Terdeteksi!</strong>
+                        <p style="margin-top: 0.25rem; font-size: 0.875rem;">Anda sudah menggunakan SEB. Klik tombol di
+                            bawah untuk memulai ujian.</p>
+                    </div>
+                </div>
+                <a href="#" id="start-exam-btn" class="btn btn-success" style="font-size: 1.125rem; padding: 1rem;">
+                    <i class="fas fa-play"></i> Mulai Ujian Sekarang
+                </a>
+            </div>
+        </div>
+
+        <!-- SEB Not Detected - Show Download Options -->
+        <div class="seb-not-detected">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Safe Exam Browser Diperlukan!</strong>
+                    <p style="margin-top: 0.25rem; font-size: 0.875rem;">Silakan install dan gunakan Safe Exam Browser
+                        untuk mengakses ujian ini.</p>
+                </div>
+            </div>
+
+            <!-- Desktop Section -->
+            <div class="card platform-section">
+                <h3><i class="fas fa-desktop"></i> Windows & macOS</h3>
+                <div class="platform-grid">
+                    <div class="platform-card windows">
+                        <i class="fab fa-windows"></i>
+                        <h4>Windows</h4>
+                        <p>Windows 10/11 (64-bit)</p>
+                        <a href="https://safeexambrowser.org/download_en.html#Windows" target="_blank"
+                            class="btn btn-secondary btn-sm" style="margin-bottom: 0.5rem;">
+                            <i class="fas fa-download"></i> Install SEB
+                        </a>
+                        <a href="#" class="btn btn-primary btn-sm download-config">
+                            <i class="fas fa-file-download"></i> Download Config
+                        </a>
+                    </div>
+                    <div class="platform-card macos">
+                        <i class="fab fa-apple"></i>
+                        <h4>macOS</h4>
+                        <p>macOS 10.15+</p>
+                        <a href="https://safeexambrowser.org/download_en.html#macOS" target="_blank"
+                            class="btn btn-secondary btn-sm" style="margin-bottom: 0.5rem;">
+                            <i class="fas fa-download"></i> Install SEB
+                        </a>
+                        <a href="#" class="btn btn-primary btn-sm download-config">
+                            <i class="fas fa-file-download"></i> Download Config
+                        </a>
+                    </div>
+                </div>
+
+                <div
+                    style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem;">
+                    <h4 style="margin-bottom: 0.75rem;"><i class="fas fa-list-ol"></i> Langkah-langkah:</h4>
+                    <ol class="steps">
+                        <li>Download dan install Safe Exam Browser dari link di atas</li>
+                        <li>Klik tombol "Download Config" untuk mengunduh file .seb</li>
+                        <li>Buka file .seb yang sudah diunduh (akan otomatis membuka SEB)</li>
+                        <li>Login dengan akun siswa Anda dan mulai ujian</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Mobile Section -->
+            <div class="card platform-section">
+                <h3><i class="fas fa-mobile-alt"></i> iOS & Android</h3>
+                <div class="platform-grid">
+                    <div class="platform-card ios">
+                        <i class="fab fa-apple"></i>
+                        <h4>iPad / iPhone</h4>
+                        <p>iOS 14.0+</p>
+                        <a href="https://apps.apple.com/app/safe-exam-browser/id1104085758" target="_blank"
+                            class="btn btn-secondary btn-sm" style="margin-bottom: 0.5rem;">
+                            <i class="fab fa-app-store"></i> App Store
+                        </a>
+                        <a href="#" class="btn btn-primary btn-sm ios-launch">
+                            <i class="fas fa-external-link-alt"></i> Buka di SEB
+                        </a>
+                    </div>
+                    <div class="platform-card android">
+                        <i class="fab fa-android"></i>
+                        <h4>Android</h4>
+                        <p style="color: var(--warning);">⚠️ Tidak Ada SEB Resmi</p>
+                        <a href="https://play.google.com/store/search?q=exam+browser&c=apps" target="_blank"
+                            class="btn btn-secondary btn-sm" style="margin-bottom: 0.5rem;">
+                            <i class="fab fa-google-play"></i> Cari Exam Browser
+                        </a>
+                        <a href="#" class="btn btn-primary btn-sm android-launch">
+                            <i class="fas fa-external-link-alt"></i> Buka Langsung
+                        </a>
+                    </div>
+                </div>
+
+                <div class="alert alert-info" style="margin-top: 1rem; margin-bottom: 1rem;">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Catatan untuk Android:</strong>
+                        <p style="margin-top: 0.25rem; font-size: 0.85rem;">
+                            SEB resmi tidak tersedia untuk Android. Gunakan salah satu opsi:
+                            <br>• Klik "Buka Langsung" untuk akses via browser biasa
+                            <br>• Install "Exam Browser" atau "Exambro" dari Play Store
+                            <br>• Untuk keamanan maksimal, gunakan iOS/Windows/macOS
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem;">
+                    <h4 style="margin-bottom: 0.75rem;"><i class="fas fa-list-ol"></i> Langkah-langkah Mobile:</h4>
+                    <ol class="steps">
+                        <li><strong>iOS:</strong> Install Safe Exam Browser dari App Store, lalu klik "Buka di SEB"</li>
+                        <li><strong>Android:</strong> Klik "Buka Langsung" - ujian akan dibuka di browser biasa</li>
+                        <li>Login dengan akun siswa yang diberikan</li>
+                        <li>Mulai ujian dan jangan minimize aplikasi</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- QR Code Section -->
+            <div class="card qr-section">
+                <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Scan dari HP untuk langsung membuka di SEB
+                </p>
+                <div class="qr-code">
+                    <img id="qr-image" src="" alt="QR Code">
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-secondary);">
+                    Pastikan SEB sudah terinstall di HP sebelum scan
+                </p>
+            </div>
+
+            <!-- Direct Link -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-link"></i> Link Manual</h3>
+                <div
+                    style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem;">
+                    <code id="seb-link" style="flex: 1; word-break: break-all; font-size: 0.75rem;"></code>
+                    <button class="copy-btn" onclick="copyLink()">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                    Copy link ini dan paste di address bar SEB jika cara lain tidak berhasil
+                </p>
+            </div>
+        </div>
+
+        <!-- Security Info -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;"><i class="fas fa-lock"></i> Fitur Keamanan SEB</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                    <i class="fas fa-ban" style="color: var(--danger);"></i>
+                    <div>
+                        <strong>Blokir Aplikasi Lain</strong>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary);">Mencegah membuka browser/aplikasi
+                            lain</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                    <i class="fas fa-copy" style="color: var(--warning);"></i>
+                    <div>
+                        <strong>Blokir Copy-Paste</strong>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary);">Clipboard dinonaktifkan</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                    <i class="fas fa-camera" style="color: var(--primary);"></i>
+                    <div>
+                        <strong>Blokir Screenshot</strong>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary);">Tidak bisa ambil tangkapan layar
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                    <i class="fas fa-desktop" style="color: var(--success);"></i>
+                    <div>
+                        <strong>Mode Fullscreen</strong>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary);">Layar penuh tanpa bisa minimize</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Extract exam_id from URL path /seb/{exam_id} or query param
+        const pathParts = window.location.pathname.split('/');
+        let examId = pathParts[pathParts.length - 1];
+        if (!examId || isNaN(examId)) {
+            const urlParams = new URLSearchParams(window.location.search);
+            examId = urlParams.get('exam_id') || 1;
+        }
+        const baseUrl = window.location.origin;
+
+        // Check if running in SEB
+        function isSEB() {
+            const ua = navigator.userAgent.toLowerCase();
+            return ua.includes('seb') || ua.includes('safeexambrowser');
+        }
+
+        if (isSEB()) {
+            document.body.classList.add('seb-mode');
+        }
+
+        // Load exam info
+        async function loadExamInfo() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const response = await fetch(`/api/exams/${examId}`, { headers });
+                if (response.ok) {
+                    const exam = await response.json();
+                    document.getElementById('exam-info').innerHTML = `
+                        <div class="exam-info">
+                            <h2>${exam.title}</h2>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">${exam.description || ''}</p>
+                        <div class="exam-meta" style="margin-top: 1rem;">
+                            <span><i class="fas fa-clock"></i> ${exam.duration_minutes} menit</span>
+                            <span><i class="fas fa-calendar"></i> ${exam.start_time_wib}</span>
+                            <span><i class="fas fa-question-circle"></i> ${exam.question_count} soal</span>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('exam-info').innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>Ujian tidak ditemukan atau belum tersedia</span>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading exam:', error);
+            }
+        }
+
+        // Set up links
+        function setupLinks() {
+            const configUrl = `${baseUrl}/api/exams/${examId}/seb-config.seb`;
+            const studentUrl = `${baseUrl}/student/dashboard.html`;
+            const sebsUrl = `sebs://${window.location.host}/student/dashboard.html`;
+            const sebUrl = `seb://${window.location.host}/student/dashboard.html`;
+
+            // Download config buttons
+            document.querySelectorAll('.download-config').forEach(btn => {
+                btn.href = configUrl;
+                btn.setAttribute('download', `exam_${examId}.seb`);
+            });
+
+            // iOS launch
+            document.querySelectorAll('.ios-launch').forEach(btn => {
+                btn.href = sebsUrl;
+            });
+
+            // Android launch - open directly (no official SEB for Android)
+            document.querySelectorAll('.android-launch').forEach(btn => {
+                btn.href = studentUrl;  // Direct access for Android
+            });
+
+            // QR Code
+            document.getElementById('qr-image').src = `/api/exams/${examId}/seb-qr`;
+
+            // SEB Link display
+            document.getElementById('seb-link').textContent = configUrl;
+
+            // Start exam button (when in SEB)
+            document.getElementById('start-exam-btn').href = studentUrl;
+        }
+
+        async function copyLink() {
+            const link = document.getElementById('seb-link').textContent;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(link);
+                    showToast('Link berhasil disalin!', 'success');
+                } catch (err) {
+                    await showPrompt('Silakan salin link berikut:', link, 'Copy Link');
+                }
+            } else {
+                await showPrompt('Silakan salin link berikut:', link, 'Copy Link');
+            }
+        }
+
+        // Initialize
+        loadExamInfo();
+        setupLinks();
+    </script>
+</body>
+
+</html>

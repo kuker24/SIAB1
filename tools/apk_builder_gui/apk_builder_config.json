@@ -1,0 +1,13 @@
+{
+  "app_name": "SIAB1",
+  "package_name": "com.man1rokanhulu.examapp",
+  "server_url": "https://man1rokanhulu.cloud/",
+  "force_https": true,
+  "allow_cleartext_traffic": false,
+  "enable_kiosk": true,
+  "block_screenshot": true,
+  "detect_root": true,
+  "block_task_switch": true,
+  "icon_path": "",
+  "flutter_project_path": "flutter_client_code"
+}

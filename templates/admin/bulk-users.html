@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>Tambah User Massal - Admin Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/admin.css" rel="stylesheet">
+    <link href="/static/css/responsive.css" rel="stylesheet">
+    <style>
+        /* Spreadsheet Specific Styles matching admin.css theme */
+        .spreadsheet-container {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 180px);
+            /* Fill remaining space */
+        }
+
+        .spreadsheet-toolbar {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .spreadsheet-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        .spreadsheet-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .spreadsheet-table th {
+            background: rgba(30, 41, 59, 0.95);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: left;
+        }
+
+        .spreadsheet-table td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 0;
+            background: transparent;
+        }
+
+        .spreadsheet-table tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .cell-input {
+            width: 100%;
+            height: 44px;
+            padding: 0 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .cell-input:focus {
+            background: rgba(99, 102, 241, 0.1);
+            outline: none;
+            box-shadow: inset 0 -2px 0 var(--primary);
+        }
+
+        .cell-input.invalid {
+            background: rgba(239, 68, 68, 0.1);
+            box-shadow: inset 0 -2px 0 var(--danger);
+        }
+
+        .cell-select {
+            width: 100%;
+            height: 44px;
+            padding: 0 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .cell-select option {
+            background: var(--dark-bg);
+            color: var(--text-primary);
+        }
+
+        .row-num {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            width: 50px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .row-role-student {
+            border-left: 3px solid #22c55e;
+        }
+
+        .row-role-teacher {
+            border-left: 3px solid #f59e0b;
+        }
+
+        /* Custom Number Input for Amount */
+        .number-control {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 0.25rem;
+        }
+
+        .number-btn {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .number-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .number-input {
+            width: 40px;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-weight: 600;
+            appearance: none;
+            -moz-appearance: textfield;
+        }
+
+        .number-input::-webkit-outer-spin-button,
+        .number-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar-container"></div>
+        <div id="toast-container"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="spinner" style="width: 50px; height: 50px; border-width: 4px; margin-bottom: 1rem;"></div>
+            <div style="font-size: 1.1rem; font-weight: 500;">Menyimpan Data...</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem;" id="loading-progress">Mohon tunggu sebentar
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">
+                    <i class="fas fa-users-cog" style="color: var(--primary);"></i> Input User Massal
+                </h1>
+                <div class="header-actions">
+                    <a href="/admin/users.html" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </div>
+
+            <!-- Spreadsheet -->
+            <div class="spreadsheet-container">
+                <div class="spreadsheet-toolbar">
+                    <!-- Left: Add Rows -->
+                    <div class="toolbar-group">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                            <span
+                                style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">JUMLAH</span>
+                            <div class="number-control">
+                                <button class="number-btn" onclick="adjustAmount(-1)"><i
+                                        class="fas fa-minus"></i></button>
+                                <input type="number" id="row-amount" class="number-input" value="1" min="1" max="50">
+                                <button class="number-btn" onclick="adjustAmount(1)"><i
+                                        class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-sm"
+                            style="background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2);"
+                            onclick="addCustomRows('teacher')">
+                            <i class="fas fa-chalkboard-user"></i> + Guru
+                        </button>
+                        <button class="btn btn-sm"
+                            style="background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2);"
+                            onclick="addCustomRows('student')">
+                            <i class="fas fa-user-graduate"></i> + Siswa
+                        </button>
+                    </div>
+
+                    <!-- Center: Class Preset -->
+                    <div class="toolbar-group">
+                        <div
+                            style="display: flex; align-items: center; background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem; padding: 0.25rem 0.75rem; border: 1px solid var(--border-color);">
+                            <i class="fas fa-filter"
+                                style="color: var(--text-secondary); margin-right: 0.5rem; font-size: 0.8rem;"></i>
+                            <select id="default-class-select"
+                                style="background: transparent; border: none; color: white; outline: none; font-size: 0.9rem;">
+                                <option value="">- Set Kelas Otomatis -</option>
+                                <!-- Populated via JS -->
+                            </select>
+                            <button onclick="addNewClassPreset()"
+                                style="background: transparent; border: none; color: var(--primary); margin-left: 0.5rem; cursor: pointer;">
+                                <i class="fas fa-circle-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Actions -->
+                    <div class="toolbar-group">
+                        <button class="btn btn-sm btn-secondary" onclick="autoGenerateSelected()"
+                            title="Isi Username/Password otomatis">
+                            <i class="fas fa-wand-magic-sparkles"></i> Auto-Fill
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="clearAll()">
+                            <i class="fas fa-trash-can"></i> Reset
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="submitAll()">
+                            <i class="fas fa-floppy-disk"></i> Simpan Database
+                        </button>
+                    </div>
+                </div>
+
+                <div class="spreadsheet-content">
+                    <table class="spreadsheet-table" id="spreadsheet">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;">
+                                    <input class="custom-checkbox" type="checkbox" id="check-all"
+                                        onclick="toggleSelectAll()" style="width: 16px; height: 16px;">
+                                </th>
+                                <th style="width: 50px; text-align: center;">#</th>
+                                <th style="width: 120px;">Role</th>
+                                <th>Nama Lengkap <span style="color: var(--danger)">*</span></th>
+                                <th>Username <span style="color: var(--danger)">*</span></th>
+                                <th>Kelas / Jabatan <span style="color: var(--danger)">*</span></th>
+                                <th>Password <span style="color: var(--danger)">*</span></th>
+                                <th style="width: 50px; text-align: center;">Hapus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="spreadsheet-body">
+                            <!-- Rows generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div
+                    style="padding: 0.75rem 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                    <div>Total: <strong id="total-rows" style="color: white;">0</strong> baris</div>
+                    <div><i class="fas fa-circle-info"></i> Username & Password akan di-generate otomatis jika
+                        dikosongkan (Auto-Fill)</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/api.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/auth.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/sidebar-loader.js?v=20260423-devmenu1"></script>
+    <!-- Modern Modal Library -->
+    <script src="/static/js/modern-modals.js?v=20260306-phase10"></script>
+    <script src="/static/js/universal-modal-fix.js"></script>
+
+    <script>
+        // Check Auth
+        if (!auth.requireAuth(['admin', 'developer'])) {
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        let rowCounter = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadClassPresets();
+            // Initial rows
+            addRows(1, 'teacher');
+            addRows(3, 'student');
+        });
+
+        // --- Logic ---
+
+        function adjustAmount(delta) {
+            const input = document.getElementById('row-amount');
+            let val = parseInt(input.value) || 0;
+            val = Math.max(1, Math.min(50, val + delta));
+            input.value = val;
+        }
+
+        async function loadClassPresets() {
+            try {
+                const select = document.getElementById('default-class-select');
+                const currentVal = select.value;
+
+                // Get classes from API + Local Storage
+                const resp = await api.get('/users/student-classes'); // Assumes this endpoint exists or mock it
+                let classes = (resp && resp.classes) ? resp.classes : [];
+
+                const localClasses = JSON.parse(localStorage.getItem('temp_classes') || '[]');
+                const allClasses = [...new Set([...classes, ...localClasses])].sort();
+
+                select.innerHTML = '<option value="">- Set Kelas Otomatis -</option>';
+                allClasses.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = cls;
+                    select.appendChild(opt);
+                });
+
+                if (currentVal && allClasses.includes(currentVal)) select.value = currentVal;
+            } catch (err) {
+                console.warn("Could not load class presets", err);
+            }
+        }
+
+        function addNewClassPreset() {
+            showPrompt("Masukkan nama kelas baru (contoh: X-A):", "", "Tambah Kelas").then(newClass => {
+                if (newClass && newClass.trim()) {
+                    const clsName = newClass.trim().toUpperCase();
+                    const localClasses = JSON.parse(localStorage.getItem('temp_classes') || '[]');
+
+                    if (!localClasses.includes(clsName)) {
+                        localClasses.push(clsName);
+                        localStorage.setItem('temp_classes', JSON.stringify(localClasses));
+                        loadClassPresets().then(() => {
+                            document.getElementById('default-class-select').value = clsName;
+                            showToast(`Kelas ${clsName} ditambahkan`, 'success');
+                        });
+                    } else {
+                        document.getElementById('default-class-select').value = clsName;
+                    }
+                }
+            });
+        }
+
+        function addCustomRows(role) {
+            const amount = parseInt(document.getElementById('row-amount').value) || 1;
+            addRows(amount, role);
+            showToast(`${amount} baris ditambahkan`, 'info');
+        }
+
+        function addRows(count, role) {
+            const tbody = document.getElementById('spreadsheet-body');
+            for (let i = 0; i < count; i++) {
+                rowCounter++;
+                const tr = document.createElement('tr');
+                tr.id = `row-${rowCounter}`;
+                tr.className = `row-role-${role}`;
+
+                // Default value for Class/Job
+                let infoVal = "";
+                let infoPlaceholder = role === 'teacher' ? 'Jabatan (Wali Kelas)' : 'Kelas (XII-A)';
+
+                if (role === 'student') {
+                    const preset = document.getElementById('default-class-select').value;
+                    if (preset) infoVal = preset;
+                }
+
+                tr.innerHTML = `
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="row-checkbox custom-checkbox" style="margin: auto;">
+                    </td>
+                    <td class="row-num">${rowCounter}</td>
+                    <td>
+                        <select class="cell-select" data-field="role" onchange="handleRoleChange(this)"
+                                style="color: ${role === 'teacher' ? '#fbbf24' : '#4ade80'}; font-weight: 600;">
+                            <option value="student" ${role === 'student' ? 'selected' : ''}>Siswa</option>
+                            <option value="teacher" ${role === 'teacher' ? 'selected' : ''}>Guru</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="cell-input" data-field="full_name" placeholder="Nama Lengkap"></td>
+                    <td><input type="text" class="cell-input" data-field="username" placeholder="Username (Auto)"></td>
+                    <td><input type="text" class="cell-input" data-field="dynamic_info" placeholder="${infoPlaceholder}" value="${infoVal}"></td>
+                    <td><input type="text" class="cell-input" data-field="password" placeholder="Password (Auto)"></td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-sm btn-icon" onclick="removeRow('${tr.id}')" style="color: var(--danger);">
+                            <i class="fas fa-xmark"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+            updateSummary();
+        }
+
+        function handleRoleChange(select) {
+            const row = select.closest('tr');
+            const role = select.value;
+            const infoInput = row.querySelector('[data-field="dynamic_info"]');
+
+            row.className = `row-role-${role}`;
+            select.style.color = role === 'teacher' ? '#fbbf24' : '#4ade80';
+
+            if (role === 'teacher') {
+                infoInput.placeholder = 'Jabatan (Wali Kelas)';
+            } else {
+                infoInput.placeholder = 'Kelas (XII-A)';
+                const preset = document.getElementById('default-class-select').value;
+                if (preset && !infoInput.value) infoInput.value = preset;
+            }
+        }
+
+        function removeRow(id) {
+            document.getElementById(id).remove();
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const count = document.querySelectorAll('#spreadsheet-body tr').length;
+            document.getElementById('total-rows').innerText = count;
+        }
+
+        function toggleSelectAll() {
+            const checked = document.getElementById('check-all').checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
+        }
+
+        function clearAll() {
+            showConfirm("Hapus semua baris data?", "Reset Tabel", { type: 'warning' }).then(confirmed => {
+                if (confirmed) {
+                    document.getElementById('spreadsheet-body').innerHTML = '';
+                    rowCounter = 0;
+                    updateSummary();
+                }
+            });
+        }
+
+        // --- Auto Fill Logic ---
+        function autoGenerateSelected() {
+            const rows = document.querySelectorAll('#spreadsheet-body tr');
+            let processed = 0;
+
+            rows.forEach(row => {
+                const checkbox = row.querySelector('.row-checkbox');
+                // Process if checked OR process all if none checked? Let's process checked, or all if none checked.
+                // Better: Process ONLY checked if any are checked. If none checked, confirm process all.
+
+                if (checkbox && checkbox.checked) {
+                    processRowAutoFill(row);
+                    processed++;
+                }
+            });
+
+            if (processed === 0) {
+                // If nothing selected, process all rows that have names
+                rows.forEach(row => processRowAutoFill(row));
+                showToast('Auto-fill diterapkan ke semua baris', 'success');
+            } else {
+                showToast(`Auto-fill diterapkan ke ${processed} baris`, 'success');
+            }
+        }
+
+        function processRowAutoFill(row) {
+            const nameVal = row.querySelector('[data-field="full_name"]').value;
+            const userInput = row.querySelector('[data-field="username"]');
+            const passInput = row.querySelector('[data-field="password"]');
+
+            if (nameVal && nameVal.length >= 3) {
+                if (!userInput.value) {
+                    // Simple logic: firstname.rand4
+                    const cleanName = nameVal.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 10);
+                    const rand = Math.floor(1000 + Math.random() * 9000);
+                    userInput.value = `${cleanName}.${rand}`;
+                }
+                if (!passInput.value) {
+                    // Random 6 chars
+                    passInput.value = Math.random().toString(36).slice(-8);
+                }
+            }
+        }
+
+        // --- Submit Logic (Batch) ---
+        async function submitAll() {
+            const rows = document.querySelectorAll('#spreadsheet-body tr');
+            if (rows.length === 0) {
+                showToast('Tabel data kosong.', 'warning');
+                return;
+            }
+
+            const payload = [];
+            let isValid = true;
+
+            // Validate
+            rows.forEach(row => {
+                const name = row.querySelector('[data-field="full_name"]');
+                const user = row.querySelector('[data-field="username"]');
+                const pass = row.querySelector('[data-field="password"]');
+                const info = row.querySelector('[data-field="dynamic_info"]');
+
+                // Clear prev validation
+                [name, user, pass, info].forEach(el => el.classList.remove('invalid'));
+
+                if (!name.value.trim()) { name.classList.add('invalid'); isValid = false; }
+                if (!user.value.trim()) { user.classList.add('invalid'); isValid = false; }
+                if (!pass.value.trim()) { pass.classList.add('invalid'); isValid = false; }
+                if (!info.value.trim()) { info.classList.add('invalid'); isValid = false; }
+
+                if (name.value && user.value && pass.value) {
+                    const role = row.querySelector('[data-field="role"]').value;
+                    payload.push({
+                        username: user.value.trim(),
+                        email: `${user.value.trim()}@sekolah.id`, // Fake email requirement
+                        full_name: name.value.trim(),
+                        password: pass.value.trim(),
+                        role: role,
+                        job_title: role === 'teacher' ? info.value.trim() : null,
+                        student_class: role === 'student' ? info.value.trim() : null,
+                        student_id: null
+                    });
+                }
+            });
+
+            if (!isValid) {
+                showToast('Harap lengkapi kolom yang berwarna merah', 'danger');
+                return;
+            }
+
+            // Submit in chunks of 50 to allow progress updates
+            const overlay = document.getElementById('loading-overlay');
+            const progress = document.getElementById('loading-progress');
+            overlay.classList.add('active');
+
+            const CHUNK_SIZE = 50;
+            let success = 0;
+            let errors = 0;
+            let errorDetails = [];
+
+            for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+                const chunk = payload.slice(i, i + CHUNK_SIZE);
+                progress.innerText = `Mengirim data ${i + 1} - ${Math.min(i + CHUNK_SIZE, payload.length)} dari ${payload.length}...`;
+
+                try {
+                    // Use batch endpoint
+                    const resp = await api.post('/users/batch-create', chunk);
+                    if (resp && resp.created_usernames) {
+                        success += resp.created_usernames.length;
+                    }
+                } catch (e) {
+                    console.error("Batch error:", e);
+                    errors += chunk.length;
+                    errorDetails.push(`Batch ${Math.floor(i / CHUNK_SIZE) + 1}: Error connection`);
+                }
+            }
+
+            overlay.classList.remove('active');
+
+            if (errors === 0) {
+                showToast(`Berhasil menyimpan ${success} user!`, 'success');
+                setTimeout(() => location.href = '/admin/users.html', 1500);
+            } else {
+                showToast(`Selesai: ${success} berhasil, ${errors} gagal. Cek duplikat username.`, 'warning');
+                console.warn("Errors:", errorDetails);
+            }
+        }
+    </script>
+</body>
+
+</html>

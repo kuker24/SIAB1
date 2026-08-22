@@ -1,0 +1,84 @@
+# Build Python wheels separately so compilers and development headers never
+# enter the production runtime image.
+FROM python:3.11-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc \
+        libpq-dev \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.runtime.lock .
+
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.0.1" \
+    && python -m pip wheel \
+        --no-cache-dir \
+        --wheel-dir /wheels \
+        --timeout 2000 \
+        --retries 20 \
+        -r requirements.runtime.lock
+
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        libpq5 \
+        postgresql-client \
+        redis-tools \
+    && apt-get remove -y --purge \
+        inetutils-telnetd \
+        netcat-openbsd \
+        netcat-traditional \
+        telnet \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.runtime.lock .
+COPY --from=builder /wheels /wheels
+
+RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.runtime.lock \
+    && rm -rf /wheels
+
+COPY . .
+COPY docker/docker-entrypoint.sh /docker-entrypoint.sh
+
+RUN mkdir -p \
+        /app/apk_builds \
+        /app/logs \
+        /app/runtime_control \
+        /app/seb_configs \
+        /app/static/apk/builds \
+        /app/static/apk/uploads \
+        /app/static/seb/builds \
+        /app/uploads \
+    && chmod +x /docker-entrypoint.sh \
+    && adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+EXPOSE 8000
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--limit-concurrency", "220", "--backlog", "8192", "--timeout-keep-alive", "10", "--limit-max-requests", "200000", "--no-access-log"]

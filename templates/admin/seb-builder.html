@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/gif" href="/static/favicon.gif">
+    <title>SEB Legacy PC Builder - Admin Panel | Ujian Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <!-- Responsive -->
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <style>
+        /* Platform Switcher */
+        .platform-switcher {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.5rem;
+            border-radius: 1rem;
+        }
+
+        .platform-btn {
+            flex: 1;
+            padding: 1.25rem 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .platform-btn i {
+            font-size: 1.5rem;
+        }
+
+        .platform-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .platform-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #3b82f6;
+            color: white;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Builder Sections */
+        .builder-section {
+            display: none;
+        }
+
+        .builder-section.active {
+            display: block;
+        }
+
+        /* Config Container */
+        .config-container {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .config-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Config Card - Matches Manajemen Ujian Style */
+        .config-card {
+            background: var(--card-bg, rgba(30, 41, 59, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .config-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            margin: 0;
+            background: rgba(255, 255, 255, 0.03);
+            color: #3b82f6;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .config-card h3 i:first-child {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 0.5rem;
+        }
+
+        .config-card h3 .chevron {
+            margin-left: auto;
+            transition: transform 0.3s;
+        }
+
+        .config-card.collapsed h3 .chevron {
+            transform: rotate(-90deg);
+        }
+
+        .config-card.collapsed .config-content {
+            display: none;
+        }
+
+        .config-content {
+            display: grid;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* Form Groups */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Preset Buttons */
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .preset-btn {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .preset-btn.strict {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .preset-btn.standard {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .preset-btn.permissive {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .preset-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .preset-btn .label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .preset-btn .desc {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Preview Panel */
+        .preview-panel {
+            position: sticky;
+            top: 2rem;
+        }
+
+        .preview-card {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .qr-wrapper img {
+            width: 200px;
+            height: 200px;
+        }
+
+        /* Build History */
+        .builds-history {
+            margin-top: 2rem;
+        }
+
+        .build-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .build-item .build-info {
+            flex: 1;
+        }
+
+        .build-item .build-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .build-item .build-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .build-item .build-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .build-item button {
+            padding: 0.5rem 1rem;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 0.5rem;
+            color: #3b82f6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .build-item button:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .build-item button.delete {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .build-item button.delete:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-badge.failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-badge.pending {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .legacy-notice {
+            margin: 1rem 0 1.5rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-left: 4px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        .legacy-notice strong {
+            color: #fbbf24;
+        }
+
+        .runtime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-left: 0.5rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(245, 158, 11, 0.16);
+            color: #fbbf24;
+            font-size: 0.75rem;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">
+                        <i class="fas fa-shield-halved" style="color: #10b981;"></i>
+                        SEB PC Builder
+                        <span class="runtime-badge"><i class="fas fa-clock-rotate-left"></i> Legacy Opsional</span>
+                    </h1>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                        APK resmi/mobile-first adalah runtime utama. Gunakan SEB PC hanya untuk fallback Windows/macOS/Linux.
+                    </p>
+                </div>
+            </div>
+
+            <div class="legacy-notice">
+                <strong><i class="fas fa-triangle-exclamation"></i> Mode legacy PC/Desktop.</strong>
+                Fitur ini tidak diperlukan untuk ujian APK resmi. Endpoint SEB desktop default-nya nonaktif melalui
+                <code>SEB_DESKTOP_LEGACY_ENABLED=false</code>; aktifkan hanya jika ada sesi khusus PC/laptop dan sudah diuji terpisah.
+            </div>
+
+            {% if feature_flags.seb_desktop_legacy_enabled %}
+            <!-- PC Builder Section -->
+            <div id="pc-builder" class="builder-section active">
+                <!-- Preset Selection -->
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">
+                        <i class="fas fa-magic"></i> Quick Presets
+                    </h3>
+                    <div class="preset-buttons">
+                        <button class="preset-btn strict" onclick="loadPreset('strict')">
+                            <div class="icon">🔒</div>
+                            <div class="label">Strict Security</div>
+                            <div class="desc">Maximum security for high-stakes exams</div>
+                        </button>
+                        <button class="preset-btn standard" onclick="loadPreset('standard')">
+                            <div class="icon">⚖️</div>
+                            <div class="label">Standard Balanced</div>
+                            <div class="desc">Balanced security and usability</div>
+                        </button>
+                        <button class="preset-btn permissive" onclick="loadPreset('permissive')">
+                            <div class="icon">🔓</div>
+                            <div class="label">Permissive Dev</div>
+                            <div class="desc">Minimal restrictions for testing</div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="config-container">
+                    <!-- Left: Configuration Form -->
+                    <div class="config-form">
+                        <!-- General Settings -->
+                        <div class="config-card">
+                            <h3 onclick="toggleCard(this)">
+                                <i class="fas fa-globe"></i>
+                                <span>General Settings</span>
+                                <i class="fas fa-chevron-down chevron"></i>
+                            </h3>
+                            <div class="config-content">
+                                <div class="form-group">
+                                    <label for="build-name">Build Name *</label>
+                                    <input type="text" id="build-name" placeholder="e.g., Math Exam December 2025"
+                                        required autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="start-url">Start URL *</label>
+                                    <input type="url" id="start-url" placeholder="https://exam.school.edu/exam/123"
+                                        required autocomplete="url">
+                                </div>
+                                <div class="form-group">
+                                    <label>Platform</label>
+                                    <select id="platform">
+                                        <option value="all">All Platforms (Windows, Mac, Linux)</option>
+                                        <option value="windows">Windows Only</option>
+                                        <option value="mac">Mac Only</option>
+                                        <option value="linux">Linux Only</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-password">Admin Password</label>
+                                    <input type="password" id="admin-password"
+                                        placeholder="Password to access SEB settings" autocomplete="new-password">
+                                </div>
+                                <div class="form-group">
+                                    <label for="quit-password">Quit Password</label>
+                                    <input type="password" id="quit-password" placeholder="Password to exit SEB"
+                                        autocomplete="new-password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Browser Settings -->
+                        <div class="config-card collapsed">
+                            <h3 onclick="toggleCard(this)">
+                                <i class="fas fa-window-maximize"></i>
+                                <span>Browser Settings</span>
+                                <i class="fas fa-chevron-down chevron"></i>
+                            </h3>
+                            <div class="config-content">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="allow-reload"> Allow Page Reload
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="allow-back-forward"> Allow Back/Forward Navigation
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="show-toolbar"> Show Browser Toolbar
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="enable-zoom"> Enable Page Zoom
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <div class="config-card collapsed">
+                            <h3 onclick="toggleCard(this)">
+                                <i class="fas fa-shield-halved"></i>
+                                <span>Security Settings</span>
+                                <i class="fas fa-chevron-down chevron"></i>
+                            </h3>
+                            <div class="config-content">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="block-screenshot"> Block Screenshots
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="block-alt-tab"> Block Alt+Tab (Prevent App Switching)
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="kiosk-mode"> Enable Kiosk Mode (Windows)
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="block-f12"> Disable Developer Tools (F12)
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="monitor-processes"> Monitor Running Processes
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- URL Filtering -->
+                        <div class="config-card collapsed">
+                            <h3 onclick="toggleCard(this)">
+                                <i class="fas fa-filter"></i>
+                                <span>URL Filtering</span>
+                                <i class="fas fa-chevron-down chevron"></i>
+                            </h3>
+                            <div class="config-content">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="use-permissive-filter" checked> Use Permissive Filter
+                                        (Allow All URLs)
+                                    </label>
+                                    <small style="color: var(--text-secondary);">
+                                        Uncheck for strict mode (whitelist only exam domain + CDNs)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button class="btn-secondary" onclick="saveAsTemplate()">
+                                <i class="fas fa-save"></i> Save as Template
+                            </button>
+                            <button class="btn-primary" onclick="generateSebFile()">
+                                <i class="fas fa-cog"></i> Generate Legacy .seb File
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Preview Panel -->
+                    <div class="preview-panel">
+                        <div class="preview-card">
+                            <h3 style="margin-bottom: 1rem;">Quick Download</h3>
+                            <div id="qr-code-container" style="display: none;">
+                                <div class="qr-wrapper">
+                                    <div id="qr-code"></div>
+                                </div>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    Scan to download .seb file on mobile
+                                </p>
+                            </div>
+                            <div id="download-link-container" style="display: none;">
+                                <a id="download-link" class="btn-primary"
+                                    style="display: inline-block; text-decoration: none; padding: 1rem 2rem; border-radius: 0.75rem;">
+                                    <i class="fas fa-download"></i> Download .seb File
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Templates -->
+                        <div class="card" style="margin-top: 1rem;">
+                            <h3 style="margin-bottom: 1rem;">
+                                <i class="fas fa-layer-group"></i> Saved Templates
+                            </h3>
+                            <div id="templates-list">
+                                <p style="color: var(--text-secondary); text-align: center; padding: 1rem;">
+                                    No saved templates yet
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Build History -->
+                <div class="builds-history">
+                    <h2 style="margin-bottom: 1rem;">
+                        <i class="fas fa-clock-rotate-left"></i> Legacy Build History
+                    </h2>
+                    <div id="pc-builds-list">
+                        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+                            No builds yet. Create your first SEB configuration above.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card" id="seb-legacy-disabled-card" style="padding: 1.5rem; border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08);">
+                <h3 style="margin-top: 0; color: #fbbf24;">
+                    <i class="fas fa-lock"></i> SEB PC/Desktop legacy sedang dinonaktifkan
+                </h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    Form generate/download file <code>.seb</code> tidak ditampilkan karena production default memakai APK Android resmi sebagai runtime utama.
+                    Aktifkan <code>SEB_DESKTOP_LEGACY_ENABLED=true</code> hanya untuk sesi fallback PC/laptop yang sudah diuji terpisah.
+                </p>
+                <a class="btn-primary" href="/admin/settings.html" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                    <i class="fas fa-mobile-screen-button"></i> Kembali ke konfigurasi APK-first
+                </a>
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <script src="/static/js/api.js?v=20260423-devmenu1"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/sidebar-loader.js"></script>
+    <script src="/static/js/seb-builder.js?v=20260306-phase7"></script>
+    <script>
+        auth.requireAuth(['admin', 'developer']);
+    </script>
+</body>
+
+</html>
