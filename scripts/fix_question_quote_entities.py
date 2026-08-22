@@ -41,7 +41,7 @@ def _database_dsn() -> str:
     password = os.getenv("POSTGRES_PASSWORD") or os.getenv("DB_PASSWORD") or ""
     host = os.getenv("POSTGRES_HOST") or os.getenv("DB_HOST") or "db"
     port = os.getenv("POSTGRES_PORT") or os.getenv("DB_PORT") or "5432"
-    database = os.getenv("POSTGRES_DB") or os.getenv("DB_NAME") or "exam_system"
+    database = os.getenv("POSTGRES_DB") or os.getenv("DB_NAME") or "siab1"
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 

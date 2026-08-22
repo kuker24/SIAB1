@@ -69,5 +69,10 @@ def test_release_build_never_uses_debug_signing() -> None:
     assert 'signingConfigs.getByName("debug")' not in build
     assert 'signingConfigs.getByName("release")' in build
     assert 'environmentVariable("SIAB1_RELEASE_KEYSTORE")' in build
+    assert 'environmentVariable("SIAB1_SERVER_URL")' in build
+    assert "BuildConfig.SIAB1_SERVER_URL" in _source(
+        "android-kiosk/app/src/main/java/id/siab1/kiosk/AppConfig.kt"
+    )
+    assert "SIAB1_SERVER_URL" in script
     assert "SIAB1_RELEASE_KEYSTORE" in script
     assert "SIAB1_RELEASE_KEY_PASSWORD" in script

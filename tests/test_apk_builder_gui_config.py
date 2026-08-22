@@ -7,7 +7,7 @@ from tools.apk_builder_gui import (
 
 
 BASE_RENDER_KWARGS = {
-    "normalized_url": "https://man1rokanhulu.cloud/",
+    "normalized_url": "https://siab1.invalid/",
     "app_name": "SIAB1",
     "force_https": True,
     "cleartext_allowed": False,
@@ -45,17 +45,16 @@ def test_ux_offline_first_generator_uses_current_performance_tuning():
     assert is_valid, errors
 
 
-def test_generated_config_normalizes_legacy_apk_display_name_to_siab1():
-    legacy_kwargs = dict(BASE_RENDER_KWARGS)
-    legacy_name = "UJIAN " "ONLINE MAN 1 Rokan Hulu"
-    legacy_kwargs["app_name"] = legacy_name
+def test_generated_config_keeps_siab1_display_name():
+    siab1_kwargs = dict(BASE_RENDER_KWARGS)
+    siab1_kwargs["app_name"] = "SIAB1"
 
     content, _, _ = render_config_dart_content(
-        **legacy_kwargs,
+        **siab1_kwargs,
         resilience_profile="ux_offline_first",
     )
 
-    assert normalize_apk_display_name("Ujian " "Online MAN 1 Rokan Hulu") == "SIAB1"
+    assert normalize_apk_display_name("SIAB1 MAN 1 Rokan Hulu") == "SIAB1 MAN 1 Rokan Hulu"
     assert 'static const String appName = "SIAB1";' in content
     assert "Ujian " "Online" not in content
 

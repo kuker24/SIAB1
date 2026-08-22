@@ -45,7 +45,7 @@ def update_app_name(app_name: str):
         pubspec = yaml.safe_load(f)
 
     safe_name = "".join(ch for ch in app_name.lower().replace(" ", "_") if ch.isalnum() or ch == "_")
-    pubspec["name"] = safe_name or "ujian_online_client"
+    pubspec["name"] = safe_name or "siab1_client"
     pubspec["description"] = f"{app_name} - Secure Exam Browser"
 
     with pubspec_path.open("w", encoding="utf-8") as f:
@@ -105,7 +105,7 @@ def copy_artifacts(artifacts: list[Path], build_id: int, app_name: str):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_name = "".join(ch for ch in app_name.lower().replace(" ", "_") if ch.isalnum() or ch == "_")
-    safe_name = safe_name or "ujian_online_client"
+    safe_name = safe_name or "siab1_client"
 
     archive_dir = APK_ARCHIVE_DIR
     archive_dir.mkdir(parents=True, exist_ok=True)

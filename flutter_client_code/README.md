@@ -1,16 +1,21 @@
-# flutter_client_code
+# SIAB1 Flutter Fallback
 
-A new Flutter project.
+Klien Flutter dipertahankan sebagai fallback untuk SIAB1. Klien utama adalah Android kiosk native di `android-kiosk/`.
 
-## Getting Started
+## Kontrak
 
-This project is a starting point for a Flutter application.
+- Application ID: `id.siab1.flutter`
+- Entry point: `lib/main.dart`
+- Konfigurasi: `lib/config.dart`
+- Domain release harus menggantikan placeholder `siab1.invalid` melalui APK Builder sebelum build.
 
-A few resources to get you started if this is your first Flutter project:
+## Verifikasi
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --debug
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Keystore, `key.properties`, build output, dan credential lain harus tetap di luar Git.

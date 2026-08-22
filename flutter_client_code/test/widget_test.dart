@@ -14,7 +14,7 @@ void main() {
     expect(find.text('SIAB1'), findsOneWidget);
     expect(find.text('Sistem Informasi Asesmen Berintegritas'), findsOneWidget);
     expect(find.text('Masuk'), findsOneWidget);
-    expect(find.textContaining('man1rokanhulu.cloud'), findsNothing);
+    expect(find.textContaining('siab1.invalid'), findsNothing);
     expect(find.text('Server ujian belum siap'), findsNothing);
   });
 }

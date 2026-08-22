@@ -12,7 +12,7 @@ DB_CONTAINER=$(docker compose -f ../docker-compose.production.yml ps -q db)
 
 if [ -z "$DB_CONTAINER" ]; then
     echo "❌ Error: DB Master container not running."
-    echo "Please start the system first: ./install.sh or docker compose up -d"
+    echo "Please start the system first: docker compose -f docker-compose.production.yml up -d"
     exit 1
 fi
 
@@ -20,7 +20,7 @@ echo "🚀 Setting up Replication..."
 
 # 1. Create Replicator User
 echo "creating 'replicator' user on Master..."
-docker exec -i $DB_CONTAINER psql -U examuser -d exam_system -c "
+docker exec -i $DB_CONTAINER psql -U examuser -d siab1 -c "
 DO \$\$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'replicator') THEN
@@ -51,14 +51,14 @@ add_hba_rule "host all all 0.0.0.0/0 md5"
 
 # 3. Reload Config
 echo "Reloading Master configuration..."
-docker exec -i $DB_CONTAINER psql -U examuser -d exam_system -c "SELECT pg_reload_conf();"
+docker exec -i $DB_CONTAINER psql -U examuser -d siab1 -c "SELECT pg_reload_conf();"
 
 echo ""
 echo "✅ Replication Setup Complete!"
 echo ""
 echo "👉 To start Read Replica:"
 echo "   1. Add this to .env file:"
-echo "      DATABASE_READ_URL=postgresql+asyncpg://replicator:$DB_PASSWORD@db_replica:5432/exam_system"
+echo "      DATABASE_READ_URL=postgresql+asyncpg://replicator:$DB_PASSWORD@db_replica:5432/siab1"
 echo ""
 echo "   2. Start replica container:"
 echo "      docker compose -f docker-compose.production.yml --profile scaling up -d"

@@ -25,7 +25,7 @@ func TestHealth(t *testing.T) {
 	if body["status"] != "healthy" {
 		t.Fatalf("status=%v", body["status"])
 	}
-	if body["app"] != "Ujian Online" {
+	if body["app"] != "SIAB1" {
 		t.Fatalf("app=%v", body["app"])
 	}
 	if body["version"] != "1.0.0" {

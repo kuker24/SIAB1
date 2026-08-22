@@ -24,7 +24,7 @@ def check_database():
             port=os.getenv('DB_PORT', '5432'),
             user=os.getenv('DB_USER', 'examuser'),
             password=os.getenv('DB_PASSWORD', 'postgres'),
-            database=os.getenv('DB_NAME', 'exam_system'),
+            database=os.getenv('DB_NAME', 'siab1'),
             connect_timeout=5
         )
         conn.close()

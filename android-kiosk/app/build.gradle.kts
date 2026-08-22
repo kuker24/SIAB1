@@ -7,6 +7,10 @@ val releaseStoreFile = providers.environmentVariable("SIAB1_RELEASE_KEYSTORE").o
 val releaseStorePassword = providers.environmentVariable("SIAB1_RELEASE_STORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("SIAB1_RELEASE_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("SIAB1_RELEASE_KEY_PASSWORD").orNull
+val siab1ServerUrl = providers.environmentVariable("SIAB1_SERVER_URL")
+    .orElse("https://siab1.invalid/")
+    .get()
+val escapedServerUrl = siab1ServerUrl.replace("\\", "\\\\").replace("\"", "\\\"")
 val releaseSigningReady = listOf(
     releaseStoreFile,
     releaseStorePassword,
@@ -24,6 +28,7 @@ android {
         targetSdk = 34
         versionCode = 2
         versionName = "2.0.0"
+        buildConfigField("String", "SIAB1_SERVER_URL", "\"$escapedServerUrl\"")
     }
 
     compileOptions {
@@ -83,6 +88,9 @@ tasks.configureEach {
         doFirst {
             check(releaseSigningReady) {
                 "Release signing requires SIAB1_RELEASE_KEYSTORE and SIAB1_RELEASE_* credentials"
+            }
+            check(siab1ServerUrl != "https://siab1.invalid/") {
+                "Release build requires SIAB1_SERVER_URL"
             }
         }
     }

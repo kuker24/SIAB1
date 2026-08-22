@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-${REPO_DIR}/docker-compose.production.yml}"
-PROJECT_NAME="${PROJECT_NAME:-ujian_online}"
+PROJECT_NAME="${PROJECT_NAME:-siab1}"
 LOG_FILE="${LOG_FILE:-${REPO_DIR}/logs/autoheal-unhealthy-apis.log}"
 LOCK_FILE="${LOCK_FILE:-/tmp/ujian_autoheal_unhealthy_apis.lock}"
 

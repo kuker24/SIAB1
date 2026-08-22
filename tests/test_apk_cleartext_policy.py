@@ -43,11 +43,14 @@ def test_api_service_forces_https_when_config_enabled() -> None:
     assert "value.replaceFirst('http://', 'https://')" in source
 
 
-def test_release_signing_config_uses_uncommitted_key_properties_only() -> None:
+def test_release_signing_config_uses_environment_only() -> None:
     gradle = Path("flutter_client_code/android/app/build.gradle").read_text(encoding="utf-8")
 
-    assert "rootProject.file('key.properties')" in gradle
-    assert "keystoreProperties['storeFile']" in gradle
+    assert "SIAB1_FLUTTER_RELEASE_KEYSTORE" in gradle
+    assert "SIAB1_FLUTTER_RELEASE_STORE_PASSWORD" in gradle
+    assert "rootProject.file('key.properties')" not in gradle
+    assert "releaseServerReady" in gradle
+    assert "siab1.invalid" in gradle
     assert ".jks" not in gradle
     assert ".keystore" not in gradle
     assert "storePassword \"" not in gradle

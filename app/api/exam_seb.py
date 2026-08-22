@@ -52,7 +52,7 @@ async def download_default_seb_config():
         content=seb_config,
         media_type="application/seb",
         headers={
-            "Content-Disposition": 'attachment; filename="ujian-online-seb-config.seb"',
+            "Content-Disposition": 'attachment; filename="siab1-seb-config.seb"',
             "Cache-Control": "public, max-age=86400"
         }
     )

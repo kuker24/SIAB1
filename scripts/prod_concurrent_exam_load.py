@@ -262,7 +262,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db-service", default="db", help="Compose DB service name")
     parser.add_argument("--redis-service", default="redis", help="Compose Redis service name")
     parser.add_argument("--db-user", default="examuser", help="DB username for cleanup/snapshots")
-    parser.add_argument("--db-name", default="exam_system", help="DB name for cleanup/snapshots")
+    parser.add_argument("--db-name", default="siab1", help="DB name for cleanup/snapshots")
     parser.add_argument("--teacher-prefix", default="loadtest_teacher", help="Temporary teacher username prefix")
     parser.add_argument("--student-prefix", default="loadtest_student", help="Temporary student username prefix")
     parser.add_argument("--class-prefix", default="LOAD620", help="Temporary class prefix")

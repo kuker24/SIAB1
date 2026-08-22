@@ -198,7 +198,7 @@ async def send_test_alert() -> tuple[bool, str]:
         timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
         message = f"""
-✅ <b>Test Alert - Ujian Online System</b>
+✅ <b>Test Alert - SIAB1</b>
 
 <b>Status:</b> Telegram notifications are working correctly!
 <b>Time:</b> {timestamp} WIB

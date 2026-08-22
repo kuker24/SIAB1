@@ -1,4 +1,4 @@
-package com.example.flutter_client_code
+package id.siab1.flutter
 
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
@@ -14,8 +14,8 @@ import io.flutter.plugin.common.MethodChannel
 import java.security.MessageDigest
 
 class MainActivity: FlutterActivity() {
-    private val KIOSK_CHANNEL = "com.example.sxb_client/kiosk"
-    private val SECURITY_CHANNEL = "com.school.examapp/security"
+    private val KIOSK_CHANNEL = "id.siab1.flutter/kiosk"
+    private val SECURITY_CHANNEL = "id.siab1.flutter/security"
     private var isKioskMode = false
     private var isExamActive = false
 

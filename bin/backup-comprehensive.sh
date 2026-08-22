@@ -47,7 +47,7 @@ fi
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC} ${BLUE}   COMPREHENSIVE BACKUP - Ujian Online System${NC}                          ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC} ${BLUE}   COMPREHENSIVE BACKUP - SIAB1${NC}                                       ${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}Timestamp: $DATE${NC}"
@@ -61,10 +61,10 @@ echo ""
 
 # 1. Database backup
 echo -e "${BLUE}[2/7] Backing up database...${NC}"
-$DC -f docker-compose.production.yml exec -T db pg_dump -U examuser exam_system > "$BACKUP_DIR/database/exam_system.sql" 2>/dev/null
+$DC -f docker-compose.production.yml exec -T db pg_dump -U examuser siab1 > "$BACKUP_DIR/database/siab1.sql" 2>/dev/null
 
-if [ -f "$BACKUP_DIR/database/exam_system.sql" ]; then
-    DB_SIZE=$(du -h "$BACKUP_DIR/database/exam_system.sql" | cut -f1)
+if [ -f "$BACKUP_DIR/database/siab1.sql" ]; then
+    DB_SIZE=$(du -h "$BACKUP_DIR/database/siab1.sql" | cut -f1)
     echo -e "${GREEN}✓ Database backup complete: $DB_SIZE${NC}"
 else
     echo -e "${RED}✗ Database backup failed${NC}"
@@ -114,14 +114,14 @@ echo ""
 echo -e "${BLUE}[6/7] Creating backup manifest...${NC}"
 cat > "$BACKUP_DIR/MANIFEST.txt" <<EOF
 ═══════════════════════════════════════════════════════════════
-UJIAN ONLINE SYSTEM - BACKUP MANIFEST
+SIAB1 - BACKUP MANIFEST
 ═══════════════════════════════════════════════════════════════
 
 Backup Date: $(date '+%Y-%m-%d %H:%M:%S')
 Backup ID: $DATE
 
 Contents:
-1. Database: exam_system.sql ($DB_SIZE)
+1. Database: siab1.sql ($DB_SIZE)
 2. Uploads: $UPLOAD_COUNT files
 3. SEB Configs: $SEB_COUNT files
 4. Logs: $LOG_COUNT files (last 7 days)
@@ -136,7 +136,7 @@ Restore Instructions:
 2. Stop containers: docker compose -f docker-compose.production.yml down
 3. Restore DB:
    docker compose -f docker-compose.production.yml up -d db
-   cat backup_${DATE}/database/exam_system.sql | docker compose -f docker-compose.production.yml exec -T db psql -U examuser exam_system
+   cat backup_${DATE}/database/siab1.sql | docker compose -f docker-compose.production.yml exec -T db psql -U examuser siab1
 4. Restore uploads: cp -r backup_${DATE}/uploads/* ./uploads/
 5. Restore SEB configs: cp -r backup_${DATE}/seb_configs/* ./seb_configs/
 6. Start all: docker compose -f docker-compose.production.yml up -d

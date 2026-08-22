@@ -22,15 +22,22 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-// Load keystore properties
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
+def releaseStoreFile = System.getenv('SIAB1_FLUTTER_RELEASE_KEYSTORE')
+def releaseStorePassword = System.getenv('SIAB1_FLUTTER_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('SIAB1_FLUTTER_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('SIAB1_FLUTTER_RELEASE_KEY_PASSWORD')
+def releaseSigningReady = [
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+].every { it != null && !it.trim().isEmpty() }
+def flutterConfigFile = rootProject.file('../lib/config.dart')
+def releaseServerReady = flutterConfigFile.exists() &&
+    !flutterConfigFile.getText('UTF-8').contains('https://siab1.invalid/')
 
 android {
-    namespace "com.example.flutter_client_code"
+    namespace "id.siab1.flutter"
     compileSdk = 36  // Updated to SDK 36 for compatibility
     ndkVersion flutter.ndkVersion
 
@@ -49,15 +56,17 @@ android {
     
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            storePassword keystoreProperties['storePassword']
+            if (releaseSigningReady) {
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+            }
         }
     }
 
     defaultConfig {
-        applicationId "com.school.examapp"
+        applicationId "id.siab1.flutter"
         minSdkVersion = flutter.minSdkVersion  // Support Android 5.0+ (Lollipop)
         targetSdk = 35  // Target latest SDK
         versionCode flutterVersionCode.toInteger()
@@ -122,6 +131,19 @@ android {
     }
 }
 
+tasks.configureEach { task ->
+    if (task.name.toLowerCase().contains('release')) {
+        task.doFirst {
+            if (!releaseSigningReady) {
+                throw new GradleException('Flutter release signing requires SIAB1_FLUTTER_RELEASE_* environment variables')
+            }
+            if (!releaseServerReady) {
+                throw new GradleException('Flutter release requires a non-placeholder SIAB1 server URL')
+            }
+        }
+    }
+}
+
 flutter {
     source '../..'
 }
@@ -129,4 +151,3 @@ flutter {
 dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
 }
-

@@ -1,11 +1,11 @@
 #!/bin/bash
 # ============================================================================
-# DETEKSI MASALAH - Comprehensive Issue Detection Script for Ujian Online
+# DETEKSI MASALAH - Comprehensive Issue Detection Script for SIAB1
 # ============================================================================
 # Version: 1.0
-# Author: Auto-generated for Ujian Online System
+# Author: Auto-generated for SIAB1
 # 
-# This script performs comprehensive diagnostics on your Ujian Online
+# This script performs comprehensive diagnostics on SIAB1
 # deployment to detect and report issues in detail.
 #
 # USAGE:
@@ -37,7 +37,7 @@ FIXES=0
 
 # Config
 COMPOSE_FILE="docker-compose.production.yml"
-DB_NAME="exam_system"
+DB_NAME="siab1"
 DB_USER="examuser"
 API_PORT=8000
 NGINX_PORT=8080
@@ -815,7 +815,7 @@ print_summary() {
 main() {
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC} ${WHITE}${BOLD}  DETEKSI MASALAH - Ujian Online Diagnostic Tool v1.0                   ${NC}"
+    echo -e "${CYAN}║${NC} ${WHITE}${BOLD}  DETEKSI MASALAH - SIAB1 Diagnostic Tool v1.0                          ${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "  ${CYAN}Started at:${NC} $(date '+%Y-%m-%d %H:%M:%S')"

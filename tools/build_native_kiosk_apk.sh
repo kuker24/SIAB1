@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$ROOT_DIR/android-kiosk"
 
 required_signing_vars=(
+  SIAB1_SERVER_URL
   SIAB1_RELEASE_KEYSTORE
   SIAB1_RELEASE_STORE_PASSWORD
   SIAB1_RELEASE_KEY_ALIAS

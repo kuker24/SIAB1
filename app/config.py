@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "Ujian Online"
+    app_name: str = "SIAB1"
     app_env: str = "development"
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"  # Default FALSE for security
     secret_key: str = os.getenv("SECRET_KEY")

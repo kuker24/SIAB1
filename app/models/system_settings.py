@@ -36,7 +36,7 @@ class SystemSettings(Base):
     token_validation_bypass = Column(Boolean, default=False, nullable=False)
 
     # App Branding & Config
-    app_name = Column(String(100), default="Ujian Online", nullable=True)
+    app_name = Column(String(100), default="SIAB1", nullable=True)
     timezone = Column(String(50), default="Asia/Jakarta", nullable=True)
 
     # Audit fields
@@ -69,7 +69,7 @@ class SystemSettings(Base):
                 "accepted_signatures": signature_profiles.get("all_signatures", []),
             },
             "token_validation_bypass": self.token_validation_bypass,
-            "app_name": self.app_name or "Ujian Online",
+            "app_name": self.app_name or "SIAB1",
             "timezone": self.timezone or "Asia/Jakarta",
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "updated_by": self.updated_by

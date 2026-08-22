@@ -362,7 +362,7 @@ async def validate_apk_token(
 @legacy_builder_router.post("/build")
 async def legacy_build_apk(
     app_name: str = Form(...),
-    package_name: str = Form("com.ujianonline.seb"),
+    package_name: str = Form("id.siab1.flutter"),
     server_url: str = Form(""),
     build_mode: str = Form("universal_apk"),
     icon: Optional[UploadFile] = File(None),
@@ -384,7 +384,7 @@ async def legacy_build_apk(
 
     build = ApkBuild(
         app_name=app_name,
-        package_name=package_name or "com.ujianonline.seb",
+        package_name=package_name or "id.siab1.flutter",
         status="building",
         build_log="Build queued. Waiting worker process...",
         created_by=current_user.id,

@@ -8,7 +8,7 @@ import 'signature_verifier.dart';
 /// Enhanced Security Service for Secure Exam Browser
 /// Comprehensive anti-cheat and security features
 class SecurityService {
-  static const _kioskChannel = MethodChannel('com.example.sxb_client/kiosk');
+  static const _kioskChannel = MethodChannel('id.siab1.flutter/kiosk');
 
   // Singleton pattern
   static final SecurityService _instance = SecurityService._internal();

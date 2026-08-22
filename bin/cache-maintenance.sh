@@ -28,7 +28,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC} ${BLUE}   AUTO CACHE MAINTENANCE - Ujian Online System${NC}                       ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC} ${BLUE}   AUTO CACHE MAINTENANCE - SIAB1${NC}                                    ${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}Timestamp: $(date '+%Y-%m-%d %H:%M:%S')${NC}"

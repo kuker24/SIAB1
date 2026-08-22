@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONTAINER_NAME="${PYTHON_IN_API_CONTAINER:-ujian_online-api-1}"
+CONTAINER_NAME="${PYTHON_IN_API_CONTAINER:-siab1-api-1}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "docker command not found" >&2

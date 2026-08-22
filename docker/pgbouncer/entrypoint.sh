@@ -3,7 +3,7 @@ set -euo pipefail
 
 DB_HOST="${DB_HOST:-db}"
 DB_PORT="${DB_PORT:-5432}"
-DB_NAME="${DB_NAME:-exam_system}"
+DB_NAME="${DB_NAME:-siab1}"
 DB_USER="${DB_USER:-examuser}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 

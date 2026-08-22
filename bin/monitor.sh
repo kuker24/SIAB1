@@ -29,7 +29,7 @@ cd "$(dirname "$0")"
 display_dashboard() {
     clear
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC} ${BOLD}${BLUE}       UJIAN ONLINE - REAL-TIME MONITORING DASHBOARD${NC}                   ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC} ${BOLD}${BLUE}       SIAB1 - REAL-TIME MONITORING DASHBOARD${NC}                          ${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${YELLOW}⏰ Time: $(date '+%Y-%m-%d %H:%M:%S')${NC}  |  ${CYAN}🖥️  Server: $(hostname)${NC}"
@@ -52,7 +52,7 @@ display_dashboard() {
     
     # Resource Usage
     echo -e "${CYAN}━━━ RESOURCE USAGE ━━━${NC}"
-    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" 2>/dev/null | grep -E "NAME|ujian_online" | head -7
+    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" 2>/dev/null | grep -E "NAME|siab1" | head -7
     echo ""
     
     # API Health
@@ -85,20 +85,20 @@ display_dashboard() {
     # Database Activity
     echo -e "${CYAN}━━━ DATABASE ACTIVITY ━━━${NC}"
     
-    DB_ACTIVE=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d exam_system -tAc \
+    DB_ACTIVE=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d siab1 -tAc \
         "SELECT count(*) FROM pg_stat_activity WHERE state = 'active';" 2>/dev/null | tr -d '\n\r' || echo "0")
     
-    DB_IDLE=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d exam_system -tAc \
+    DB_IDLE=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d siab1 -tAc \
         "SELECT count(*) FROM pg_stat_activity WHERE state = 'idle';" 2>/dev/null | tr -d '\n\r' || echo "0")
     
-    DB_TOTAL=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d exam_system -tAc \
+    DB_TOTAL=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d siab1 -tAc \
         "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | tr -d '\n\r' || echo "0")
     
     if [ "$DB_TOTAL" != "0" ] && [ "$DB_TOTAL" -gt 0 ] 2>/dev/null; then
         echo -e "  ${GREEN}✓${NC} Connections: $DB_TOTAL (Active: $DB_ACTIVE, Idle: $DB_IDLE)"
         
         # Check for slow queries
-        SLOW_QUERIES=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d exam_system -tAc \
+        SLOW_QUERIES=$($DC -f docker-compose.production.yml exec -T db psql -U examuser -d siab1 -tAc \
             "SELECT count(*) FROM pg_stat_activity WHERE state = 'active' AND (now() - query_start) > interval '2 seconds';" 2>/dev/null | tr -d '\n\r' || echo "0")
         
         if [ "$SLOW_QUERIES" -eq 0 ] 2>/dev/null; then

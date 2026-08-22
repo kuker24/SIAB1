@@ -56,13 +56,13 @@ class TestProductionUrlDetection:
     """Test _is_production_url."""
 
     def test_production_ip(self):
-        assert _is_production_url("postgresql://user:pass@103.175.218.56:5432/db")
+        assert _is_production_url("postgresql://user:pass@198.51.100.10:5432/db")
 
     def test_production_domain(self):
-        assert _is_production_url("postgresql://user:pass@man1rokanhulu.cloud:5432/db")
+        assert _is_production_url("postgresql://user:pass@siab1.example:5432/db")
 
     def test_production_hostname(self):
-        assert _is_production_url("postgresql://user:pass@adminujian:5432/db")
+        assert _is_production_url("postgresql://user:pass@database:5432/db")
 
     def test_localhost_not_production(self):
         assert not _is_production_url("postgresql://user:pass@localhost:5432/db")
@@ -71,10 +71,10 @@ class TestProductionUrlDetection:
         assert not _is_production_url("postgresql://user:pass@127.0.0.1:5432/db")
 
     def test_random_host_not_production(self):
-        assert not _is_production_url("postgresql://user:pass@db-staging.internal:5432/db")
+        assert not _is_production_url("postgresql://user:pass@db-staging.test:5432/db")
 
     def test_case_insensitive(self):
-        assert _is_production_url("postgresql://user:pass@MAN1ROKANHULU.CLOUD:5432/db")
+        assert _is_production_url("postgresql://user:pass@SIAB1.EXAMPLE:5432/db")
 
 
 # ---------------------------------------------------------------------------
@@ -86,10 +86,10 @@ class TestProductionSafetyCheck:
 
     def test_blocks_production_without_flag(self):
         with pytest.raises(SystemExit):
-            _check_production_safety("postgresql://user:pass@103.175.218.56/db", False)
+            _check_production_safety("postgresql://user:pass@siab1.example/db", False)
 
     def test_allows_production_with_flag(self):
-        _check_production_safety("postgresql://user:pass@103.175.218.56/db", True)
+        _check_production_safety("postgresql://user:pass@siab1.example/db", True)
 
     def test_allows_localhost_without_flag(self):
         _check_production_safety("postgresql://user:pass@localhost/db", False)

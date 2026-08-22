@@ -8,7 +8,7 @@ import 'package:crypto/crypto.dart';
 /// Implements 5-layer defense against APK tampering
 /// Optimized for Android 5.0+ (low-end devices)
 class SignatureVerifier {
-  static const _platform = MethodChannel('com.school.examapp/security');
+  static const _platform = MethodChannel('id.siab1.flutter/security');
   
   // ============================================================
   // LAYER 1: OBFUSCATED SIGNATURE STORAGE

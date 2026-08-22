@@ -2,52 +2,40 @@
 
 ## Context Contract
 
-This is the repository's only active session checkpoint.
-
-- `AGENTS.md` is the durable source of project rules, architecture map, and operational constraints.
-- Source code and current manifests are authoritative for runtime facts.
-- Other AI handoffs, snapshots, and progress documents are historical unless promoted here.
+This is the repository's only active session checkpoint. `AGENTS.md`, source code, and current manifests are authoritative; other snapshots are historical.
 
 ## Current Objective
 
-Continue Native-Lean stabilization and release hardening from the clean repository at `https://github.com/kuker24/SIAB1`.
+Prepare SIAB1 for a new VPS and pending public domain from the canonical repository at `https://github.com/kuker24/SIAB1`.
 
 ## Current State
 
-- Project status: **ESTABLISHED**.
-- Root `AGENTS.md`: **CURRENT**.
-- The new repository intentionally starts with a clean root commit and excludes legacy Git history.
-- Python/FastAPI and Flutter remain supported fallbacks; no VPS cutover is authorized.
-- Native handlers cover the active DB-only/JSON route set identified by the parity audit.
+- Project identity is `SIAB1` / `Sistem Informasi Asesmen Berintegritas`.
+- Technical slug, Compose project, database, images, and monitoring labels use `siab1`.
+- Android native package is `id.siab1.kiosk`; Flutter fallback is `id.siab1.flutter`.
+- Release clients require an explicit server URL; `siab1.invalid` is a non-release placeholder.
+- Python/FastAPI and Flutter remain supported fallbacks.
+- Legacy phase reports, stale deployment scripts, duplicate client sources, and unused web assets were removed after consolidation.
+- New VPS host, domain, SSH identity, and capacity are pending. No VPS cutover has been performed.
 
 ## Verification Evidence
 
-- **PASS** — full Python suite: 485 tests.
-- **PASS** — `python scripts/check_security.py`.
-- **PASS** — `SKIP_HTTP=1 bash scripts/verify_release_gate.sh`.
-- **PASS** — Go test, vet, and build.
-- **PASS** — frontend bundle reproducibility and JavaScript syntax checks.
-- **PASS** — Python dependency audits for application and runtime lock files.
-- **PASS** — focused Semgrep scan of the latest security-sensitive changes.
-- **NOT RUN** — HTTP smoke because no local service was started.
-- **NOT CONFIGURED** — Flutter SDK is not available in the current PATH.
+- **PASS** - full Python suite: 487 tests.
+- **PASS** - `python scripts/check_security.py` and release gate with `SKIP_HTTP=1`.
+- **PASS** - Go test, vet, and build.
+- **PASS** - Android kiosk Kotlin compile and lint.
+- **PASS** - Compose config, shell syntax, and shellcheck.
+- **PASS** - SIAB1 identity guard and local documentation-link guard.
+- **NOT RUN** - HTTP smoke because no local service was started.
+- **NOT CONFIGURED** - Flutter SDK is not available in the current PATH.
 
-## Remaining Risks
+## Remaining Decisions
 
-- The upstream advisory reported for `golang.org/x/crypto v0.52.0` has no fixed version at this checkpoint.
-- Redis-backed multi-replica behavior and external integrations require their corresponding services for end-to-end validation.
-- `DEPLOYMENT.md` retains documented drift around environment, certificate, Nginx, and Compose guidance.
-- VPS deployment, restart, migration, and cutover remain approval-gated.
-
-## Next Actions
-
-1. Use the new GitHub repository as the canonical source for subsequent work.
-2. Re-index the clean repository after the initial push.
-3. Continue with the highest-priority Native-Lean or release-hardening gap supported by repository evidence.
-4. Run HTTP and Flutter verification when their required runtimes are available.
+- Provide the new public domain, then update DNS/TLS/CORS, Nginx, GitHub homepage, and client release configuration.
+- Validate sizing and deployment state directly on the new VPS before cutover.
+- Run Flutter verification when the SDK is available.
 
 ## Production Safety Boundary
 
 - Do not read or expose environment files, keys, tokens, certificates, participant answers, or credentials.
-- Validate live VPS state before relying on documented snapshots.
-- Do not deploy, publish exams, restart services, migrate data, or run heavy tests during active exams without explicit approval.
+- Do not deploy, publish assessments, restart services, migrate data, or run heavy tests without explicit approval and a verified backup.

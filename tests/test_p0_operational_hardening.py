@@ -42,18 +42,6 @@ def test_all_production_services_have_bounded_json_log_rotation() -> None:
         assert str(logging["options"]["max-file"]) == "5"
 
 
-def test_installer_cron_uses_bin_scripts_and_quotes_project_root() -> None:
-    source = (ROOT / "install.sh").read_text(encoding="utf-8")
-
-    for script in (
-        "backup-comprehensive.sh",
-        "cache-maintenance.sh",
-        "health-monitor.sh",
-        "self-healing.sh",
-    ):
-        assert f'cd \\"$PROJECT_ROOT\\" && ./bin/{script}' in source
-
-
 def test_production_dockerfile_uses_builder_and_excludes_build_toolchain_from_runtime() -> None:
     source = (ROOT / "docker" / "Dockerfile.production").read_text(encoding="utf-8")
     runtime_source = source[source.index("FROM python:3.11-slim AS runtime") :]

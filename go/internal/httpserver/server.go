@@ -85,7 +85,7 @@ func health(store *persistence.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := map[string]any{
 			"status":  "healthy",
-			"app":     "Ujian Online",
+			"app":     "SIAB1",
 			"version": "1.0.0",
 			"runtime": "go",
 		}

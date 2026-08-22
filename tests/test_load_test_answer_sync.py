@@ -51,12 +51,12 @@ def _args(**overrides):
 
 def test_validate_args_rejects_production_host() -> None:
     with pytest.raises(SystemExit, match="Refusing production traffic"):
-        load_script.validate_args(_args(base_url="https://man1rokanhulu.cloud"))
+        load_script.validate_args(_args(base_url="https://production.siab1.example"))
 
 
 @pytest.mark.parametrize(
     "base_url",
-    ["https://man1rokanhulu.cloud", "http://103.175.218.56", "https://adminujian"],
+    ["https://production.siab1.example", "https://siab1.example"],
 )
 def test_validate_args_rejects_known_production_like_hosts(base_url) -> None:
     with pytest.raises(SystemExit, match="Refusing production traffic"):
@@ -70,7 +70,7 @@ def test_old_allow_production_flag_is_not_supported(monkeypatch) -> None:
         [
             "load_test_answer_sync.py",
             "--base-url",
-            "https://man1rokanhulu.cloud",
+            "https://production.siab1.example",
             "--session-id",
             "1001",
             "--question-id",
@@ -176,10 +176,10 @@ def test_custom_final_submit_endpoint_accepts_local_absolute_path(endpoint) -> N
 @pytest.mark.parametrize(
     "endpoint",
     [
-        "https://man1rokanhulu.cloud/api/student/exams/submit",
-        "http://103.175.218.56/api/student/exams/submit",
+        "https://production.siab1.example/api/student/exams/submit",
+        "https://siab1.example/api/student/exams/submit",
         "api/student/exams/submit",
-        "//man1rokanhulu.cloud/api/student/exams/submit",
+        "//siab1.example/api/student/exams/submit",
     ],
 )
 def test_invalid_final_submit_endpoint_rejected(endpoint) -> None:
@@ -188,7 +188,7 @@ def test_invalid_final_submit_endpoint_rejected(endpoint) -> None:
 
 
 def test_sessions_csv_must_be_under_tmp() -> None:
-    load_script.validate_args(_args(sessions_csv="/tmp/ujianonline-direct-sessions.csv"))
+    load_script.validate_args(_args(sessions_csv="/tmp/siab1-direct-sessions.csv"))
     load_script.validate_args(_args(sessions_csv="/tmp/subdir/sessions.csv"))
 
     for invalid_path in ["docs/sessions.csv", "sessions.csv", "/home/user/repo/sessions.csv"]:
@@ -202,7 +202,7 @@ def test_load_session_rows_rejects_non_tmp_csv_before_reading() -> None:
 
 
 def test_summary_json_must_be_under_tmp() -> None:
-    load_script.validate_args(_args(summary_json="/tmp/ujianonline-load-summary.json"))
+    load_script.validate_args(_args(summary_json="/tmp/siab1-load-summary.json"))
 
     for invalid_path in ["docs/summary.json", "summary.json"]:
         with pytest.raises(SystemExit, match="--summary-json must be an absolute path under /tmp"):

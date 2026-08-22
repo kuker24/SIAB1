@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import ipaddress
 import json
 import random
 import time
@@ -23,7 +24,6 @@ from pathlib import Path
 from typing import Iterable, Optional
 from urllib.parse import urlparse
 
-PRODUCTION_HOSTS = {"adminujian", "man1rokanhulu.cloud", "103.175.218.56"}
 ANSWER_ENDPOINT = "/api/exams/submit-answer"
 DEFAULT_FINAL_SUBMIT_ENDPOINT = "/api/student/exams/submit"
 VIOLATION_ENDPOINT = "/api/exams/log-violation"
@@ -236,7 +236,13 @@ def parse_args() -> argparse.Namespace:
 
 def is_production_host(base_url: str) -> bool:
     parsed = urlparse(base_url)
-    return (parsed.hostname or "").lower() in PRODUCTION_HOSTS
+    host = (parsed.hostname or "").lower()
+    if host in {"localhost", "::1"} or host.endswith((".test", ".invalid")):
+        return False
+    try:
+        return not ipaddress.ip_address(host).is_private
+    except ValueError:
+        return True
 
 
 def _parse_boolish(value: object) -> bool:

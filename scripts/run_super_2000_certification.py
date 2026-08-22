@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db-service", default="db")
     parser.add_argument("--redis-service", default="redis")
     parser.add_argument("--db-user", default="examuser")
-    parser.add_argument("--db-name", default="exam_system")
+    parser.add_argument("--db-name", default="siab1")
     parser.add_argument("--teacher-prefix", default="loadtest_teacher")
     parser.add_argument("--student-prefix", default="loadtest_student")
     parser.add_argument("--class-prefix", default="LOAD2000")

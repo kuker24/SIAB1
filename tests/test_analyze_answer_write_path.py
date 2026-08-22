@@ -79,16 +79,6 @@ def test_validate_root_rejects_missing_app_or_scripts(tmp_path) -> None:
         analyzer._validate_root(missing_scripts)
 
 
-@pytest.mark.parametrize("marker", ["103.175.218.56", "man1rokanhulu.cloud", "adminujian"])
-def test_validate_root_rejects_production_like_paths(tmp_path, marker) -> None:
-    root = tmp_path / marker / "repo"
-    (root / "app").mkdir(parents=True)
-    (root / "scripts").mkdir(parents=True)
-
-    with pytest.raises(SystemExit, match="Refusing production-like"):
-        analyzer._validate_root(root)
-
-
 def test_main_json_outputs_valid_json_for_temp_repo(tmp_path, monkeypatch, capsys) -> None:
     root = _make_repo_root(tmp_path)
     (root / "app" / "dummy_hot_path.py").write_text(DUMMY_SOURCE, encoding="utf-8")

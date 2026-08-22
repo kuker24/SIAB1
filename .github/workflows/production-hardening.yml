@@ -23,7 +23,7 @@ jobs:
       APP_ENV: test
       SECRET_KEY: ci-only-placeholder
       JWT_SECRET_KEY: ci-only-jwt-placeholder
-      DATABASE_URL: postgresql+asyncpg://examuser:exampassword@localhost:5432/exam_system
+      DATABASE_URL: postgresql+asyncpg://examuser:exampassword@localhost:5432/siab1
 
     steps:
       - name: Check out repository
@@ -73,14 +73,12 @@ jobs:
             bin/health-monitor.sh \
             bin/restore.sh \
             docker/docker-entrypoint.sh \
-            install.sh \
             scripts/vps_capacity_snapshot_readonly.sh
           shellcheck -S error \
             bin/backup-comprehensive.sh \
             bin/health-monitor.sh \
             bin/restore.sh \
             docker/docker-entrypoint.sh \
-            install.sh \
             scripts/vps_capacity_snapshot_readonly.sh
           python -m py_compile scripts/vps_capacity_preflight_readonly.py
 

@@ -3,7 +3,7 @@
 // Build Token: BUILD-20260617045040-S3O97D
 
 class AppConfig {
-  static const String serverUrl = "https://man1rokanhulu.cloud/";
+  static const String serverUrl = "https://siab1.invalid/";
   static const String appName = "SIAB1";
   static const String appSubtitle = "Sistem Informasi Asesmen Berintegritas";
   static const bool forceHttps = true;

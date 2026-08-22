@@ -260,7 +260,7 @@ async def download_dynamic_seb_config(request: Request):
         content=seb_config,
         media_type="application/seb",
         headers={
-            "Content-Disposition": 'attachment; filename="ujian-online-config.seb"',
+            "Content-Disposition": 'attachment; filename="siab1-config.seb"',
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0"

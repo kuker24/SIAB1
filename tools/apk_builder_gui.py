@@ -46,8 +46,6 @@ def normalize_apk_display_name(app_name: str | None) -> str:
     value = (app_name or "").strip()
     if not value:
         return DEFAULT_APP_NAME
-    if value.lower().startswith("ujian online"):
-        return DEFAULT_APP_NAME
     return value
 
 from apk_builder_core.artifacts import find_latest_artifact, sha256_file
@@ -271,13 +269,13 @@ class APKBuilderGUI:
 
         # App Configuration Variables
         self.app_name_var = tk.StringVar(value=DEFAULT_APP_NAME)
-        self.package_var = tk.StringVar(value="com.man1rokanhulu.examapp")
+        self.package_var = tk.StringVar(value="id.siab1.flutter")
         self.version_name_var = tk.StringVar(value="1.0.2")
         self.version_code_var = tk.StringVar(value="2")
         self.icon_path_var = tk.StringVar(value="")
 
         # Server Configuration Variables
-        self.server_url_var = tk.StringVar(value="https://man1rokanhulu.cloud/")
+        self.server_url_var = tk.StringVar(value="https://siab1.invalid/")
         self.use_https_var = tk.BooleanVar(value=True)
 
         # Security Configuration Variables
@@ -652,7 +650,7 @@ class APKBuilderGUI:
                 (
                     "Package name tidak valid.\n\n"
                     "Contoh valid:\n"
-                    "  com.man1rokanhulu.examapp\n"
+                    "  id.siab1.flutter\n"
                     "  id.sekolah.ujian.mobile"
                 ),
             )

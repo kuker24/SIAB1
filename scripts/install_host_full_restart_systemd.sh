@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="${1:-/root/ujian_online}"
+REPO_DIR="${1:-${SIAB1_HOME:-/opt/siab1}}"
 CONTROL_DIR="${SYSTEM_FULL_RESTART_HOST_CONTROL_DIR:-${REPO_DIR}/runtime_control}"
 COMPOSE_FILE="${SYSTEM_FULL_RESTART_HOST_COMPOSE_FILE:-${REPO_DIR}/docker-compose.production.yml}"
 WORKER_SCRIPT="${REPO_DIR}/scripts/host_full_restart_worker.py"
@@ -15,7 +15,7 @@ chmod 770 "${CONTROL_DIR}"
 
 cat > "${SERVICE_FILE}" <<EOF
 [Unit]
-Description=Ujian Online Host-Controlled Full Restart Worker
+Description=SIAB1 Host-Controlled Full Restart Worker
 After=docker.service
 Requires=docker.service
 

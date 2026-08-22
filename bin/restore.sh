@@ -39,7 +39,7 @@ show_header() {
     clear
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC} ${BOLD}${BLUE}       UJIAN ONLINE - POINT-IN-TIME SYSTEM RESTORE${NC}                    ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC} ${BOLD}${BLUE}       SIAB1 - POINT-IN-TIME SYSTEM RESTORE${NC}                           ${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -240,13 +240,13 @@ restore_database() {
     
     # Drop and recreate database
     echo "  Recreating database..."
-    $DC -f docker-compose.production.yml exec -T db psql -U examuser -d postgres -c "DROP DATABASE IF EXISTS exam_system;" 2>/dev/null || true
-    $DC -f docker-compose.production.yml exec -T db psql -U examuser -d postgres -c "CREATE DATABASE exam_system;" 2>/dev/null
+    $DC -f docker-compose.production.yml exec -T db psql -U examuser -d postgres -c "DROP DATABASE IF EXISTS siab1;" 2>/dev/null || true
+    $DC -f docker-compose.production.yml exec -T db psql -U examuser -d postgres -c "CREATE DATABASE siab1;" 2>/dev/null
     
     # Restore from backup
     echo "  Restoring data..."
-    cat "$RESTORE_DIR/database/exam_system.sql" | \
-        $DC -f docker-compose.production.yml exec -T db psql -U examuser -d exam_system > /dev/null 2>&1
+    cat "$RESTORE_DIR/database/siab1.sql" | \
+        $DC -f docker-compose.production.yml exec -T db psql -U examuser -d siab1 > /dev/null 2>&1
     
     echo -e "${GREEN}✓ Database restored${NC}"
     echo ""

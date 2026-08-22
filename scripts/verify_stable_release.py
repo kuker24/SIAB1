@@ -28,7 +28,7 @@ WARN = "WARN"
 
 async def _collect() -> dict:
     async with async_session_read() as db:
-        ops = await get_ops_summary(host_header="man1rokanhulu.cloud", db=db)
+        ops = await get_ops_summary(host_header="siab1.local", db=db)
     return {
         "ops": ops,
         "auto_restart_schedule": await get_auto_restart_schedule(force_refresh=True),

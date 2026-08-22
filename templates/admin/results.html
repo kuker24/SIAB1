@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/gif" href="/static/favicon.gif">
-    <title>Hasil Ujian - Admin Panel | Ujian Online</title>
+    <title>Hasil Ujian - Admin Panel | SIAB1</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/admin.css">
@@ -337,7 +337,7 @@
         const isTeacher = currentUser && currentUser.role === 'teacher';
         const EXPORT_BRANDING = {
             schoolName: 'MADRASAH ALIYAH NEGERI 1 ROKAN HULU',
-            reportSubtitle: 'Sistem Ujian Online - Dokumen Resmi',
+            reportSubtitle: 'SIAB1 - Dokumen Resmi',
             logoPath: '/static/uploads/logo-man1.jpeg'
         };
         let exportLogoDataUrlPromise = null;
@@ -1504,7 +1504,7 @@
             }
 
             summary += `\n${'='.repeat(50)}\n`;
-            summary += `Diekspor dari Sistem Ujian Online\n`;
+            summary += `Diekspor dari SIAB1\n`;
 
             const filename = `ringkasan_${examTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.txt`;
             downloadFile(summary, filename, 'text/plain;charset=utf-8;');

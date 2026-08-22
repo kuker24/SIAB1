@@ -28,7 +28,6 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 from urllib.parse import urlsplit
 
-PRODUCTION_URL_PATTERNS = ("103.175.218.56", "man1rokanhulu.cloud", "adminujian")
 DEFAULT_EXCEL = Path(
     "/home/fahmiagent/Downloads/LAB GITHUB/LAB FINAL/SIAB1/SIAB1 akun/"
     "PEMBAGIAN KELAS TP 2026-2027 terbaru Agustus.xlsx"
@@ -215,8 +214,10 @@ def get_database_url() -> str:
 
 
 def is_production_url(url: str) -> bool:
-    lowered = url.lower()
-    return any(pattern in lowered for pattern in PRODUCTION_URL_PATTERNS)
+    host = (urlsplit(url).hostname or "").lower()
+    return host not in {"localhost", "127.0.0.1", "::1"} and not host.endswith(
+        (".test", ".invalid")
+    )
 
 
 def check_production_safety(url: str, allow_production_write: bool, apply: bool) -> None:

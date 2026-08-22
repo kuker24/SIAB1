@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_CMD=(docker compose -f "${ROOT_DIR}/docker-compose.production.yml")
 
-DOMAIN="${LE_DOMAIN:-man1rokanhulu.cloud}"
-EMAIL="${LE_EMAIL:-admin@man1rokanhulu.cloud}"
+DOMAIN="${LE_DOMAIN:?LE_DOMAIN is required}"
+EMAIL="${LE_EMAIL:?LE_EMAIL is required}"
 LE_CONFIG_DIR="${LE_CONFIG_DIR:-/root/letsencrypt}"
 LE_LIB_DIR="${LE_LIB_DIR:-/root/letsencrypt-lib}"
 WEBROOT_DIR="${ROOT_DIR}/docker/certbot/www"

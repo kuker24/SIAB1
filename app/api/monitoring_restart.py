@@ -143,7 +143,7 @@ async def _detect_compose_project_from_runtime() -> str:
     fallback = str(os.getenv("COMPOSE_PROJECT_NAME", "") or "").strip()
     if fallback:
         return fallback
-    return "ujian_online"
+    return "siab1"
 
 
 async def _list_service_containers_from_socket(
@@ -297,7 +297,7 @@ def _resolve_compose_context() -> Dict[str, str]:
 
     Priority:
     1) SYSTEM_RESTART_COMPOSE_FILE env
-    2) /root/ujian_online/docker-compose.production.yml
+    2) ${SIAB1_HOME}/docker-compose.production.yml
     3) /app/docker-compose.production.yml
     4) ./docker-compose.production.yml (current working dir)
     """
@@ -309,7 +309,7 @@ def _resolve_compose_context() -> Dict[str, str]:
         }
 
     candidates = [
-        "/root/ujian_online/docker-compose.production.yml",
+        os.path.join(os.getenv("SIAB1_HOME", "/opt/siab1"), "docker-compose.production.yml"),
         "/app/docker-compose.production.yml",
         os.path.join(os.getcwd(), "docker-compose.production.yml"),
     ]

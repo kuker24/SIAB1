@@ -5,7 +5,7 @@ Tujuan runbook ini adalah memberi bukti staging bahwa optimasi mobile-first menu
 ## Guardrail wajib
 
 - Gunakan data staging/synthetic saja; jangan pakai token, akun, atau session siswa asli.
-- Jangan menjalankan test di `man1rokanhulu.cloud` saat ujian aktif.
+- Jangan menjalankan test pada domain production atau ketika asesmen aktif.
 - Jangan langsung menguji 100% queue/buffer di production.
 - Final submit tetap prioritas; hentikan test jika 503 final submit naik atau ada indikasi answer loss.
 - Script default adalah dry-run; traffic HTTP hanya dikirim jika `--execute` dipakai.
@@ -219,7 +219,7 @@ DB connection sample:
 ```sql
 SELECT state, count(*)
 FROM pg_stat_activity
-WHERE datname = 'exam_system'
+WHERE datname = 'siab1'
 GROUP BY state;
 ```
 

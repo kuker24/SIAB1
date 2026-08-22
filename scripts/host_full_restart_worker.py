@@ -31,13 +31,20 @@ DATA_SERVICES = ["pgbouncer", "redis", "db"]
 ALLOWED_SERVICES = set(STATELESS_SERVICES + DATA_SERVICES)
 
 
+def _siab1_home() -> Path:
+    return Path(os.environ.get("SIAB1_HOME", "/opt/siab1"))
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 def _control_dir() -> Path:
     return Path(
-        os.environ.get("SYSTEM_FULL_RESTART_HOST_CONTROL_DIR", "/root/ujian_online/runtime_control")
+        os.environ.get(
+            "SYSTEM_FULL_RESTART_HOST_CONTROL_DIR",
+            str(_siab1_home() / "runtime_control"),
+        )
     )
 
 
@@ -57,7 +64,7 @@ def _compose_file() -> Path:
     return Path(
         os.environ.get(
             "SYSTEM_FULL_RESTART_HOST_COMPOSE_FILE",
-            "/root/ujian_online/docker-compose.production.yml",
+            str(_siab1_home() / "docker-compose.production.yml"),
         )
     )
 

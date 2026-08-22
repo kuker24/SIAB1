@@ -13,7 +13,7 @@ class ApkBuild(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     app_name = Column(String(100), nullable=False)
-    package_name = Column(String(100), default="com.ujianonline.seb")
+    package_name = Column(String(100), default="id.siab1.flutter")
     version = Column(String(20), default="1.0.0")
 
     # Icon

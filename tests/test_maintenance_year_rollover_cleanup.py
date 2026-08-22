@@ -136,17 +136,17 @@ def test_unique_usernames_avoids_collisions():
 def test_production_safety_blocks_apply_without_flag():
     with pytest.raises(cleanup.CleanupError, match="produksi"):
         cleanup.check_production_safety(
-            "postgresql://user:pass@103.175.218.56:5432/exam",
+            "postgresql://user:pass@siab1.example:5432/siab1",
             allow_production_write=False,
             apply=True,
         )
     cleanup.check_production_safety(
-        "postgresql://user:pass@103.175.218.56:5432/exam",
+        "postgresql://user:pass@siab1.example:5432/siab1",
         allow_production_write=True,
         apply=True,
     )
     cleanup.check_production_safety(
-        "postgresql://user:pass@103.175.218.56:5432/exam",
+        "postgresql://user:pass@siab1.example:5432/siab1",
         allow_production_write=False,
         apply=False,
     )

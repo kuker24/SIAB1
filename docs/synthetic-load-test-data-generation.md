@@ -10,7 +10,7 @@ Panduan ini menjelaskan cara menyiapkan data sintetis untuk load test direct-mod
 - Jangan commit CSV sessions, token, DB dump, SQL dump, SQLite DB, atau summary JSON yang sensitif.
 - Output CSV wajib memakai absolute path di bawah `/tmp`; path repo/relative harus ditolak.
 - Target hanya local/staging.
-- Production-like host harus selalu ditolak: `103.175.218.56`, `man1rokanhulu.cloud`, `adminujian`.
+- Production-like host harus selalu ditolak melalui denylist target yang dikonfigurasi.
 - Tidak ada `--allow-production` untuk Phase 4 load-test helper.
 - Default semua helper harus dry-run; DB write butuh `--execute` jika tool write dibuat.
 
@@ -58,10 +58,10 @@ If tokens are not written into CSV, pass a fallback token only for a single-user
 Recommended:
 
 ```text
-/tmp/ujianonline-direct-sessions-20260603.csv
-/tmp/ujianonline-direct-100-summary.json
-/tmp/ujianonline-direct-300-summary.json
-/tmp/ujianonline-direct-600-summary.json
+/tmp/siab1-direct-sessions.csv
+/tmp/siab1-direct-100-summary.json
+/tmp/siab1-direct-300-summary.json
+/tmp/siab1-direct-600-summary.json
 ```
 
 Never use:

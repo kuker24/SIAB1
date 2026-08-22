@@ -20,13 +20,13 @@ if [ -z "$DB_CONTAINER" ]; then
     echo -e "${RED}❌ Database container is not running!${NC}"
 else
     # Check pg_stat_replication
-    REPLICATION_COUNT=$(docker exec $DB_CONTAINER psql -U examuser -d exam_system -tAc "SELECT count(*) FROM pg_stat_replication;")
+    REPLICATION_COUNT=$(docker exec $DB_CONTAINER psql -U examuser -d siab1 -tAc "SELECT count(*) FROM pg_stat_replication;")
     
     if [ "$REPLICATION_COUNT" -gt 0 ]; then
         echo -e "${GREEN}✓ Replication Active${NC}: $REPLICATION_COUNT replica(s) connected."
         
         # Show details
-        docker exec $DB_CONTAINER psql -U examuser -d exam_system -c \
+        docker exec $DB_CONTAINER psql -U examuser -d siab1 -c \
             "SELECT client_addr, state, sync_state, replay_lag FROM pg_stat_replication;"
     else
         echo -e "${YELLOW}⚠ No replicas connected.${NC} (Is the secondary server running?)"

@@ -26,7 +26,7 @@ class ExamResultPDF:
     """Generate PDF for exam results."""
 
     SCHOOL_NAME = "MADRASAH ALIYAH NEGERI 1 ROKAN HULU"
-    SCHOOL_SUBTITLE = "Laporan Resmi Hasil Ujian Online"
+    SCHOOL_SUBTITLE = "Laporan Resmi Hasil Asesmen SIAB1"
 
     def __init__(self):
         if not REPORTLAB_AVAILABLE:
@@ -248,7 +248,7 @@ class CertificatePDF:
         score: float,
         completion_date: str,
         certificate_id: str,
-        institution_name: str = "Sistem Ujian Online"
+        institution_name: str = "SIAB1"
     ) -> bytes:
         """
         Generate certificate PDF.
@@ -389,7 +389,7 @@ class ViolationsReportPDF:
     """Generate PDF report for violation dashboard export."""
 
     SCHOOL_NAME = "MADRASAH ALIYAH NEGERI 1 ROKAN HULU"
-    SCHOOL_SUBTITLE = "Laporan Resmi Monitoring Pelanggaran Ujian Online"
+    SCHOOL_SUBTITLE = "Laporan Resmi Monitoring Pelanggaran SIAB1"
     REPORT_CODE = "Dokumen internal pengawasan ujian"
 
     def __init__(self):
@@ -873,7 +873,7 @@ class ExamAnalyticsPDF:
     """Generate formal PDF for exam analytics export."""
 
     SCHOOL_NAME = "MADRASAH ALIYAH NEGERI 1 ROKAN HULU"
-    SCHOOL_SUBTITLE = "Laporan Resmi Analitik Ujian Online"
+    SCHOOL_SUBTITLE = "Laporan Resmi Analitik SIAB1"
     REPORT_BADGE = "Dokumen evaluasi akademik"
 
     def __init__(self):

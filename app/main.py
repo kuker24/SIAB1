@@ -1,6 +1,6 @@
 """
 FastAPI Main Application Entry Point
-Sistem Ujian Online Enterprise-Grade
+SIAB1 - Sistem Informasi Asesmen Berintegritas
 """
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -225,7 +225,10 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
-    description="Sistem Ujian Online Enterprise-Grade dengan integrasi Safe Exam Browser",
+    description=(
+        "SIAB1 - Sistem Informasi Asesmen Berintegritas dengan integrasi "
+        "Safe Exam Browser"
+    ),
     version="1.0.0",
     docs_url="/docs" if settings.debug else None,  # Only in debug mode
     redoc_url="/redoc" if settings.debug else None,  # Only in debug mode

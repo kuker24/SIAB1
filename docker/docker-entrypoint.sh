@@ -6,7 +6,7 @@
 set -e
 
 echo "╔════════════════════════════════════════════╗"
-echo "║   UJIAN ONLINE - INITIALIZATION           ║"
+echo "║   SIAB1 - INITIALIZATION                  ║"
 echo "╚════════════════════════════════════════════╝"
 
 # Colors
@@ -31,7 +31,7 @@ prepare_prometheus_multiprocess() {
 wait_for_postgres() {
     echo -e "${BLUE}[1/5] Waiting for PostgreSQL...${NC}"
 
-    until PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-exam_system}" -c '\q' 2>/dev/null; do
+    until PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-siab1}" -c '\q' 2>/dev/null; do
         echo -e "${YELLOW}PostgreSQL is unavailable - sleeping${NC}"
         sleep 2
     done
@@ -55,7 +55,7 @@ wait_for_redis() {
 check_database_initialized() {
     echo -e "${BLUE}[3/5] Checking database initialization...${NC}"
 
-    TABLES_COUNT=$(PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-exam_system}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null | tr -d ' ')
+    TABLES_COUNT=$(PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-siab1}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null | tr -d ' ')
 
     if [ "$TABLES_COUNT" -gt "0" ]; then
         echo -e "${GREEN}✓ Database already initialized ($TABLES_COUNT tables)${NC}"
@@ -86,7 +86,7 @@ seed_seb_presets() {
     echo -e "${BLUE}[5/6] Checking SEB presets...${NC}"
 
     # Check if presets exist
-    PRESET_COUNT=$(PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-exam_system}" -t -c "SELECT COUNT(*) FROM seb_config_templates WHERE is_default = true;" 2>/dev/null | tr -d ' ')
+    PRESET_COUNT=$(PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-siab1}" -t -c "SELECT COUNT(*) FROM seb_config_templates WHERE is_default = true;" 2>/dev/null | tr -d ' ')
 
     if [ "$PRESET_COUNT" -ge "3" ]; then
         echo -e "${GREEN}✓ SEB presets already exist ($PRESET_COUNT presets)${NC}"
@@ -101,7 +101,7 @@ seed_seb_presets() {
 verify_admin_user() {
     echo -e "${BLUE}[6/6] Verifying admin user...${NC}"
 
-    ADMIN_EXISTS=$(PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-exam_system}" -t -c "SELECT COUNT(*) FROM users WHERE username='admin';" 2>/dev/null | tr -d ' ')
+    ADMIN_EXISTS=$(PGPASSWORD=${DB_PASSWORD:-postgres} psql -h "${DB_HOST:-db}" -U "${DB_USER:-examuser}" -d "${DB_NAME:-siab1}" -t -c "SELECT COUNT(*) FROM users WHERE username='admin';" 2>/dev/null | tr -d ' ')
 
     if [ "$ADMIN_EXISTS" -gt "0" ]; then
         echo -e "${GREEN}✓ Admin user exists${NC}"

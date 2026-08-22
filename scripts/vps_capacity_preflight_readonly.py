@@ -304,7 +304,7 @@ def collect_live(compose_file: str) -> tuple[dict[str, Any], list[str]]:
                 "-U",
                 "examuser",
                 "-d",
-                "exam_system",
+                "siab1",
                 "-X",
                 "-At",
                 "-F",

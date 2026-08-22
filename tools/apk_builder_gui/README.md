@@ -1,6 +1,6 @@
 # 🤖 APK Builder GUI - Standalone Tool
 
-Build Android APK untuk **Ujian Online Secure Exam Browser** dari PC lokal dengan GUI.
+Build Android APK **SIAB1** dari PC lokal dengan GUI.
 
 ## ⚡ Quick Start
 
@@ -41,7 +41,7 @@ python apk_builder_gui.py
 
 1. **Nama Aplikasi** - Nama yang muncul di launcher Android
 2. **Package Name** - Unique identifier (contoh: `com.sekolah.ujian`)
-3. **Server URL** - URL server ujian online Anda
+3. **Server URL** - URL server SIAB1 Anda
 4. **Icon** - Upload PNG 512x512 (opsional)
 5. **Flutter Project** - Pilih folder `flutter_client_code` dari server
 

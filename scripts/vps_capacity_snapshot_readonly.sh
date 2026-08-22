@@ -64,17 +64,17 @@ run_optional "pool statistics" compose_exec pgbouncer sh -lc \
     'PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -p 6432 -U "$DB_USER" -d pgbouncer -X -P pager=off -c "SHOW STATS;"'
 
 section "POSTGRESQL AGGREGATES"
-run_optional "connection states" compose_exec db psql -U examuser -d exam_system -X -P pager=off -c \
+run_optional "connection states" compose_exec db psql -U examuser -d siab1 -X -P pager=off -c \
     "SELECT COALESCE(state, 'system') AS state, COALESCE(wait_event_type, 'none') AS wait_type, COUNT(*) AS connections FROM pg_stat_activity WHERE datname = current_database() GROUP BY 1, 2 ORDER BY 3 DESC;"
-run_optional "long transactions" compose_exec db psql -U examuser -d exam_system -X -P pager=off -c \
+run_optional "long transactions" compose_exec db psql -U examuser -d siab1 -X -P pager=off -c \
     "SELECT COUNT(*) AS transactions_over_5s, COALESCE(MAX(EXTRACT(EPOCH FROM (clock_timestamp() - xact_start)))::bigint, 0) AS oldest_seconds FROM pg_stat_activity WHERE datname = current_database() AND xact_start IS NOT NULL AND clock_timestamp() - xact_start > interval '5 seconds';"
-run_optional "advisory lock pressure" compose_exec db psql -U examuser -d exam_system -X -P pager=off -c \
+run_optional "advisory lock pressure" compose_exec db psql -U examuser -d siab1 -X -P pager=off -c \
     "SELECT COUNT(*) FILTER (WHERE granted) AS granted, COUNT(*) FILTER (WHERE NOT granted) AS waiting FROM pg_locks WHERE locktype = 'advisory';"
-run_optional "database size" compose_exec db psql -U examuser -d exam_system -X -P pager=off -c \
+run_optional "database size" compose_exec db psql -U examuser -d siab1 -X -P pager=off -c \
     "SELECT pg_size_pretty(pg_database_size(current_database())) AS database_size;"
-run_optional "largest relations" compose_exec db psql -U examuser -d exam_system -X -P pager=off -c \
+run_optional "largest relations" compose_exec db psql -U examuser -d siab1 -X -P pager=off -c \
     "SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) AS total_size, n_live_tup, n_dead_tup, last_autovacuum FROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 15;"
-run_optional "cache and transaction counters" compose_exec db psql -U examuser -d exam_system -X -P pager=off -c \
+run_optional "cache and transaction counters" compose_exec db psql -U examuser -d siab1 -X -P pager=off -c \
     "SELECT xact_commit, xact_rollback, blks_read, blks_hit, temp_files, pg_size_pretty(temp_bytes) AS temp_bytes, deadlocks FROM pg_stat_database WHERE datname = current_database();"
 
 section "REDIS AGGREGATES"

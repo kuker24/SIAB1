@@ -42,13 +42,6 @@ PATTERNS = {
     "retry_after_503": r"Retry-After.*1|status_code=503",
 }
 
-PRODUCTION_URL_MARKERS = (
-    "103.175.218.56",
-    "man1rokanhulu.cloud",
-    "adminujian",
-)
-
-
 @dataclass(frozen=True)
 class FileFinding:
     label: str
@@ -121,9 +114,6 @@ def analyze(root: Path, labels: Iterable[str] | None = None) -> List[FileFinding
 
 
 def _validate_root(root: Path) -> None:
-    root_text = str(root.resolve())
-    if any(marker in root_text for marker in PRODUCTION_URL_MARKERS):
-        raise SystemExit("Refusing production-like path/URL. Run this helper on a local checkout only.")
     if not (root / "app").is_dir() or not (root / "scripts").is_dir():
         raise SystemExit(f"Not a repository root: {root}")
 

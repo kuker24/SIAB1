@@ -37,7 +37,7 @@ WARN = "WARN"
 
 async def main() -> int:
     async with async_session_read() as db:
-        ops = await get_ops_summary(host_header="man1rokanhulu.cloud", db=db)
+        ops = await get_ops_summary(host_header="siab1.local", db=db)
     auto_restart_schedule = await get_auto_restart_schedule(force_refresh=True)
     auto_restart_status = await get_auto_restart_status(force_refresh=True)
     degrade_state = await get_degrade_mode_state(force_refresh=True)

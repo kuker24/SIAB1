@@ -26,7 +26,7 @@ func (d deps) defaultSEBConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	start := strings.TrimRight(d.requestBase(r), "/") + "/student/"
 	body := generateSEBConfig(start, d.sebKey, d.sebBEK, d.sebStrict)
-	writeSEB(w, body, "ujian-online-seb-config.seb")
+	writeSEB(w, body, "siab1-seb-config.seb")
 }
 
 func (d deps) examSEBConfig(w http.ResponseWriter, r *http.Request) {

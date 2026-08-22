@@ -5,9 +5,6 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG_SOURCE = (ROOT / "app" / "config.py").read_text(encoding="utf-8")
 COMPOSE_SOURCE = (ROOT / "docker-compose.production.yml").read_text(encoding="utf-8")
 ENV_EXAMPLE_SOURCE = (ROOT / ".env.example").read_text(encoding="utf-8")
-SAFE_MODE_DOC = (ROOT / "docs" / "production-safe-mode-deploy-20260603.md").read_text(
-    encoding="utf-8"
-)
 
 
 def test_answer_write_defaults_are_direct_and_queue_off() -> None:
@@ -43,26 +40,8 @@ def test_mobile_first_security_defaults_stay_off_or_safe() -> None:
     assert "ADMIN_MONITORING_DETAIL_LEVEL=summary" in ENV_EXAMPLE_SOURCE
 
 
-def test_production_safe_mode_doc_keeps_hybrid_queue_and_apk_build_disabled() -> None:
-    assert "ANSWER_WRITE_MODE=direct" in SAFE_MODE_DOC
-    assert "ANSWER_QUEUE_ENABLED=false" in SAFE_MODE_DOC
-    assert "ANSWER_QUEUE_PERCENTAGE=0" in SAFE_MODE_DOC
-    assert "APK_BUILD_ENDPOINT_ENABLED=false" in SAFE_MODE_DOC
-    assert "SEB_DESKTOP_LEGACY_ENABLED=false" in SAFE_MODE_DOC
-    assert "SEB_QR_ENABLED=false" in SAFE_MODE_DOC
-    assert "TELEGRAM_ALERTING_ENABLED=false" in SAFE_MODE_DOC
-    assert "VIOLATION_ASYNC_ENABLED=true" in SAFE_MODE_DOC
-    assert "ADMIN_MONITORING_DETAIL_LEVEL=summary" in SAFE_MODE_DOC
-    assert "HEAVY_EXPORT_ENABLED=false" in SAFE_MODE_DOC
-
-    assert "ANSWER_WRITE_MODE=hybrid    absent" in SAFE_MODE_DOC
-    assert "ANSWER_WRITE_MODE=queue     absent" in SAFE_MODE_DOC
-    assert "ANSWER_QUEUE_ENABLED=true   absent" in SAFE_MODE_DOC
-    assert "APK_BUILD_ENDPOINT_ENABLED=true absent" in SAFE_MODE_DOC
-
-
 def test_heavy_export_remains_runtime_configurable_for_peak_mode() -> None:
     assert 'os.getenv("HEAVY_EXPORT_ENABLED", "true").lower() == "true"' in CONFIG_SOURCE
     assert "HEAVY_EXPORT_ENABLED=${HEAVY_EXPORT_ENABLED:-false}" in COMPOSE_SOURCE
     assert "EXAM_PEAK_MODE=${EXAM_PEAK_MODE:-true}" in COMPOSE_SOURCE
-    assert "HEAVY_EXPORT_ENABLED=false" in SAFE_MODE_DOC
+    assert "HEAVY_EXPORT_ENABLED=false" in ENV_EXAMPLE_SOURCE

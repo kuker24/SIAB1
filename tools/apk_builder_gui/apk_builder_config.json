@@ -1,7 +1,7 @@
 {
   "app_name": "SIAB1",
-  "package_name": "com.man1rokanhulu.examapp",
-  "server_url": "https://man1rokanhulu.cloud/",
+  "package_name": "id.siab1.flutter",
+  "server_url": "https://siab1.invalid/",
   "force_https": true,
   "allow_cleartext_traffic": false,
   "enable_kiosk": true,

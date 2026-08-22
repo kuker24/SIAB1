@@ -30,6 +30,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 # ---------------------------------------------------------------------------
 # Schema constants — actual table/column names from SQLAlchemy models
@@ -52,18 +53,12 @@ _STATUS_COMPLETED = "completed"
 # submitted = siswa sudah final-submit, completed = admin/sistem sudah finalize
 _TERMINAL_STATUSES = (_STATUS_SUBMITTED, _STATUS_COMPLETED)
 
-# Production-like URL patterns
-_PRODUCTION_URL_PATTERNS = [
-    "103.175.218.56",
-    "man1rokanhulu.cloud",
-    "adminujian",
-]
-
-
 def _is_production_url(url: str) -> bool:
-    """Check if DATABASE_URL looks like production."""
-    lower = url.lower()
-    return any(p in lower for p in _PRODUCTION_URL_PATTERNS)
+    """Treat every non-local database host as production by default."""
+    host = (urlsplit(url).hostname or "").lower()
+    return host not in {"localhost", "127.0.0.1", "::1"} and not host.endswith(
+        (".test", ".invalid")
+    )
 
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:

@@ -3,7 +3,7 @@ package id.siab1.kiosk
 import java.net.URI
 
 object AppConfig {
-    const val serverUrl: String = "https://man1rokanhulu.cloud/"
+    val serverUrl: String = BuildConfig.SIAB1_SERVER_URL
     const val buildToken: String = "BUILD-20260617045040-S3O97D"
     const val appName: String = "SIAB1"
     const val appSubtitle: String = "Sistem Informasi Asesmen Berintegritas"

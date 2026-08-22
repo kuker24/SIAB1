@@ -42,7 +42,7 @@ echo ""
 mkdir -p "$BACKUP_DIR"
 
 echo -e "${BLUE}[1/3] Creating database backup...${NC}"
-$DC -f docker-compose.production.yml exec -T db pg_dump -U examuser exam_system > "$BACKUP_DIR/$BACKUP_FILE"
+$DC -f docker-compose.production.yml exec -T db pg_dump -U examuser siab1 > "$BACKUP_DIR/$BACKUP_FILE"
 
 if [ -f "$BACKUP_DIR/$BACKUP_FILE" ]; then
     SIZE=$(du -h "$BACKUP_DIR/$BACKUP_FILE" | cut -f1)
@@ -74,6 +74,6 @@ echo ""
 echo "To restore this backup:"
 echo "  1. Stop containers: $DC -f docker-compose.production.yml down"
 echo "  2. Start DB only:   $DC -f docker-compose.production.yml up -d db"
-echo "  3. Restore:         gunzip -c $BACKUP_DIR/$BACKUP_FILE.gz | $DC -f docker-compose.production.yml exec -T db psql -U examuser exam_system"
+echo "  3. Restore:         gunzip -c $BACKUP_DIR/$BACKUP_FILE.gz | $DC -f docker-compose.production.yml exec -T db psql -U examuser siab1"
 echo "  4. Start all:       $DC -f docker-compose.production.yml up -d"
 echo ""

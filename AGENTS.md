@@ -2,7 +2,7 @@
 Guidance for coding agents in this repository. Root DOX contract. Keep current and concise; do not add daily logs.
 
 ## Project Purpose
-Online exam system for protected student exam delivery, administrative control, monitoring, and reporting. Backend and Flutter client enforce exam-integrity controls including SEB/SXB validation, anti-abuse controls, and audit logging.
+SIAB1 (Sistem Informasi Asesmen Berintegritas) provides protected assessment delivery, administrative control, monitoring, and reporting. Backend and kiosk clients enforce integrity controls including SEB/SXB validation, anti-abuse controls, and audit logging.
 
 ## Project State
 - Status: **ESTABLISHED**. Entry points, production orchestration, test suite, and stable domain boundaries exist.
@@ -116,23 +116,19 @@ bash scripts/verify_stable_release_vps.sh
 ```
 
 ## VPS Deployment Map
-Documented deployment snapshot. Validate against target VPS before deployment.
+The next production deployment targets a new VPS. Host, domain, SSH identity, and capacity are not yet established.
 
-- Host contract: Docker Compose production deployment for `man1rokanhulu.cloud`, path `/root/ujian_online`, Ubuntu `22.04.5 LTS` snapshot.
-- User-verified canonical SSH access uses user `adminujian`, host `103.175.218.56`, and dedicated local key `~/.ssh/id_ed25519_ujian_online`:
-```bash
-ssh -i ~/.ssh/id_ed25519_ujian_online -o IdentitiesOnly=yes adminujian@103.175.218.56
-```
-- Keep the private key local; never copy it into the repository or VPS.
-- Traffic: Cloudflare/domain -> Nginx -> student API lanes or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
-- Nginx fronts eight student lanes: `api` through `api8`; two isolated admin/control lanes: `api_admin` and `api_admin2`.
+- Recommended repository path: `/opt/siab1`; override host-control paths with `SIAB1_HOME`.
+- Compose project, database, monitoring cluster, and image names use the `siab1` slug.
+- Traffic contract: domain -> Nginx -> student or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
+- Nginx fronts eight student lanes (`api` through `api8`) and two isolated admin/control lanes (`api_admin`, `api_admin2`).
 - Supporting services: PostgreSQL, PgBouncer, Redis, Celery worker, Celery beat, Prometheus, and Grafana. Optional `db_replica` is Compose profile `scaling`.
 - Cloudflare Origin Certificate configuration uses `docker/certs/cloudflare-origin.crt` and `docker/certs/cloudflare-origin.key`, mounted into Nginx as `/etc/nginx/certs`.
-- Required production environment and secret values must exist outside documentation. Production Compose sets `DEBUG=false`, `APP_ENV=production`, and `ENFORCE_SXB=true`; rate limiting is active unless explicitly disabled.
+- Required environment and secrets remain outside documentation and Git. Production sets `DEBUG=false`, `APP_ENV=production`, and `ENFORCE_SXB=true`.
 
-## Known Constraints and Documentation Drift
-- Capacity snapshot risks: single-node PostgreSQL pressure, API replica limits near 960 MiB, PgBouncer pressure, and 60G disk assumptions. Revalidate all against target VPS capacity and workload.
-- `DEPLOYMENT.md` contains stale or differing guidance: references `.env.production` not observed in current root mapping, `docker/ssl/` instead of active `docker/certs/`, an Nginx example different from active configuration, and legacy `docker-compose` syntax. This drift needs reconciliation; it does not prove deployment failure.
+## Known Constraints
+- Revalidate PostgreSQL, PgBouncer, API replica, memory, CPU, and disk sizing against the new VPS and expected workload.
+- The public domain is pending. Never release a client that still uses the `siab1.invalid` placeholder.
 - Never use `docker compose ... down -v` on production without explicit, verified backup and approval. It removes persistent volumes.
 
 ## Child DOX Index
