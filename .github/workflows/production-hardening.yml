@@ -19,6 +19,11 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      APP_ENV: test
+      SECRET_KEY: ci-only-placeholder
+      JWT_SECRET_KEY: ci-only-jwt-placeholder
+      DATABASE_URL: postgresql+asyncpg://examuser:exampassword@localhost:5432/exam_system
 
     steps:
       - name: Check out repository
