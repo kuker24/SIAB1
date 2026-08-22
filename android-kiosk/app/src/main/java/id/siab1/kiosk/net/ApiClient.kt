@@ -31,8 +31,10 @@ class ApiClient private constructor(private val context: Context) {
         .addInterceptor { chain ->
             val original = chain.request()
             val builder = original.newBuilder()
-            defaultHeaders().forEach { (key, value) ->
-                builder.header(key, value)
+            if (AppConfig.isTrustedUrl(original.url.toString())) {
+                defaultHeaders().forEach { (key, value) ->
+                    builder.header(key, value)
+                }
             }
             chain.proceed(builder.build())
         }
@@ -140,6 +142,7 @@ class ApiClient private constructor(private val context: Context) {
     }
 
     fun fetchBytes(url: String): ByteArray? {
+        if (!AppConfig.isTrustedUrl(url)) return null
         val request = Request.Builder().url(url).get().build()
         return try {
             client.newCall(request).execute().use { response ->

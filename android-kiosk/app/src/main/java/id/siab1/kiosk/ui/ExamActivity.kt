@@ -79,7 +79,11 @@ class ExamActivity : AppCompatActivity() {
         )
         val startScript = documentStartScript()
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            WebViewCompat.addDocumentStartJavaScript(webView, startScript, setOf("*"))
+            WebViewCompat.addDocumentStartJavaScript(
+                webView,
+                startScript,
+                setOf(AppConfig.trustedOrigin()),
+            )
         }
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -88,17 +92,24 @@ class ExamActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                view?.evaluateJavascript(startScript, null)
+                if (url != null && AppConfig.isTrustedUrl(url)) {
+                    view?.evaluateJavascript(startScript, null)
+                } else {
+                    view?.stopLoading()
+                }
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 var url = request.url.toString()
                 if (AppConfig.forceHttps && url.startsWith("http://")) {
                     url = "https://" + url.removePrefix("http://")
+                }
+                if (!AppConfig.isTrustedUrl(url)) return true
+                if (url != request.url.toString()) {
                     view.loadUrl(url, ApiClient.get().webViewHeaders())
                     return true
                 }
-                return !(url.startsWith("https://") || url.startsWith("http://"))
+                return false
             }
         }
     }

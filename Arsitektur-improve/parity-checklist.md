@@ -145,8 +145,8 @@ Fallback berikut dipertahankan karena bergantung pada kontrak eksternal atau out
 
 ## Pintu cutover
 
-- [ ] APK Kotlin: login, WebView, autosave, kiosk, SXB header
-- [ ] Bundle `exam-system.js` dari `static/js/exam/` lulus tes zoom + `node --check`
-- [ ] Go `/health` + SXB tes
-- [ ] Shadow Compose `--profile native-lean` tanpa ganti Nginx lane siswa
+- [x] APK Kotlin: login, WebView, autosave, kiosk, SXB header
+- [x] Bundle `exam-system.js` dari `static/js/exam/` lulus tes zoom + `node --check`
+- [x] Go `/health` + SXB tes
+- [x] Shadow Compose `--profile native-lean` tanpa ganti Nginx lane siswa
 - [ ] Fase D VPS hanya dengan permintaan operasional terpisah
