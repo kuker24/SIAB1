@@ -25,6 +25,7 @@ import id.siab1.kiosk.AppConfig
 import id.siab1.kiosk.R
 import id.siab1.kiosk.databinding.ActivityExamBinding
 import id.siab1.kiosk.kiosk.KioskController
+import id.siab1.kiosk.kiosk.LockState
 import id.siab1.kiosk.net.ApiClient
 import id.siab1.kiosk.util.Prefs
 import id.siab1.kiosk.util.SignatureUtil
@@ -37,6 +38,9 @@ class ExamActivity : AppCompatActivity() {
     private lateinit var binding: ActivityExamBinding
     private lateinit var kiosk: KioskController
     private val io = Executors.newSingleThreadExecutor()
+    private var kioskWarningAcknowledged = false
+    private var kioskWarningDialog: AlertDialog? = null
+    private var lockActivationInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -164,7 +168,33 @@ class ExamActivity : AppCompatActivity() {
         if (args.length() > 1) {
             Prefs.examId = args.optString(1)
         }
+        activateExamLock()
+    }
+
+    private fun activateExamLock() {
+        lockActivationInProgress = true
         kiosk.startExamLock()
+        binding.root.postDelayed({
+            lockActivationInProgress = false
+            if (kiosk.currentLockState() == LockState.NONE && !kioskWarningAcknowledged) {
+                showKioskWarning()
+            }
+        }, 1200L)
+    }
+
+    private fun showKioskWarning() {
+        if (isFinishing || kioskWarningDialog?.isShowing == true) return
+        kioskWarningDialog = AlertDialog.Builder(this)
+            .setTitle(R.string.kiosk_warning_title)
+            .setMessage(R.string.kiosk_warning_body)
+            .setCancelable(false)
+            .setPositiveButton(R.string.retry) { _, _ -> activateExamLock() }
+            .setNegativeButton(R.string.continue_limited_protection) { _, _ ->
+                kioskWarningAcknowledged = true
+                Toast.makeText(this, R.string.kiosk_limited_active, Toast.LENGTH_LONG).show()
+            }
+            .create()
+        kioskWarningDialog?.show()
     }
 
     private fun handleAnswerJournal(args: JSONArray) {
@@ -321,7 +351,7 @@ class ExamActivity : AppCompatActivity() {
         if (hasFocus && kiosk.examActive) {
             kiosk.applyImmersive()
         }
-        if (!hasFocus && kiosk.examActive) {
+        if (!hasFocus && kiosk.examActive && !lockActivationInProgress) {
             try {
                 val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
                 manager.moveTaskToFront(taskId, 0)
@@ -354,6 +384,7 @@ class ExamActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        kioskWarningDialog?.dismiss()
         if (kiosk.examActive) {
             kiosk.stopExamLock()
         }

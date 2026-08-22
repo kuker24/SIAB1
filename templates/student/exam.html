@@ -703,6 +703,10 @@
             pointer-events: all;
         }
 
+        .image-zoom-modal[hidden] {
+            display: none;
+        }
+
         .image-zoom-container {
             position: relative;
             width: 100%;
@@ -1103,7 +1107,7 @@
     </style>
 
     <!-- Image Zoom Modal HTML -->
-    <div id="imageZoomModal" class="image-zoom-modal" role="dialog" aria-modal="true" aria-label="Preview gambar diperbesar">
+    <div id="imageZoomModal" class="image-zoom-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Preview gambar diperbesar" inert hidden>
         <button type="button" class="zoom-close-btn" aria-label="Tutup gambar" onclick="closeImageZoom(event)" ontouchend="closeImageZoom(event)"><i class="fas fa-times"></i></button>
         <div class="zoom-hint">Bisa di-zoom (Pinch) 🔍</div>
         <div class="image-zoom-container" aria-label="Area gambar, ketuk area gelap untuk menutup">
@@ -1455,6 +1459,10 @@
 
         function openImageZoom(src) {
             if (!zoomModal || !zoomImg || !src) return;
+            if (zoomCloseTimer) clearTimeout(zoomCloseTimer);
+            zoomModal.hidden = false;
+            zoomModal.inert = false;
+            zoomModal.setAttribute('aria-hidden', 'false');
             zoomImg.src = src;
             zoomModal.classList.add('active');
 
@@ -1473,13 +1481,18 @@
             }
             if (!zoomModal || !zoomImg) return;
             zoomModal.classList.remove('active');
+            zoomModal.inert = true;
+            zoomModal.setAttribute('aria-hidden', 'true');
             currentZoom = 1;
             pinchStartDistance = null;
             pinchStartZoom = 1;
             currentPanPos = { x: 0, y: 0 };
             updateZoomTransform();
             if (zoomCloseTimer) clearTimeout(zoomCloseTimer);
-            zoomCloseTimer = setTimeout(() => { zoomImg.src = ''; }, 300); // clear after fade out
+            zoomCloseTimer = setTimeout(() => {
+                zoomImg.src = '';
+                zoomModal.hidden = true;
+            }, 300);
         }
 
         function clampZoom(value) {

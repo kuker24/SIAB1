@@ -39,8 +39,17 @@ def test_settings_describes_apk_as_primary_runtime() -> None:
 
 
 def test_seb_builder_js_handles_disabled_legacy_feature() -> None:
+    template = Path("templates/admin/seb-builder.html").read_text(encoding="utf-8")
     source = Path("static/js/seb-builder/modules/00-seb-pc-core.js").read_text(encoding="utf-8")
     bundle = Path("static/js/seb-builder.js").read_text(encoding="utf-8")
     expected = "SEB PC/Desktop legacy sedang dinonaktifkan"
+
+    script_tag = '<script src="/static/js/seb-builder.js?v=20260306-phase7"></script>'
+    conditional_script = (
+        "{% if feature_flags.seb_desktop_legacy_enabled %}\n"
+        f"    {script_tag}\n"
+        "    {% endif %}"
+    )
+    assert conditional_script in template
     assert expected in source
     assert expected in bundle

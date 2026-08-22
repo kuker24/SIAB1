@@ -645,7 +645,9 @@
     <script src="/static/js/api.js?v=20260423-devmenu1"></script>
     <script src="/static/js/auth.js"></script>
     <script src="/static/js/sidebar-loader.js"></script>
+    {% if feature_flags.seb_desktop_legacy_enabled %}
     <script src="/static/js/seb-builder.js?v=20260306-phase7"></script>
+    {% endif %}
     <script>
         auth.requireAuth(['admin', 'developer']);
     </script>

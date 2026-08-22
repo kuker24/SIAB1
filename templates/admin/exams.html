@@ -1397,8 +1397,7 @@
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <code style="background: var(--primary); color: white; padding: 3px 6px; border-radius: 4px; font-weight: 600; font-size: 0.75rem;">${exam.access_token || '------'}</code>
                                 ${isPengawas ? `
-                                    <button type="button" class="btn-icon" onclick="regenerateToken(${exam.id})" title="Refresh Token"><i class="fas fa-sync-alt"></i></button>
-                                    <button type="button" class="btn-icon btn-icon-danger" onclick="unpublishExamForPengawas(${exam.id})" title="Unpublish Ujian"><i class="fas fa-toggle-off"></i></button>
+                                    <span data-pengawas-readonly="true" class="badge badge-secondary" title="Publish dan token hanya dapat diubah guru pembuat atau admin">Monitor</span>
                                 ` : `
                                     <button type="button" class="btn-icon" onclick="copyToken('${exam.access_token}')" title="Copy"><i class="fas fa-copy"></i></button>
                                     <button type="button" class="btn-icon" onclick="regenerateToken(${exam.id})" title="Refresh"><i class="fas fa-sync-alt"></i></button>
@@ -1955,27 +1954,6 @@
                 showAlert('Token berhasil diperbarui', 'success');
             } catch (error) {
                 showAlert('Gagal generate token: ' + error.message, 'error');
-            }
-        }
-
-        async function unpublishExamForPengawas(id) {
-            if (!isPengawas) {
-                showAlert('Akses ditolak: fitur ini hanya untuk pengawas.', 'danger');
-                return;
-            }
-            const confirmed = await showConfirm(
-                'Ujian akan ditarik dari publish. Siswa aktif akan keluar sesi dan harus menunggu publish ulang.',
-                'Tarik Ujian (Unpublish)?',
-                { type: 'warning', confirmText: 'Ya, Tarik' }
-            );
-            if (!confirmed) return;
-
-            try {
-                await api.unpublishExam(id);
-                await loadExams();
-                showAlert('Ujian berhasil ditarik (unpublish).', 'warning');
-            } catch (error) {
-                showAlert('Gagal unpublish: ' + error.message, 'error');
             }
         }
 

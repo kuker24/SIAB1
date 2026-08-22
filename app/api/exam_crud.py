@@ -535,26 +535,23 @@ async def toggle_publish_exam(
     from app.core.redis_pubsub import publish_message
     from app.models.session import ExamSession
 
+    if is_pengawas_user(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Pengawas tidak diizinkan publish atau unpublish ujian.",
+        )
+
     result = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = result.scalar_one_or_none()
 
     if not exam:
         raise HTTPException(status_code=404, detail="Ujian tidak ditemukan")
 
-    is_pengawas = is_pengawas_user(current_user)
-
     await _enforce_exam_owner_or_admin_access(
         db,
         current_user,
         exam.creator_id,
-        allow_pengawas=is_pengawas and bool(exam.is_published),
     )
-
-    if is_pengawas and not bool(exam.is_published):
-        raise HTTPException(
-            status_code=403,
-            detail="Pengawas hanya dapat menarik ujian (unpublish), tidak dapat publish.",
-        )
 
     was_published = exam.is_published
 
@@ -646,6 +643,12 @@ async def regenerate_exam_token(
     db: AsyncSession = Depends(get_db)
 ):
     """Regenerate exam access token (teacher/admin only)."""
+    if is_pengawas_user(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Pengawas tidak diizinkan mengganti token ujian.",
+        )
+
     result = await db.execute(
         select(Exam)
         .options(selectinload(Exam.questions))
@@ -660,14 +663,7 @@ async def regenerate_exam_token(
         db,
         current_user,
         exam.creator_id,
-        allow_pengawas=is_pengawas_user(current_user) and bool(exam.is_published),
     )
-
-    if is_pengawas_user(current_user) and not bool(exam.is_published):
-        raise HTTPException(
-            status_code=403,
-            detail="Pengawas hanya dapat refresh token untuk ujian yang sedang/published.",
-        )
 
     # Generate new token
     allowed_chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'

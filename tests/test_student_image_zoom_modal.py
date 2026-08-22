@@ -13,6 +13,9 @@ def _student_exam_template() -> str:
 def test_student_image_zoom_has_touch_close_controls() -> None:
     template = _student_exam_template()
 
+    assert 'aria-hidden="true"' in template
+    assert "inert hidden" in template
+    assert ".image-zoom-modal[hidden]" in template
     assert 'class="zoom-close-btn"' in template
     assert 'onclick="closeImageZoom(event)"' in template
     assert 'ontouchend="closeImageZoom(event)"' in template
@@ -27,6 +30,9 @@ def test_student_image_zoom_close_stops_event_propagation() -> None:
     assert "event.preventDefault();" in template
     assert "event.stopPropagation();" in template
     assert "if (zoomCloseTimer) clearTimeout(zoomCloseTimer);" in template
+    assert "zoomModal.inert = true;" in template
+    assert "zoomModal.setAttribute('aria-hidden', 'true');" in template
+    assert "zoomModal.hidden = true;" in template
 
 
 def test_student_image_zoom_can_close_from_backdrop_at_normal_zoom() -> None:
@@ -88,6 +94,8 @@ def test_student_image_zoom_uses_ratio_based_pinch_and_modal_active_guard() -> N
     assert "const ratio = currentDistance / pinchStartDistance" in template
     assert "currentZoom = pinchStartZoom * ratio" in template
     assert "if (zoomModal && zoomModal.classList.contains('active')) return;" in template
+    assert "zoomModal.inert = false;" in template
+    assert "zoomModal.setAttribute('aria-hidden', 'false');" in template
     assert "e.stopPropagation();" in template
 
 

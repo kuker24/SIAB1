@@ -60,6 +60,11 @@ def test_kiosk_persists_autosave_state_and_enforces_exam_lock() -> None:
     assert "Prefs.timerSync = payload.toString()" in activity
     assert "kiosk.startExamLock()" in activity
     assert "activity.startLockTask()" in kiosk
+    assert "fun currentLockState(): LockState" in kiosk
+    assert "ActivityManager.LOCK_TASK_MODE_PINNED -> LockState.PINNED" in kiosk
+    assert "showKioskWarning()" in activity
+    assert "continue_limited_protection" in activity
+    assert "!lockActivationInProgress" in activity
     assert "WindowManager.LayoutParams.FLAG_SECURE" in kiosk
 
 
@@ -90,6 +95,6 @@ def test_release_build_requires_a_safe_https_server_and_versioned_token() -> Non
     assert "uri.userInfo == null" in build
     assert "uri.query == null" in build
     assert "uri.fragment == null" in build
-    assert 'versionCode = 3' in build
-    assert 'versionName = "2.0.1"' in build
+    assert 'versionCode = 4' in build
+    assert 'versionName = "2.0.2"' in build
     assert re.search(r'buildToken: String = "BUILD-\d{14}-[A-Z0-9]{6}"', config)

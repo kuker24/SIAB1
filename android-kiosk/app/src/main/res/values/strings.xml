@@ -22,4 +22,8 @@
     <string name="image_preview">Preview gambar</string>
     <string name="toggle_password">Tampilkan password</string>
     <string name="connecting">Memverifikasi keamanan...</string>
+    <string name="kiosk_warning_title">Sematkan aplikasi ujian</string>
+    <string name="kiosk_warning_body">Android belum mengaktifkan sematkan aplikasi. Pilih Coba Lagi lalu setujui dialog sistem agar perpindahan aplikasi dibatasi. Jika perangkat tidak mendukungnya, ujian tetap dapat dilanjutkan dengan proteksi terbatas.</string>
+    <string name="continue_limited_protection">Lanjut proteksi terbatas</string>
+    <string name="kiosk_limited_active">Ujian berjalan dengan proteksi perangkat terbatas.</string>
 </resources>

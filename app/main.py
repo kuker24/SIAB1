@@ -554,7 +554,14 @@ async def exam_start_redirect(request: Request, exam_id: int):
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
-    """Custom 404 handler."""
+    """Preserve API domain errors while keeping page misses generic."""
+    detail = getattr(exc, "detail", None)
+    if request.url.path.startswith("/api/") and detail:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": detail},
+            headers=getattr(exc, "headers", None),
+        )
     return JSONResponse(
         status_code=404,
         content={"detail": "Halaman tidak ditemukan"}
