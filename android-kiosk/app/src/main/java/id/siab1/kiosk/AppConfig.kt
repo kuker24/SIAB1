@@ -4,7 +4,7 @@ import java.net.URI
 
 object AppConfig {
     val serverUrl: String = BuildConfig.SIAB1_SERVER_URL
-    const val buildToken: String = "BUILD-20260617045040-S3O97D"
+    const val buildToken: String = "BUILD-20260822035834-10A035"
     const val appName: String = "SIAB1"
     const val appSubtitle: String = "Sistem Informasi Asesmen Berintegritas"
     const val forceHttps: Boolean = true

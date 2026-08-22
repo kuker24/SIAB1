@@ -32,7 +32,10 @@ BANNED_IDENTITY_PATTERNS = {
     "legacy product name": re.compile(r"ujian[ _-]?online", re.IGNORECASE),
     "legacy database name": re.compile(r"\bexam_system\b", re.IGNORECASE),
     "legacy project label": re.compile(r"\b(?:jules|up5)\b", re.IGNORECASE),
-    "legacy production domain": re.compile(r"man1rokanhulu\.cloud", re.IGNORECASE),
+    "legacy production domain": re.compile(
+        r"(?<!siab\.)man1rokanhulu\.cloud",
+        re.IGNORECASE,
+    ),
     "legacy production address": re.compile(r"103\.175\.218\.56"),
     "legacy Android package": re.compile(r"com\.(?:school\.examapp|example\.sxb_client)"),
 }

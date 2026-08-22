@@ -197,9 +197,9 @@ async def download_apk(filename: Optional[str] = None):
                 "error": "APK_NOT_FOUND",
                 "message": "Artifact Android belum tersedia. Silakan build APK/AAB terlebih dahulu.",
                 "instructions": [
-                    "1. Install Flutter SDK di komputer Anda",
-                    "2. Clone project flutter_client_code",
-                    "3. Jalankan builder GUI atau scripts/build_apk.py",
+                    "1. Siapkan Android SDK dan Java 17+",
+                    "2. Isi SIAB1_SERVER_URL dan SIAB1_RELEASE_*",
+                    "3. Jalankan bash tools/build_native_kiosk_apk.sh",
                     f"4. Pastikan output tersimpan di: {APK_BUILD_DIR}"
                 ],
                 "artifact_dir": str(APK_BUILD_DIR)
@@ -238,9 +238,9 @@ async def get_apk_info():
             "available": False,
             "message": "Artifact Android belum tersedia. Silakan build terlebih dahulu.",
             "build_instructions": {
-                "step1": "cd flutter_client_code",
-                "step2": "flutter pub get",
-                "step3": "flutter build apk --release  # atau appbundle",
+                "step1": "Siapkan Android SDK dan Java 17+",
+                "step2": "Isi SIAB1_SERVER_URL dan SIAB1_RELEASE_*",
+                "step3": "bash tools/build_native_kiosk_apk.sh",
                 "step4": f"Copy artifact ke {APK_BUILD_DIR}",
             },
             "artifact_dir": str(APK_BUILD_DIR),

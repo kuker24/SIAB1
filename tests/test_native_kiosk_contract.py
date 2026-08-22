@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -76,3 +77,19 @@ def test_release_build_never_uses_debug_signing() -> None:
     assert "SIAB1_SERVER_URL" in script
     assert "SIAB1_RELEASE_KEYSTORE" in script
     assert "SIAB1_RELEASE_KEY_PASSWORD" in script
+
+
+def test_release_build_requires_a_safe_https_server_and_versioned_token() -> None:
+    build = _source("android-kiosk/app/build.gradle.kts")
+    config = _source(
+        "android-kiosk/app/src/main/java/id/siab1/kiosk/AppConfig.kt"
+    )
+
+    assert 'uri.scheme.equals("https", ignoreCase = true)' in build
+    assert '!uri.host.equals("siab1.invalid", ignoreCase = true)' in build
+    assert "uri.userInfo == null" in build
+    assert "uri.query == null" in build
+    assert "uri.fragment == null" in build
+    assert 'versionCode = 3' in build
+    assert 'versionName = "2.0.1"' in build
+    assert re.search(r'buildToken: String = "BUILD-\d{14}-[A-Z0-9]{6}"', config)

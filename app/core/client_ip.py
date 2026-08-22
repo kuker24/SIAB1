@@ -1,5 +1,5 @@
 """
-Helpers to resolve client IP behind reverse proxies (Nginx/Cloudflare).
+Helpers to resolve client IP behind the trusted SafeLine/Nginx proxy chain.
 """
 from __future__ import annotations
 
@@ -36,12 +36,14 @@ def _normalize_ip(value: str) -> Optional[str]:
 
 def get_client_ip(request: Request) -> str:
     """
-    Resolve real client IP with trusted header order:
-    CF-Connecting-IP -> X-Forwarded-For (first hop) -> X-Real-IP -> socket peer.
+    Resolve real client IP with trusted header order.
+
+    The loopback-only Nginx origin overwrites X-Real-IP after SafeLine, making
+    it safer than client-supplied forwarding headers.
     """
-    cf_ip = _normalize_ip(request.headers.get("CF-Connecting-IP", ""))
-    if cf_ip:
-        return cf_ip
+    real_ip = _normalize_ip(request.headers.get("X-Real-IP", ""))
+    if real_ip:
+        return real_ip
 
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for:
@@ -50,9 +52,9 @@ def get_client_ip(request: Request) -> str:
         if xff_ip:
             return xff_ip
 
-    real_ip = _normalize_ip(request.headers.get("X-Real-IP", ""))
-    if real_ip:
-        return real_ip
+    cf_ip = _normalize_ip(request.headers.get("CF-Connecting-IP", ""))
+    if cf_ip:
+        return cf_ip
 
     peer_ip = request.client.host if request.client else ""
     socket_ip = _normalize_ip(peer_ip)

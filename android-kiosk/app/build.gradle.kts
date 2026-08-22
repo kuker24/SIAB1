@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -11,6 +13,16 @@ val siab1ServerUrl = providers.environmentVariable("SIAB1_SERVER_URL")
     .orElse("https://siab1.invalid/")
     .get()
 val escapedServerUrl = siab1ServerUrl.replace("\\", "\\\\").replace("\"", "\\\"")
+val releaseServerReady = runCatching { URI(siab1ServerUrl) }
+    .getOrNull()
+    ?.let { uri ->
+        uri.scheme.equals("https", ignoreCase = true) &&
+            !uri.host.isNullOrBlank() &&
+            !uri.host.equals("siab1.invalid", ignoreCase = true) &&
+            uri.userInfo == null &&
+            uri.query == null &&
+            uri.fragment == null
+    } == true
 val releaseSigningReady = listOf(
     releaseStoreFile,
     releaseStorePassword,
@@ -26,8 +38,8 @@ android {
         applicationId = "id.siab1.kiosk"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.0.1"
         buildConfigField("String", "SIAB1_SERVER_URL", "\"$escapedServerUrl\"")
     }
 
@@ -89,8 +101,8 @@ tasks.configureEach {
             check(releaseSigningReady) {
                 "Release signing requires SIAB1_RELEASE_KEYSTORE and SIAB1_RELEASE_* credentials"
             }
-            check(siab1ServerUrl != "https://siab1.invalid/") {
-                "Release build requires SIAB1_SERVER_URL"
+            check(releaseServerReady) {
+                "Release build requires a valid HTTPS SIAB1_SERVER_URL without credentials, query, or fragment"
             }
         }
     }

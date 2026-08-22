@@ -1,5 +1,5 @@
 # docker-compose.production.yml
-# Production deployment - Right-sized for 16GB RAM / 16 vCPU with 6 API replicas
+# Production deployment behind SafeLine on a 16GB RAM / 16 vCPU host.
 
 name: siab1
 
@@ -279,12 +279,10 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
-      - "443:443"
+      # SafeLine is the only public HTTP/TLS ingress. Never bind this origin to 0.0.0.0.
+      - "127.0.0.1:${SIAB1_ORIGIN_PORT:-8080}:80"
     volumes:
       - ./docker/nginx.production.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/certs:/etc/nginx/certs:ro
-      - ./docker/certbot/www:/var/www/certbot:ro
       - ./static:/usr/share/nginx/html/static:ro
       - ./templates:/usr/share/nginx/html/templates:ro
     depends_on:

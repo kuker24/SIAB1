@@ -89,7 +89,7 @@ cd android-kiosk
 
 ## Deployment
 
-Deployment production menggunakan `docker-compose.production.yml`. Database, image, dan Compose project memakai slug `siab1`. Domain belum ditetapkan dan harus diberikan melalui konfigurasi target sebelum release client atau cutover VPS.
+Deployment production menggunakan `docker-compose.production.yml`. Database, image, dan Compose project memakai slug `siab1`. Hostname publik adalah `siab.man1rokanhulu.cloud`; SafeLine menangani ingress dan TLS sebelum meneruskan trafik ke origin Nginx yang hanya terikat ke loopback.
 
 Lihat [DEPLOYMENT.md](DEPLOYMENT.md). Jangan menjalankan rebuild, migrasi, atau penghapusan volume ketika asesmen aktif.
 

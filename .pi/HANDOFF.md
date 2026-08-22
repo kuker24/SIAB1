@@ -6,7 +6,7 @@ This is the repository's only active session checkpoint. `AGENTS.md`, source cod
 
 ## Current Objective
 
-Prepare SIAB1 for a new VPS and pending public domain from the canonical repository at `https://github.com/kuker24/SIAB1`.
+Prepare SIAB1 for deployment to a new VPS at `siab.man1rokanhulu.cloud` from the canonical repository at `https://github.com/kuker24/SIAB1`.
 
 ## Current State
 
@@ -14,9 +14,12 @@ Prepare SIAB1 for a new VPS and pending public domain from the canonical reposit
 - Technical slug, Compose project, database, images, and monitoring labels use `siab1`.
 - Android native package is `id.siab1.kiosk`; Flutter fallback is `id.siab1.flutter`.
 - Release clients require an explicit server URL; `siab1.invalid` is a non-release placeholder.
+- Public hostname is `siab.man1rokanhulu.cloud`; Cloudflare remains authoritative DNS in DNS-only mode.
+- SafeLine CE terminates public TLS and forwards to the loopback-only SIAB1 Nginx origin at `127.0.0.1:8080`.
+- SafeLine management binds to `127.0.0.1:9443` and is accessed only through an SSH tunnel.
 - Python/FastAPI and Flutter remain supported fallbacks.
 - Legacy phase reports, stale deployment scripts, duplicate client sources, and unused web assets were removed after consolidation.
-- New VPS host, domain, SSH identity, and capacity are pending. No VPS cutover has been performed.
+- New VPS host details, SSH identity, capacity validation, DNS cutover, and runtime deployment are pending. No VPS cutover has been performed.
 
 ## Verification Evidence
 
@@ -31,8 +34,9 @@ Prepare SIAB1 for a new VPS and pending public domain from the canonical reposit
 
 ## Remaining Decisions
 
-- Provide the new public domain, then update DNS/TLS/CORS, Nginx, GitHub homepage, and client release configuration.
+- Validate the SafeLine and SIAB1 Compose topology, DNS, TLS, CORS, and client release configuration on the new VPS.
 - Validate sizing and deployment state directly on the new VPS before cutover.
+- Build and smoke-test the signed Android release against `siab.man1rokanhulu.cloud`.
 - Run Flutter verification when the SDK is available.
 
 ## Production Safety Boundary

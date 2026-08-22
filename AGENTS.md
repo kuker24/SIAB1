@@ -116,19 +116,20 @@ bash scripts/verify_stable_release_vps.sh
 ```
 
 ## VPS Deployment Map
-The next production deployment targets a new VPS. Host, domain, SSH identity, and capacity are not yet established.
+The next production deployment targets a new VPS. The public hostname is established; VPS host details, SSH identity, and capacity are not yet established.
 
 - Recommended repository path: `/opt/siab1`; override host-control paths with `SIAB1_HOME`.
 - Compose project, database, monitoring cluster, and image names use the `siab1` slug.
-- Traffic contract: domain -> Nginx -> student or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
+- Traffic contract: domain -> SafeLine -> loopback-only Nginx -> student or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
 - Nginx fronts eight student lanes (`api` through `api8`) and two isolated admin/control lanes (`api_admin`, `api_admin2`).
 - Supporting services: PostgreSQL, PgBouncer, Redis, Celery worker, Celery beat, Prometheus, and Grafana. Optional `db_replica` is Compose profile `scaling`.
-- Cloudflare Origin Certificate configuration uses `docker/certs/cloudflare-origin.crt` and `docker/certs/cloudflare-origin.key`, mounted into Nginx as `/etc/nginx/certs`.
+- Public hostname is `siab.man1rokanhulu.cloud`. Cloudflare provides authoritative DNS in DNS-only mode; SafeLine terminates public TLS and forwards to `127.0.0.1:8080`.
+- SafeLine management binds to `127.0.0.1:9443` and must be accessed through an SSH tunnel. Never expose the management port publicly.
 - Required environment and secrets remain outside documentation and Git. Production sets `DEBUG=false`, `APP_ENV=production`, and `ENFORCE_SXB=true`.
 
 ## Known Constraints
 - Revalidate PostgreSQL, PgBouncer, API replica, memory, CPU, and disk sizing against the new VPS and expected workload.
-- The public domain is pending. Never release a client that still uses the `siab1.invalid` placeholder.
+- DNS cutover and production TLS validation are pending. Never release a client that still uses the `siab1.invalid` placeholder.
 - Never use `docker compose ... down -v` on production without explicit, verified backup and approval. It removes persistent volumes.
 
 ## Child DOX Index

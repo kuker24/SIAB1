@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from jinja2 import TemplateNotFound
 import logging
 
@@ -392,9 +392,8 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    """Root endpoint - returns empty response for production."""
-    from fastapi.responses import Response
-    return Response(content="", media_type="text/html")
+    """Redirect visitors to the student login page."""
+    return RedirectResponse(url="/student/", status_code=302)
 
 
 # ============== PUBLIC APK TOKEN VALIDATION ==============
@@ -483,9 +482,9 @@ async def admin_pages(request: Request, page: str = "index.html"):
     except TemplateNotFound:
         return JSONResponse(status_code=404, content={"detail": "Halaman tidak ditemukan"})
     response = jinja_templates.TemplateResponse(
+        request,
         template_name,
         {
-            "request": request,
             "feature_flags": {
                 "seb_desktop_legacy_enabled": settings.seb_desktop_legacy_enabled,
                 "seb_qr_enabled": settings.seb_qr_enabled,
@@ -523,7 +522,7 @@ async def student_pages(request: Request, page: str = "index.html"):
     except TemplateNotFound:
         return JSONResponse(status_code=404, content={"detail": "Halaman tidak ditemukan"})
 
-    response = jinja_templates.TemplateResponse(template_name, {"request": request})
+    response = jinja_templates.TemplateResponse(request, template_name)
     # Student exam pages must stay fresh to avoid stale UI/security state in WebView/CDN cache.
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
@@ -536,13 +535,17 @@ async def student_pages(request: Request, page: str = "index.html"):
 @app.get("/seb/{exam_id}")
 async def seb_landing(request: Request, exam_id: int):
     """Serve SEB landing page for an exam."""
-    return jinja_templates.TemplateResponse("seb/landing.html", {"request": request, "exam_id": exam_id})
+    return jinja_templates.TemplateResponse(
+        request,
+        "seb/landing.html",
+        {"exam_id": exam_id},
+    )
 
 
 @app.get("/exam/{exam_id}/start")
 async def exam_start_redirect(request: Request, exam_id: int):
     """Redirect to student dashboard for exam (SEB entry point)."""
-    return jinja_templates.TemplateResponse("student/dashboard.html", {"request": request})
+    return jinja_templates.TemplateResponse(request, "student/dashboard.html")
 
 
 
