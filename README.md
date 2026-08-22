@@ -4,7 +4,9 @@
 
 **Sistem Informasi Asesmen Berintegritas** untuk penyelenggaraan asesmen digital yang terlindungi, terpantau, dan dapat diaudit.
 
-SIAB1 menggabungkan aplikasi kiosk Android, layanan FastAPI dan Go, PostgreSQL, Redis, Celery, serta kontrol SEB/SXB untuk menjaga integritas sesi asesmen dari login sampai pelaporan.
+SIAB1 menggabungkan aplikasi kiosk Android, runtime FastAPI, PostgreSQL, Redis, Celery,
+serta kontrol SEB/SXB untuk menjaga integritas sesi asesmen dari login sampai pelaporan. Runtime
+Go Native-Lean tersedia sebagai komponen opsional dan belum menerima trafik produksi.
 
 ## Kemampuan Utama
 
@@ -13,23 +15,25 @@ SIAB1 menggabungkan aplikasi kiosk Android, layanan FastAPI dan Go, PostgreSQL, 
 - Autosave, answer journal, final-submit integrity, reconnect, dan recovery sesi.
 - Validasi SEB/SXB, signature policy, rate limiting, CAPTCHA, account lockout, dan audit logging.
 - Monitoring real-time, Prometheus, Grafana, alerting, backup, dan recovery tooling.
-- FastAPI sebagai runtime lengkap dengan jalur Go Native-Lean untuk trafik utama.
+- FastAPI sebagai runtime produksi dengan jalur Go Native-Lean opsional yang harus melewati
+  contract, load, canary, dan rollback gates sebelum dipromosikan.
 
 ## Arsitektur
 
 ```text
 Android kiosk / browser / Flutter fallback
                     |
-                  Nginx
+             SafeLine -> Nginx
                     |
-          Go native routes + FastAPI
+      FastAPI student + control lanes
                     |
              PgBouncer / Redis
                     |
           PostgreSQL / Celery workers
 ```
 
-Penjelasan boundary dan fallback tersedia di [ARCHITECTURE.md](ARCHITECTURE.md).
+Status produksi, komponen opsional, dan target boundary tersedia di
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Struktur Repository
 
@@ -37,7 +41,7 @@ Penjelasan boundary dan fallback tersedia di [ARCHITECTURE.md](ARCHITECTURE.md).
 |---|---|
 | `android-kiosk/` | Klien Android native utama |
 | `app/` | API, policy, model, service, middleware, dan task FastAPI |
-| `go/` | Jalur native Go untuk endpoint bertrafik tinggi |
+| `go/` | Kandidat runtime Go Native-Lean opsional; bukan upstream produksi |
 | `flutter_client_code/` | Klien Flutter fallback |
 | `templates/`, `static/` | Antarmuka web admin dan peserta |
 | `docker/`, `monitoring/` | Container, Nginx, PgBouncer, Prometheus, dan Grafana |
