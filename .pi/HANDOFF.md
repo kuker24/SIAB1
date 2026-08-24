@@ -32,7 +32,7 @@ Complete production readiness for the deployed SIAB1 stack at `siab.man1rokanhul
 - **PASS** - Android kiosk Kotlin compile and lint.
 - **PASS** - Compose config, shell syntax, and shellcheck.
 - **PASS** - SIAB1 identity guard and local documentation-link guard.
-- **PASS** - GitHub production hardening workflow through commit `ecc468b`.
+- **PASS** - GitHub production hardening workflow through readiness commit `d00062e`.
 - **PASS** - read-only VPS audit: 16 vCPU, 15 GiB RAM, 4 GiB unused swap, healthy SIAB1 containers, healthy ops summary, and 100% Redis stability.
 - **PASS** - DNS, Let's Encrypt TLS, origin health, and public health; both health paths returned HTTP 200.
 - **PASS** - automated daily backup and weekly non-destructive restore drill.
@@ -41,6 +41,7 @@ Complete production readiness for the deployed SIAB1 stack at `siab.man1rokanhul
 - **PASS** - public violation/WebSocket smoke and upload smoke with synthetic cleanup.
 - **PASS** - read-only capacity snapshot under root without weakening secret permissions.
 - **PASS** - Flutter analyze and widget test using an isolated stable SDK.
+- **PASS** - deployed runtime checksum dry-run and full release manifest verification.
 - **POLICY BLOCKED** - export success-path while peak mode disables heavy exports; HTTP 503 guard verified.
 - **BLOCKED** - signed Android `2.0.2+4` release; signing material is unavailable.
 - **NOT RUN** - physical-device APK/SXB smoke on 1-3 Android devices.
