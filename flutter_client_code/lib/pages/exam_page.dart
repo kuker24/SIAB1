@@ -2154,7 +2154,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                         onDoubleTap: () {
                           zoomed = !zoomed;
                           transformationController.value = zoomed
-                              ? (Matrix4.identity()..scale(2.5))
+                              ? Matrix4.diagonal3Values(2.5, 2.5, 1)
                               : Matrix4.identity();
                         },
                         child: InteractiveViewer(

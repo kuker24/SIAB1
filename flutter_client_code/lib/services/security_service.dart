@@ -274,7 +274,7 @@ class SecurityService {
   /// available, so unknown keyboards are reported as non-blocking unknown—not
   /// as verified safe. ExamPage only warns for dangerous keyboards.
   static Future<KeyboardSecurityResult> checkKeyboardSecurity() async {
-    return KeyboardSecurityResult(
+    return const KeyboardSecurityResult(
       level: 1,
       isDangerous: false,
       message: 'Keyboard tidak dapat diverifikasi otomatis di perangkat ini.',

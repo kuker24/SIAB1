@@ -4,7 +4,8 @@
 # Backup: Database + Exam Data + Results + Configs
 # ============================================
 
-set -e
+set -euo pipefail
+umask 077
 
 # Colors
 RED='\033[0;31m'
@@ -37,14 +38,6 @@ UPLOAD_COUNT=0
 SEB_COUNT=0
 LOG_COUNT=0
 
-# Load environment
-if [ -f .env ]; then
-    source .env
-else
-    echo -e "${RED}ERROR: .env file not found${NC}"
-    exit 1
-fi
-
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║${NC} ${BLUE}   COMPREHENSIVE BACKUP - SIAB1${NC}                                       ${CYAN}║${NC}"
@@ -63,7 +56,7 @@ echo ""
 echo -e "${BLUE}[2/7] Backing up database...${NC}"
 $DC -f docker-compose.production.yml exec -T db pg_dump -U examuser siab1 > "$BACKUP_DIR/database/siab1.sql" 2>/dev/null
 
-if [ -f "$BACKUP_DIR/database/siab1.sql" ]; then
+if [ -s "$BACKUP_DIR/database/siab1.sql" ]; then
     DB_SIZE=$(du -h "$BACKUP_DIR/database/siab1.sql" | cut -f1)
     echo -e "${GREEN}✓ Database backup complete: $DB_SIZE${NC}"
 else
@@ -153,6 +146,7 @@ cd "$BACKUP_ROOT"
 tar -czf "backup_${DATE}.tar.gz" "backup_${DATE}" 2>/dev/null
 
 if [ -f "backup_${DATE}.tar.gz" ]; then
+    sha256sum "backup_${DATE}.tar.gz" > "backup_${DATE}.tar.gz.sha256"
     COMPRESSED_SIZE=$(du -h "backup_${DATE}.tar.gz" | cut -f1)
     echo -e "${GREEN}✓ Backup compressed: $COMPRESSED_SIZE${NC}"
 
@@ -172,8 +166,9 @@ echo ""
 
 # 7. Cleanup old backups
 echo -e "${CYAN}Cleaning up old backups (older than $KEEP_DAYS days)...${NC}"
-find "$BACKUP_ROOT" -name "backup_*.tar.gz" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
-REMAINING=$(ls -1 "$BACKUP_ROOT"/backup_*.tar.gz 2>/dev/null | wc -l)
+find "$BACKUP_ROOT" -name "backup_*.tar.gz" -mtime +"$KEEP_DAYS" -delete 2>/dev/null || true
+find "$BACKUP_ROOT" -name "backup_*.tar.gz.sha256" -mtime +"$KEEP_DAYS" -delete 2>/dev/null || true
+REMAINING=$(find "$BACKUP_ROOT" -maxdepth 1 -type f -name 'backup_*.tar.gz' | wc -l)
 echo -e "${GREEN}✓ Cleanup complete. $REMAINING backup(s) retained${NC}"
 echo ""
 

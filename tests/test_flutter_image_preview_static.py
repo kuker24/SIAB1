@@ -25,7 +25,7 @@ def test_flutter_native_image_preview_uses_interactive_viewer_dialog() -> None:
     assert "maxScale: 5" in source
     assert "panEnabled: true" in source
     assert "scaleEnabled: true" in source
-    assert "Matrix4.identity()..scale(2.5)" in source
+    assert "Matrix4.diagonal3Values(2.5, 2.5, 1)" in source
     assert "PopScope" in source
     assert "Image.network" in source
     assert "CircularProgressIndicator" in source

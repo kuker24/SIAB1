@@ -18,8 +18,14 @@ def test_monitoring_supports_signal_control_full_restart() -> None:
 
 
 def test_compose_mounts_runtime_control_for_api() -> None:
-    assert "- SYSTEM_FULL_RESTART_REQUEST_FILE=${SYSTEM_FULL_RESTART_REQUEST_FILE:-}" in COMPOSE_SOURCE
-    assert "- SYSTEM_FULL_RESTART_STATUS_FILE=${SYSTEM_FULL_RESTART_STATUS_FILE:-}" in COMPOSE_SOURCE
+    assert (
+        "- SYSTEM_FULL_RESTART_REQUEST_FILE=${SYSTEM_FULL_RESTART_REQUEST_FILE:-"
+        "/app/runtime_control/system_full_restart.request.json}"
+    ) in COMPOSE_SOURCE
+    assert (
+        "- SYSTEM_FULL_RESTART_STATUS_FILE=${SYSTEM_FULL_RESTART_STATUS_FILE:-"
+        "/app/runtime_control/system_full_restart.status.json}"
+    ) in COMPOSE_SOURCE
     assert "- ./runtime_control:/app/runtime_control" in COMPOSE_SOURCE
 
 

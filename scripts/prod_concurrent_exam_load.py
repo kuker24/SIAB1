@@ -1037,18 +1037,41 @@ def update_browser_testing(
 
 
 def download_exam_seb_keys(ctx: LoadContext, exam_id: int, timeout: float) -> Tuple[str, str]:
-    config_bytes = request_bytes(
-        ctx.session,
-        ctx.base_url,
-        "GET",
-        f"/api/exams/{exam_id}/seb-config.seb",
-        token=ctx.teacher_token,
-        expected=(200,),
-        timeout=timeout,
-    )
-    parsed = plistlib.loads(config_bytes)
-    config_key = str(parsed.get("configKey") or "")
-    browser_exam_key = str(parsed.get("browserExamKey") or "")
+    try:
+        config_bytes = request_bytes(
+            ctx.session,
+            ctx.base_url,
+            "GET",
+            f"/api/exams/{exam_id}/seb-config.seb",
+            token=ctx.teacher_token,
+            expected=(200,),
+            timeout=timeout,
+        )
+        parsed = plistlib.loads(config_bytes)
+        config_key = str(parsed.get("configKey") or "")
+        browser_exam_key = str(parsed.get("browserExamKey") or "")
+    except ApiError as exc:
+        detail = exc.body.get("detail") if isinstance(exc.body, dict) else None
+        feature_disabled = (
+            exc.status == 404
+            and isinstance(detail, dict)
+            and detail.get("error") == "FEATURE_DISABLED"
+            and detail.get("feature") == "seb_desktop_legacy"
+        )
+        if not feature_disabled or not ctx.compose_file:
+            raise
+        parsed = psql_json(
+            ctx.compose_file,
+            ctx.db_service,
+            ctx.db_user,
+            ctx.db_name,
+            "SELECT json_build_object("
+            "'configKey', seb_config_key, "
+            "'browserExamKey', seb_browser_exam_key"
+            f") FROM exams WHERE id = {int(exam_id)}",
+        )
+        config_key = str((parsed or {}).get("configKey") or "")
+        browser_exam_key = str((parsed or {}).get("browserExamKey") or "")
     ensure_success(bool(config_key), f"configKey kosong untuk exam {exam_id}")
     ensure_success(bool(browser_exam_key), f"browserExamKey kosong untuk exam {exam_id}")
     config_key_hash = hashlib.sha256(config_key.encode()).hexdigest()
@@ -1215,6 +1238,7 @@ def create_exam_phase(
     class_name: str,
     stamp: str,
     timeout: float,
+    created_exam_ids: Optional[List[int]] = None,
 ) -> ExamPhase:
     now = utc_now()
     exam = request_json(
@@ -1241,11 +1265,14 @@ def create_exam_phase(
         expected=(200, 201),
         timeout=timeout,
     )
+    exam_id = int(exam["id"])
+    if created_exam_ids is not None:
+        created_exam_ids.append(exam_id)
     question = request_json(
         ctx.session,
         ctx.base_url,
         "POST",
-        f"/api/questions/{exam['id']}",
+        f"/api/questions/{exam_id}",
         token=ctx.teacher_token,
         payload={
             "question_text": f"Phase {phase_size} (run {phase_index}): 2 + 2 = ?",
@@ -1265,20 +1292,20 @@ def create_exam_phase(
         ctx.session,
         ctx.base_url,
         "POST",
-        f"/api/exams/{exam['id']}/publish",
+        f"/api/exams/{exam_id}/publish",
         token=ctx.teacher_token,
         expected=(200,),
         timeout=timeout,
     )
     seb_config_key_hash, seb_browser_exam_key = download_exam_seb_keys(
         ctx,
-        int(exam["id"]),
+        exam_id,
         timeout,
     )
     correct_option_id = next(int(item["id"]) for item in question["options"] if item.get("is_correct"))
     return ExamPhase(
         size=phase_size,
-        exam_id=int(exam["id"]),
+        exam_id=exam_id,
         question_id=int(question["id"]),
         correct_option_id=correct_option_id,
         exam_title=str(exam["title"]),
@@ -2311,8 +2338,8 @@ def main() -> int:
                 class_name=str(ctx.summary["provisioning"]["student_class"]),
                 stamp=datetime.now().strftime("%H%M%S"),
                 timeout=max(args.request_timeout, 120.0),
+                created_exam_ids=exam_ids,
             )
-            exam_ids.append(phase.exam_id)
             phase_report = run_exam_phase(
                 ctx,
                 phase,

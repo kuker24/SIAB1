@@ -110,6 +110,7 @@ SAFELINE_DIR=/opt/safeline POSTGRES_PASSWORD=not-a-production-secret \
 ## Start SIAB1
 
 ```bash
+sudo bash scripts/prepare_runtime_dirs.sh /opt/siab1
 docker compose -p siab1 -f docker-compose.production.yml up -d
 docker compose -p siab1 -f docker-compose.production.yml ps
 curl --fail --header 'Host: siab.man1rokanhulu.cloud' http://127.0.0.1:8080/health
@@ -135,3 +136,26 @@ Jangan merilis client yang masih menunjuk `siab1.invalid`.
 ## Backup dan Rollback
 
 Gunakan script di `bin/` untuk backup dan restore SIAB1. Backup SafeLine mencakup `/opt/safeline/.env`, database SafeLine, dan resource directory. Validasi hasil backup sebelum perubahan. Jangan pernah menjalankan `docker compose down -v` pada data production tanpa approval eksplisit dan backup terverifikasi.
+
+Pasang backup harian pukul 01:30 WIB dan restore drill non-destruktif mingguan:
+
+```bash
+sudo bash scripts/install_backup_systemd.sh /opt/siab1
+sudo systemctl start siab1-backup.service
+sudo systemctl start siab1-restore-drill.service
+sudo systemctl status siab1-backup.timer siab1-restore-drill.timer
+```
+
+Setiap archive `recovery_sistem/backup_*.tar.gz` memiliki sidecar SHA-256. Restore drill
+memvalidasi checksum dan memulihkan database ke database sementara, lalu menghapus database
+sementara tersebut tanpa mengganti database `siab1`.
+
+Karena deployment VPS berbasis file, buat bukti release setelah sinkronisasi file:
+
+```bash
+sudo OUTPUT_DIR=/opt/siab1/releases \
+  bash scripts/generate_release_manifest.sh <git-commit>
+```
+
+Metadata mencatat release ID dan checksum manifest. Manifest hanya mencakup source/config runtime;
+certificate, upload, dan artifact build dinamis dikecualikan.

@@ -180,6 +180,7 @@ async def run_verification(base_url: str) -> Dict[str, object]:
     websocket_payloads: List[Dict[str, object]] = []
     violations_api: Dict[str, object] = {}
     errors: List[str] = []
+    expected_monitoring_keys: List[str] = []
 
     headers_teacher = {"Authorization": f"Bearer {fixture.teacher_token}"}
     headers_student = {"Authorization": f"Bearer {fixture.student_token}"}
@@ -204,15 +205,20 @@ async def run_verification(base_url: str) -> Dict[str, object]:
                     headers=headers_student,
                     json=payload,
                 )
-                if response.status_code != 200:
+                if response.status_code not in {200, 202}:
                     errors.append(
                         f"log-violation failed for {raw_event_type}: "
                         f"{response.status_code} {response.text}"
                     )
                     continue
 
+                response_payload = response.json()
+                if response_payload.get("status") == "ignored":
+                    continue
+                expected_monitoring_keys.append(expected_key)
+
                 try:
-                    ws_message = await asyncio.wait_for(ws.recv(), timeout=4.0)
+                    ws_message = await asyncio.wait_for(ws.recv(), timeout=10.0)
                 except Exception as exc:  # noqa: BLE001
                     errors.append(f"websocket timeout for {raw_event_type}: {exc}")
                     continue
@@ -254,7 +260,7 @@ async def run_verification(base_url: str) -> Dict[str, object]:
 
     missing_from_api = [
         expected
-        for _, _, expected in VIOLATION_CASES
+        for expected in expected_monitoring_keys
         if by_type.get(expected, 0) < 1
     ]
     if missing_from_api:

@@ -116,20 +116,29 @@ bash scripts/verify_stable_release_vps.sh
 ```
 
 ## VPS Deployment Map
-The next production deployment targets a new VPS. The public hostname is established; VPS host details, SSH identity, and capacity are not yet established.
+The production stack is deployed on the target VPS. The facts below were verified read-only on 2026-08-22 and remain a documented snapshot rather than continuous monitoring evidence.
 
-- Recommended repository path: `/opt/siab1`; override host-control paths with `SIAB1_HOME`.
+- SIAB1 is deployed at `/opt/siab1`; SafeLine is deployed at `/opt/safeline`.
 - Compose project, database, monitoring cluster, and image names use the `siab1` slug.
 - Traffic contract: domain -> SafeLine -> loopback-only Nginx -> student or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
 - Nginx fronts eight student lanes (`api` through `api8`) and two isolated admin/control lanes (`api_admin`, `api_admin2`).
 - Supporting services: PostgreSQL, PgBouncer, Redis, Celery worker, Celery beat, Prometheus, and Grafana. Optional `db_replica` is Compose profile `scaling`.
 - Public hostname is `siab.man1rokanhulu.cloud`. Cloudflare provides authoritative DNS in DNS-only mode; SafeLine terminates public TLS and forwards to `127.0.0.1:8080`.
 - SafeLine management binds to `127.0.0.1:9443` and must be accessed through an SSH tunnel. Never expose the management port publicly.
+- The verified host has 16 vCPU, 15 GiB RAM, 4 GiB swap, and a 58 GiB root filesystem. All SIAB1 and SafeLine containers were running; public and origin health returned HTTP 200.
 - Required environment and secrets remain outside documentation and Git. Production sets `DEBUG=false`, `APP_ENV=production`, and `ENFORCE_SXB=true`.
 
 ## Known Constraints
-- Revalidate PostgreSQL, PgBouncer, API replica, memory, CPU, and disk sizing against the new VPS and expected workload.
-- DNS cutover and production TLS validation are pending. Never release a client that still uses the `siab1.invalid` placeholder.
+- Controlled 620-user public load passed correctness gates, but p95 latency under synchronized
+  bursts remains high and must be monitored during real waves.
+- Automated backup, restore drill, and guarded stateless restart are configured. Restart entries
+  use a finite horizon and must be refreshed before expiry.
+- Heavy exports are intentionally disabled in production peak mode; their success-path requires
+  an approved maintenance window.
+- The deployment directory is a file-based release rather than a Git checkout; generate a
+  checksum release manifest after each synchronization.
+- Android `2.0.2+4` still requires release signing material and physical-device smoke.
+- Never release a client that still uses the `siab1.invalid` placeholder.
 - Never use `docker compose ... down -v` on production without explicit, verified backup and approval. It removes persistent volumes.
 
 ## Child DOX Index

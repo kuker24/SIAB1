@@ -191,11 +191,17 @@ restart. Bukti ini menunjukkan regression health, bukan peak capacity.
 
 ## Risiko Operasional
 
-- Peak concurrency belum dibuktikan dengan controlled load test terhadap target beban nyata.
-- Backup otomatis dan restore-test evidence belum tersedia.
-- Auto-restart aplikasi masih dinonaktifkan.
-- Complete public admin/student/SXB exam-flow smoke masih perlu dipertahankan sebagai release gate.
+- Controlled public load 50/200/620 lulus correctness gate, tetapi synchronized burst masih
+  menghasilkan latency p95 tinggi dan harus dipantau saat gelombang nyata.
+- Backup harian, restore drill mingguan, dan guarded stateless restart telah aktif. Jadwal
+  restart memiliki horizon terbatas dan harus diperpanjang sebelum habis.
+- Public exam flow, upload, dan violation/WebSocket smoke lulus. Heavy export tetap sengaja
+  dinonaktifkan pada peak mode; success-path memerlukan maintenance window.
+- Android `2.0.2+4` masih menunggu signing material dan physical-device smoke.
 - Perubahan ownership atau runtime tidak boleh dilakukan saat ujian aktif.
+
+Bukti agregat tersedia di
+[docs/production-readiness-2026-08-24.md](docs/production-readiness-2026-08-24.md).
 
 ## Entry Point
 
