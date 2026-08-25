@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config.dart';
 import '../services/api_service.dart';
+import '../widgets/common_widgets.dart';
 import 'exam_page.dart';
 
 class NativeLoginPage extends StatefulWidget {
@@ -214,29 +215,13 @@ class _NativeLoginPageState extends State<NativeLoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Container(
-                        width: 104,
-                        height: 104,
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.16),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            width: 1.5,
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 24),
+                        child: Align(
+                          child: SchoolLogo(
+                            size: 104,
+                            shadowColor: Color(0x4D000000),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.18),
-                              blurRadius: 30,
-                              offset: const Offset(0, 18),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.school_rounded,
-                          color: Colors.white,
-                          size: 56,
                         ),
                       ),
                       const Text(

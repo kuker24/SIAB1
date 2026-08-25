@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:ui';
+
+import 'package:flutter/material.dart';
 
 /// Widget glassmorphism untuk UI modern
 class GlassContainer extends StatelessWidget {
@@ -65,10 +66,11 @@ class GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gradientColors = colors ?? [
-      const Color(0xFF3b82f6),
-      const Color(0xFF2563eb),
-    ];
+    final gradientColors = colors ??
+        [
+          const Color(0xFF3b82f6),
+          const Color(0xFF2563eb),
+        ];
 
     return Container(
       decoration: BoxDecoration(
@@ -133,7 +135,48 @@ class GradientButton extends StatelessWidget {
   }
 }
 
-/// Animated Logo widget
+/// School identity used across the native application surfaces.
+class SchoolLogo extends StatelessWidget {
+  final double size;
+  final Color shadowColor;
+
+  const SchoolLogo({
+    super.key,
+    this.size = 120,
+    this.shadowColor = const Color(0x663B82F6),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      image: true,
+      label: 'Logo MAN 1 Rokan Hulu',
+      child: Container(
+        width: size,
+        height: size,
+        padding: EdgeInsets.all(size * 0.08),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(size * 0.22),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: size * 0.24,
+              offset: Offset(0, size * 0.1),
+            ),
+          ],
+        ),
+        child: Image.asset(
+          'assets/images/logo_man1.png',
+          fit: BoxFit.contain,
+          excludeFromSemantics: true,
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated school logo widget.
 class AnimatedLogo extends StatefulWidget {
   final double size;
 
@@ -179,28 +222,13 @@ class _AnimatedLogoState extends State<AnimatedLogo>
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF10b981), Color(0xFF3b82f6)],
-              ),
-              borderRadius: BorderRadius.circular(widget.size * 0.25),
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromRGBO(59, 130, 246, _glowAnimation.value),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.shield,
-              size: widget.size * 0.5,
-              color: Colors.white,
+          child: SchoolLogo(
+            size: widget.size,
+            shadowColor: Color.fromRGBO(
+              59,
+              130,
+              246,
+              _glowAnimation.value,
             ),
           ),
         );

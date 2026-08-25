@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+
 import '../config.dart';
 import '../services/api_service.dart';
+import '../widgets/common_widgets.dart';
 import 'exam_page.dart';
 
 /// Professional Loading Screen with Game-Like Animation
@@ -185,8 +188,8 @@ class _ConfigPageState extends State<ConfigPage> with TickerProviderStateMixin {
           child: _showQrScanner
               ? _buildQrScanner()
               : _isLoading
-              ? _buildLoadingScreen()
-              : _buildMainMenu(),
+                  ? _buildLoadingScreen()
+                  : _buildMainMenu(),
         ),
       ),
     );
@@ -205,28 +208,7 @@ class _ConfigPageState extends State<ConfigPage> with TickerProviderStateMixin {
               // Animated Logo
               ScaleTransition(
                 scale: _pulseAnimation,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3b82f6), Color(0xFF8b5cf6)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF3b82f6).withValues(alpha: 0.5),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.school_rounded,
-                    size: 60,
-                    color: Colors.white,
-                  ),
-                ),
+                child: const SchoolLogo(size: 120),
               ),
 
               const SizedBox(height: 60),
@@ -353,28 +335,7 @@ class _ConfigPageState extends State<ConfigPage> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3b82f6), Color(0xFF8b5cf6)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF3b82f6).withValues(alpha: 0.3),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.school_rounded,
-                    size: 50,
-                    color: Colors.white,
-                  ),
-                ),
+                const SchoolLogo(size: 100),
 
                 const SizedBox(height: 32),
 

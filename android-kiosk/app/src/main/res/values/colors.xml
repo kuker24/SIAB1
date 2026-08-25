@@ -17,5 +17,5 @@
     <color name="status_amber">#F59E0B</color>
     <color name="icon_blue">#60A5FA</color>
     <color name="dialog_bg">#1E293B</color>
-    <color name="launcher_bg">#0F172A</color>
+    <color name="launcher_bg">#FFFFFF</color>
 </resources>
