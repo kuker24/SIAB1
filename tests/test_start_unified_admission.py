@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.api import metrics as start_metrics
 from app.core import cache
 from app.core import start_db_admission as admission
 from app.core.singleflight import KeyedSingleFlight
@@ -30,6 +31,16 @@ async def _hold(segment: str, started: asyncio.Event, release: asyncio.Event) ->
     async with start_db_segment(segment):
         started.set()
         await release.wait()
+
+
+def _metric_value(collector, sample_name: str, labels: dict[str, str]) -> float:
+    for metric in collector.collect():
+        for sample in metric.samples:
+            if sample.name != sample_name:
+                continue
+            if all(sample.labels.get(key) == value for key, value in labels.items()):
+                return float(sample.value)
+    return 0.0
 
 
 @pytest.mark.asyncio
@@ -153,6 +164,12 @@ async def test_segment_exception_restores_permits(segment: str) -> None:
 async def test_cancel_while_holding_restores_permit() -> None:
     request = SimpleNamespace(state=SimpleNamespace())
     started = asyncio.Event()
+    labels = {"replica": start_metrics._START_REPLICA, "phase": "holding"}
+    cancellations_before = _metric_value(
+        start_metrics.START_ADMISSION_CANCELLATIONS,
+        "siab_start_admission_cancellations_total",
+        labels,
+    )
 
     async def holder() -> None:
         async with bind_start_admission(request):
@@ -167,6 +184,11 @@ async def test_cancel_while_holding_restores_permit() -> None:
     with pytest.raises(asyncio.CancelledError):
         await task
     assert process_admission_snapshot()["holders"] == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_CANCELLATIONS,
+        "siab_start_admission_cancellations_total",
+        labels,
+    ) - cancellations_before == 1
 
 
 @pytest.mark.asyncio
@@ -200,6 +222,183 @@ async def test_cancel_while_waiting_does_not_leak_permit() -> None:
     release_holder.set()
     await owner
     assert process_admission_snapshot()["holders"] == 0
+
+
+@pytest.mark.asyncio
+async def test_limit_four_exports_worker_metrics_and_restores_permits() -> None:
+    configure_start_admission(limit=4)
+    request = SimpleNamespace(state=SimpleNamespace())
+    release = asyncio.Event()
+    started = [asyncio.Event() for _ in range(8)]
+    labels = {"replica": start_metrics._START_REPLICA}
+    acquisitions_before = _metric_value(
+        start_metrics.START_ADMISSION_ACQUISITIONS,
+        "siab_start_admission_acquisitions_total",
+        {**labels, "segment": "main"},
+    )
+    releases_before = _metric_value(
+        start_metrics.START_ADMISSION_RELEASES,
+        "siab_start_admission_releases_total",
+        {**labels, "segment": "main"},
+    )
+
+    async def runner(index: int) -> None:
+        async with bind_start_admission(request):
+            await _hold("main", started[index], release)
+
+    tasks = [asyncio.create_task(runner(index)) for index in range(8)]
+    await asyncio.sleep(0.05)
+    snapshot = process_admission_snapshot()
+    assert snapshot["holders"] == 4
+    assert snapshot["waiters"] == 4
+    assert _metric_value(
+        start_metrics.START_ADMISSION_LIMIT,
+        "siab_start_admission_limit",
+        labels,
+    ) == 4
+    assert _metric_value(
+        start_metrics.START_ADMISSION_HOLDERS,
+        "siab_start_admission_holders",
+        labels,
+    ) == 4
+    assert _metric_value(
+        start_metrics.START_ADMISSION_WAITERS,
+        "siab_start_admission_waiters",
+        labels,
+    ) == 4
+    assert _metric_value(
+        start_metrics.START_ADMISSION_PEAK_HOLDERS,
+        "siab_start_admission_peak_holders",
+        labels,
+    ) == 4
+    assert _metric_value(
+        start_metrics.START_ADMISSION_PEAK_WAITERS,
+        "siab_start_admission_peak_waiters",
+        labels,
+    ) == 4
+
+    release.set()
+    await asyncio.gather(*tasks)
+    assert process_admission_snapshot()["holders"] == 0
+    assert process_admission_snapshot()["waiters"] == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_HOLDERS,
+        "siab_start_admission_holders",
+        labels,
+    ) == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_WAITERS,
+        "siab_start_admission_waiters",
+        labels,
+    ) == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_ACQUISITIONS,
+        "siab_start_admission_acquisitions_total",
+        {**labels, "segment": "main"},
+    ) - acquisitions_before == 8
+    assert _metric_value(
+        start_metrics.START_ADMISSION_RELEASES,
+        "siab_start_admission_releases_total",
+        {**labels, "segment": "main"},
+    ) - releases_before == 8
+
+
+@pytest.mark.asyncio
+async def test_admission_metrics_record_wait_hold_and_cancellation() -> None:
+    configure_start_admission(limit=1)
+    request = SimpleNamespace(state=SimpleNamespace())
+    holder_started = asyncio.Event()
+    release_holder = asyncio.Event()
+    labels = {"replica": start_metrics._START_REPLICA}
+    wait_count_before = _metric_value(
+        start_metrics.START_ADMISSION_WAIT,
+        "siab_start_admission_wait_seconds_count",
+        {**labels, "segment": "main"},
+    )
+    db_count_before = _metric_value(
+        start_metrics.START_DB_SECTION_DURATION,
+        "siab_start_db_section_seconds_count",
+        {**labels, "segment": "main"},
+    )
+    cancellations_before = _metric_value(
+        start_metrics.START_ADMISSION_CANCELLATIONS,
+        "siab_start_admission_cancellations_total",
+        {**labels, "phase": "waiting"},
+    )
+
+    async def holder() -> None:
+        async with bind_start_admission(request):
+            async with start_db_segment("main"):
+                holder_started.set()
+                await release_holder.wait()
+
+    async def waiter() -> None:
+        async with bind_start_admission(request):
+            async with start_db_segment("main"):
+                return
+
+    owner = asyncio.create_task(holder())
+    await holder_started.wait()
+    waiting = asyncio.create_task(waiter())
+    await asyncio.sleep(0.02)
+    waiting.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiting
+    release_holder.set()
+    await owner
+
+    assert _metric_value(
+        start_metrics.START_ADMISSION_WAIT,
+        "siab_start_admission_wait_seconds_count",
+        {**labels, "segment": "main"},
+    ) - wait_count_before == 1
+    assert _metric_value(
+        start_metrics.START_DB_SECTION_DURATION,
+        "siab_start_db_section_seconds_count",
+        {**labels, "segment": "main"},
+    ) - db_count_before == 1
+    assert _metric_value(
+        start_metrics.START_ADMISSION_CANCELLATIONS,
+        "siab_start_admission_cancellations_total",
+        {**labels, "phase": "waiting"},
+    ) - cancellations_before == 1
+
+
+@pytest.mark.asyncio
+async def test_disabled_gate_exports_zero_gauges_without_permit_metrics() -> None:
+    configure_start_admission(limit=0)
+    request = SimpleNamespace(state=SimpleNamespace())
+    labels = {"replica": start_metrics._START_REPLICA}
+    acquisitions_before = _metric_value(
+        start_metrics.START_ADMISSION_ACQUISITIONS,
+        "siab_start_admission_acquisitions_total",
+        {**labels, "segment": "main"},
+    )
+
+    async with bind_start_admission(request):
+        async with start_db_segment("main"):
+            pass
+
+    assert _metric_value(
+        start_metrics.START_ADMISSION_LIMIT,
+        "siab_start_admission_limit",
+        labels,
+    ) == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_HOLDERS,
+        "siab_start_admission_holders",
+        labels,
+    ) == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_WAITERS,
+        "siab_start_admission_waiters",
+        labels,
+    ) == 0
+    assert _metric_value(
+        start_metrics.START_ADMISSION_ACQUISITIONS,
+        "siab_start_admission_acquisitions_total",
+        {**labels, "segment": "main"},
+    ) == acquisitions_before
 
 
 @pytest.mark.asyncio

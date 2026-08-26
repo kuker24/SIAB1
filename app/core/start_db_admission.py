@@ -8,6 +8,16 @@ from contextlib import asynccontextmanager
 from contextvars import ContextVar, Token
 from typing import Any, AsyncIterator, Optional
 
+from app.api.metrics import (
+    initialize_start_admission_metrics,
+    record_start_admission_acquisition,
+    record_start_admission_cancellation,
+    record_start_admission_failure,
+    record_start_admission_release,
+    record_start_db_section,
+    update_start_admission_metrics,
+)
+
 
 START_PATH_RE = re.compile(r"^/api/exams/\d+/start$")
 _DEFAULT_LIMIT = 0
@@ -55,6 +65,15 @@ class ProcessAdmissionGate:
         self.waiters = 0
         self.peak_holders = 0
         self.peak_waiters = 0
+        initialize_start_admission_metrics(limit)
+
+    def publish_metrics(self) -> None:
+        update_start_admission_metrics(
+            holders=self.holders,
+            waiters=self.waiters,
+            peak_holders=self.peak_holders,
+            peak_waiters=self.peak_waiters,
+        )
 
 
 def _get_gate(limit: int) -> ProcessAdmissionGate:
@@ -157,14 +176,21 @@ class StartAdmissionLease:
             self.publish()
             try:
                 yield record
+            except asyncio.CancelledError:
+                record_start_admission_cancellation("holding")
+                raise
             finally:
-                record["hold_ms"] = (time.monotonic() - started) * 1000.0
+                hold_seconds = time.monotonic() - started
+                record["hold_ms"] = hold_seconds * 1000.0
                 record["released_wall"] = time.time()
                 self.depth -= 1
+                record_start_db_section(segment, hold_seconds)
                 self.publish()
             return
 
-        if self.gate.limit <= 0 or self.gate.semaphore is None:
+        gate = self.gate
+        semaphore = gate.semaphore
+        if gate.limit <= 0 or semaphore is None:
             started = time.monotonic()
             started_wall = time.time()
             record = {
@@ -182,27 +208,43 @@ class StartAdmissionLease:
             self.publish()
             try:
                 yield record
+            except asyncio.CancelledError:
+                record_start_admission_cancellation("holding")
+                raise
             finally:
-                record["hold_ms"] = (time.monotonic() - started) * 1000.0
+                hold_seconds = time.monotonic() - started
+                record["hold_ms"] = hold_seconds * 1000.0
                 record["released_wall"] = time.time()
                 self.depth = 0
+                record_start_db_section(segment, hold_seconds)
                 self.publish()
             return
 
-        gate = self.gate
         gate.waiters += 1
         gate.peak_waiters = max(gate.peak_waiters, gate.waiters)
+        gate.publish_metrics()
         wait_started = time.monotonic()
         try:
-            await gate.semaphore.acquire()
-        except BaseException:
+            await semaphore.acquire()
+        except asyncio.CancelledError:
             gate.waiters = max(0, gate.waiters - 1)
+            gate.publish_metrics()
+            record_start_admission_cancellation("waiting")
+            self.publish()
+            raise
+        except BaseException as exc:
+            gate.waiters = max(0, gate.waiters - 1)
+            gate.publish_metrics()
+            reason = "timeout" if isinstance(exc, TimeoutError) else "error"
+            record_start_admission_failure(reason)
             self.publish()
             raise
         acquired = time.monotonic()
         gate.waiters = max(0, gate.waiters - 1)
         gate.holders += 1
         gate.peak_holders = max(gate.peak_holders, gate.holders)
+        gate.publish_metrics()
+        record_start_admission_acquisition(segment, acquired - wait_started)
         record = {
             "segment": segment,
             "nested": False,
@@ -220,14 +262,21 @@ class StartAdmissionLease:
         self.publish()
         try:
             yield record
+        except asyncio.CancelledError:
+            record_start_admission_cancellation("holding")
+            raise
         finally:
-            record["hold_ms"] = (time.monotonic() - acquired) * 1000.0
+            hold_seconds = time.monotonic() - acquired
+            record["hold_ms"] = hold_seconds * 1000.0
             record["released_wall"] = time.time()
             record["peak_holders"] = gate.peak_holders
             record["peak_waiters"] = gate.peak_waiters
             self.depth = 0
             gate.holders = max(0, gate.holders - 1)
-            gate.semaphore.release()
+            semaphore.release()
+            gate.publish_metrics()
+            record_start_admission_release(segment)
+            record_start_db_section(segment, hold_seconds)
             self.publish()
 
 
