@@ -1,0 +1,134 @@
+-- Phase 3 (safe-fast): partition exam_logs + add hot-path indexes
+-- Date: 2026-03-12
+--
+-- Scope:
+-- 1) Convert exam_logs heap table to RANGE partitioned by created_at.
+-- 2) Keep legacy copy (exam_logs_legacy_20260312) for rollback.
+-- 3) Add practical indexes on answers/exam_sessions for heavy monitor queries.
+--
+-- Notes:
+-- - This script is designed for PostgreSQL 15.
+-- - Run during low traffic window (no active exams recommended).
+-- - Idempotent for index creation; partition conversion is guarded and one-time.
+
+DO $$
+DECLARE
+    is_partitioned boolean;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1
+        FROM pg_partitioned_table pt
+        JOIN pg_class c ON c.oid = pt.partrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND c.relname = 'exam_logs'
+    ) INTO is_partitioned;
+
+    IF is_partitioned THEN
+        RAISE NOTICE 'exam_logs is already partitioned. Skipping conversion block.';
+        RETURN;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'exam_logs_legacy_20260312'
+    ) THEN
+        RAISE EXCEPTION 'Guard stop: exam_logs_legacy_20260312 already exists, manual review required.';
+    END IF;
+END
+$$;
+
+-- Convert exam_logs only when still heap table.
+DO $$
+DECLARE
+    is_heap boolean;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND c.relname = 'exam_logs'
+          AND c.relkind = 'r'
+    ) INTO is_heap;
+
+    IF NOT is_heap THEN
+        RAISE NOTICE 'exam_logs is not a heap table anymore. Skip conversion.';
+        RETURN;
+    END IF;
+
+    EXECUTE 'LOCK TABLE public.exam_logs IN ACCESS EXCLUSIVE MODE';
+    EXECUTE 'ALTER TABLE public.exam_logs RENAME TO exam_logs_legacy_20260312';
+
+    EXECUTE $ddl$
+        CREATE TABLE public.exam_logs (
+            id integer NOT NULL DEFAULT nextval('exam_logs_id_seq'::regclass),
+            session_id integer NOT NULL,
+            event_type character varying(50) NOT NULL,
+            event_data jsonb,
+            created_at timestamp with time zone NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'::text),
+            CONSTRAINT exam_logs_partitioned_pkey PRIMARY KEY (id, created_at),
+            CONSTRAINT exam_logs_partitioned_session_id_fkey
+                FOREIGN KEY (session_id) REFERENCES public.exam_sessions(id) ON DELETE CASCADE
+        ) PARTITION BY RANGE (created_at)
+    $ddl$;
+
+    EXECUTE 'ALTER SEQUENCE public.exam_logs_id_seq OWNED BY public.exam_logs.id';
+
+    -- Time partitions (active + near future) + default catch-all.
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_01 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-01-01'') TO (''2026-02-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_02 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-02-01'') TO (''2026-03-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_03 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-03-01'') TO (''2026-04-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_04 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-04-01'') TO (''2026-05-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_05 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-05-01'') TO (''2026-06-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_06 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-06-01'') TO (''2026-07-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_07 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-07-01'') TO (''2026-08-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_08 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-08-01'') TO (''2026-09-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_09 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-09-01'') TO (''2026-10-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_10 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-10-01'') TO (''2026-11-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_11 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-11-01'') TO (''2026-12-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2026_12 PARTITION OF public.exam_logs FOR VALUES FROM (''2026-12-01'') TO (''2027-01-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_2027_01 PARTITION OF public.exam_logs FOR VALUES FROM (''2027-01-01'') TO (''2027-02-01'')';
+    EXECUTE 'CREATE TABLE public.exam_logs_default PARTITION OF public.exam_logs DEFAULT';
+
+    -- Parent indexes propagate to partitions in PG15.
+    EXECUTE 'CREATE INDEX idx_exam_logs_created_at ON public.exam_logs (created_at DESC)';
+    EXECUTE 'CREATE INDEX idx_exam_logs_session_created_at ON public.exam_logs (session_id, created_at DESC)';
+    EXECUTE 'CREATE INDEX idx_exam_logs_event_type_created_at ON public.exam_logs (event_type, created_at DESC)';
+    EXECUTE 'CREATE INDEX idx_exam_logs_id ON public.exam_logs (id DESC)';
+
+    -- Migrate historical rows from legacy heap table.
+    EXECUTE $copy$
+        INSERT INTO public.exam_logs (id, session_id, event_type, event_data, created_at)
+        SELECT id, session_id, event_type, event_data, created_at
+        FROM public.exam_logs_legacy_20260312
+        ORDER BY id
+    $copy$;
+
+    EXECUTE $seq$
+        SELECT setval(
+            'public.exam_logs_id_seq',
+            COALESCE((SELECT MAX(id) FROM public.exam_logs), 1),
+            true
+        )
+    $seq$;
+END
+$$;
+
+-- Hot-path indexes for heavy read/query patterns.
+CREATE INDEX IF NOT EXISTS idx_answers_session_answered_at
+    ON public.answers (session_id, answered_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_answers_question_session
+    ON public.answers (question_id, session_id);
+
+CREATE INDEX IF NOT EXISTS idx_exam_sessions_exam_start
+    ON public.exam_sessions (exam_id, start_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_exam_sessions_status_exam_start
+    ON public.exam_sessions (status, exam_id, start_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_exam_sessions_end_time
+    ON public.exam_sessions (end_time DESC);
