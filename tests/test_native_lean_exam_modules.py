@@ -40,3 +40,30 @@ def test_generated_bundle_contains_modules() -> None:
     assert "Source modules: static/js/exam/*.js" in bundle
     assert "class ExamSystem" in bundle
     assert "function callFlutterHandler" in bundle
+
+
+def test_leftover_exam_system_modules_tree_is_gone() -> None:
+    leftover = Path("static/js/exam-system")
+    assert not leftover.exists()
+
+
+def test_js_journal_worker_owns_flush_with_ten_second_jitter() -> None:
+    autosave = (EXAM_DIR / "autosave.js").read_text(encoding="utf-8")
+    navigation = (EXAM_DIR / "navigation.js").read_text(encoding="utf-8")
+    timer = (EXAM_DIR / "timer.js").read_text(encoding="utf-8")
+    kiosk = Path(
+        "android-kiosk/app/src/main/java/id/siab1/kiosk/ui/ExamActivity.kt"
+    ).read_text(encoding="utf-8")
+    bundle = BUNDLE.read_text(encoding="utf-8")
+
+    assert "class AnswerJournalWorker" in autosave
+    assert "this.baseIntervalMs = 10000" in autosave
+    assert "/api/exams/answer-journal/sync" in autosave
+    assert "Math.random() * this.baseIntervalMs" in autosave
+    assert "journalWorker.enqueue" in navigation
+    assert "journalWorker.stop()" in navigation
+    assert "new AnswerJournalWorker" in timer
+    assert "class AnswerJournalWorker" in bundle
+    assert "/api/exams/answer-journal/sync" in bundle
+    assert "Prefs.answerJournal = queue.toString()" in kiosk
+    assert "answer-journal/sync" not in kiosk

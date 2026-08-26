@@ -229,11 +229,13 @@ class AnswerSyncService:
 
             persisted_via_queue = False
             mode = _answer_write_mode()
-            selected_for_async_answer_path = is_runtime_answer_buffer_enabled_for_session(
-                session_id=session_id,
-                user_id=int(self.current_user.id),
-                exam_id=exam_id,
-            )
+            selected_for_async_answer_path = False
+            if mode != "direct":
+                selected_for_async_answer_path = is_runtime_answer_buffer_enabled_for_session(
+                    session_id=session_id,
+                    user_id=int(self.current_user.id),
+                    exam_id=exam_id,
+                )
             if mode == "queue" and selected_for_async_answer_path:
                 try:
                     await enqueue_answer_payload(

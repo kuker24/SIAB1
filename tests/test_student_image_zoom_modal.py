@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 STUDENT_EXAM_TEMPLATE = Path("templates/student/exam.html")
-EXAM_SYSTEM_MODULE = Path("static/js/exam-system/modules/00-runtime-utils-storage-sync.js")
+EXAM_SYSTEM_SOURCE = Path("static/js/exam/core.js")
 EXAM_SYSTEM_BUNDLE = Path("static/js/exam-system.js")
 
 
@@ -100,7 +100,7 @@ def test_student_image_zoom_uses_ratio_based_pinch_and_modal_active_guard() -> N
 
 
 def test_render_question_image_marks_exam_images_zoomable() -> None:
-    for path in (EXAM_SYSTEM_MODULE, EXAM_SYSTEM_BUNDLE):
+    for path in (EXAM_SYSTEM_SOURCE, EXAM_SYSTEM_BUNDLE):
         source = path.read_text(encoding="utf-8")
         assert "data-zoomable=\"true\"" in source
         assert "hasZoomAttribute" in source

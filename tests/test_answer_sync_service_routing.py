@@ -329,6 +329,56 @@ async def test_single_answer_direct_write_updates_runtime_count(monkeypatch) -> 
 
 
 @pytest.mark.asyncio
+async def test_single_answer_direct_skips_async_path_selection(monkeypatch) -> None:
+    _patch_single_answer_common(monkeypatch)
+    wrote = {}
+
+    def fail_select(**_kwargs):
+        raise AssertionError("direct mode must not select queue/hybrid path")
+
+    async def fake_write(self, *, session_id, question_id, write_fields):
+        wrote["session_id"] = session_id
+        wrote["question_id"] = question_id
+
+    async def fake_update_session_answers(_session_id, _answers):
+        return None
+
+    async def fake_runtime_count(self, session_id, question_ids, log_prefix):
+        return len(question_ids)
+
+    monkeypatch.setattr(answer_sync_service, "_answer_write_mode", lambda: "direct")
+    monkeypatch.setattr(
+        answer_sync_service,
+        "is_runtime_answer_buffer_enabled_for_session",
+        fail_select,
+    )
+    monkeypatch.setattr(answer_sync_service.AnswerSyncService, "_write_single_answer_direct", fake_write)
+    monkeypatch.setattr(
+        answer_sync_service.AnswerSyncService,
+        "_update_runtime_answered_count",
+        fake_runtime_count,
+    )
+    monkeypatch.setattr(answer_sync_service, "update_session_answers", fake_update_session_answers)
+
+    locked_session = SimpleNamespace(id=123, exam_id=55, status="in_progress")
+    db = _FakeSingleAnswerDb(
+        results=[
+            _FirstResult((123, 55, "in_progress")),
+            _ScalarResult(None),
+            _ScalarResult(locked_session),
+        ]
+    )
+
+    response = await _single_answer_service(db).accept_single_answer(
+        AnswerSubmit(session_id=123, question_id=9, selected_option_id=2),
+        request=None,
+    )
+
+    assert response.status == "saved"
+    assert wrote == {"session_id": 123, "question_id": 9}
+
+
+@pytest.mark.asyncio
 async def test_single_answer_peak_mode_skips_progress_broadcast(monkeypatch) -> None:
     monkeypatch.setattr(answer_sync_service.settings, "exam_peak_mode", True)
 

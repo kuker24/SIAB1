@@ -4,12 +4,12 @@ Runs every 60 seconds to check for pending schedules.
 """
 from celery import Celery
 from celery.schedules import crontab
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import asyncio
 import logging
 
 from app.config import settings
-from app.database import build_connect_args
+from app.database import create_task_engine
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -27,39 +27,42 @@ celery_app = Celery(
     ]
 )
 
+_beat_schedule = {
+    'check-scheduled-publications': {
+        'task': 'app.tasks.scheduler.process_scheduled_publications',
+        'schedule': 60.0,  # Every 60 seconds
+    },
+    'refresh-analytics-views': {
+        'task': 'app.tasks.views_refresher.refresh_analytics_views',
+        'schedule': 300.0,  # Every 5 minutes
+    },
+    'close-expired-sessions': {
+        'task': 'app.tasks.scheduler.close_expired_sessions',
+        'schedule': 30.0,  # Check twice per minute so timeout auto-submit is timely
+    },
+    'maintain-exam-log-partitions': {
+        'task': 'app.tasks.partition_maintenance.maintain_exam_logs_partitions',
+        'schedule': crontab(hour=2, minute=15),  # Daily low-traffic maintenance
+    },
+    'run-disaster-recovery-drill': {
+        'task': 'app.tasks.dr_drill.run_disaster_recovery_drill',
+        'schedule': crontab(day_of_week='sun', hour=3, minute=40),  # Weekly drill
+    },
+}
+if settings.answer_queue_processing_enabled():
+    _beat_schedule['process-answer-queue-rapid'] = {
+        'task': 'app.tasks.answer_processor.process_answer_queue',
+        'schedule': 5.0,
+        'kwargs': {'batch_size': 100},
+    }
+
 celery_app.conf.update(
     timezone='UTC',
     enable_utc=True,
     broker_connection_retry_on_startup=True,  # Fix: Celery 6.0 compatibility
     result_expires=3600,
     task_ignore_result=True,
-    beat_schedule={
-        'check-scheduled-publications': {
-            'task': 'app.tasks.scheduler.process_scheduled_publications',
-            'schedule': 60.0,  # Every 60 seconds
-        },
-        'process-answer-queue-rapid': {
-            'task': 'app.tasks.answer_processor.process_answer_queue',
-            'schedule': 5.0,  # Every 5 seconds for rapid feedback
-            'kwargs': {'batch_size': 100}
-        },
-        'refresh-analytics-views': {
-            'task': 'app.tasks.views_refresher.refresh_analytics_views',
-            'schedule': 300.0,  # Every 5 minutes
-        },
-        'close-expired-sessions': {
-            'task': 'app.tasks.scheduler.close_expired_sessions',
-            'schedule': 30.0,  # Check twice per minute so timeout auto-submit is timely
-        },
-        'maintain-exam-log-partitions': {
-            'task': 'app.tasks.partition_maintenance.maintain_exam_logs_partitions',
-            'schedule': crontab(hour=2, minute=15),  # Daily low-traffic maintenance
-        },
-        'run-disaster-recovery-drill': {
-            'task': 'app.tasks.dr_drill.run_disaster_recovery_drill',
-            'schedule': crontab(day_of_week='sun', hour=3, minute=40),  # Weekly drill
-        },
-    },
+    beat_schedule=_beat_schedule,
 )
 
 
@@ -95,21 +98,11 @@ async def _process_async():
     in Celery forked worker processes.
     """
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
     from app.models.exam import Exam
     from app.models.scheduled import ScheduledPublication
-    from app.config import settings
 
-    # Create a fresh engine for this task to avoid event loop conflicts
-    task_engine = create_async_engine(
-        settings.database_url,
-        echo=False,
-        pool_size=2,
-        max_overflow=3,
-        pool_timeout=30,
-        pool_pre_ping=True,
-        connect_args=build_connect_args(settings.database_url),
-    )
+    task_engine = create_task_engine()
 
     task_session_maker = async_sessionmaker(
         task_engine,
@@ -197,21 +190,11 @@ async def _unpublish_async(schedule_id: int, exam_id: int):
     in Celery forked worker processes.
     """
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
     from app.models.exam import Exam
     from app.models.scheduled import ScheduledPublication
-    from app.config import settings
 
-    # Create a fresh engine for this task to avoid event loop conflicts
-    task_engine = create_async_engine(
-        settings.database_url,
-        echo=False,
-        pool_size=2,
-        max_overflow=3,
-        pool_timeout=30,
-        pool_pre_ping=True,
-        connect_args=build_connect_args(settings.database_url),
-    )
+    task_engine = create_task_engine()
 
     task_session_maker = async_sessionmaker(
         task_engine,
@@ -255,24 +238,15 @@ async def _unpublish_async(schedule_id: int, exam_id: int):
 async def _close_expired_sessions_async():
     """Async function to close zombie sessions."""
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
     from sqlalchemy.orm import selectinload
     from app.models.exam import Exam
     from app.models.question import Question
     from app.models.session import ExamSession
     from app.models.session import ExamLog
-    from app.config import settings
     from app.services.exam_submission_service import finalize_exam_session_submission
 
-    # Create fresh engine
-    task_engine = create_async_engine(
-        settings.database_url,
-        echo=False,
-        pool_size=2,
-        pool_timeout=30,
-        pool_pre_ping=True,
-        connect_args=build_connect_args(settings.database_url),
-    )
+    task_engine = create_task_engine()
 
     task_session_maker = async_sessionmaker(
         task_engine, class_=AsyncSession, expire_on_commit=False
@@ -301,6 +275,12 @@ async def _close_expired_sessions_async():
             )
             candidate_rows = candidate_result.all()
 
+            from app.core.exam_session_helpers import (
+                CLOSE_EXPIRED_POLICY,
+                TimerContext,
+                evaluate_timer,
+            )
+
             expired_ids = []
             for (
                 session_id,
@@ -315,77 +295,21 @@ async def _close_expired_sessions_async():
             ) in candidate_rows:
                 if not session_start:
                     continue
-
-                timeout_tolerance_seconds = 5 * 60
-                stale_pause_grace_seconds = 6 * 60 * 60
-
-                normalized_exam_end = None
-                if exam_end:
-                    normalized_exam_end = (
-                        exam_end
-                        if exam_end.tzinfo is not None
-                        else exam_end.replace(tzinfo=timezone.utc)
-                    )
-
-                # Never auto-submit while a pause is still active during a valid exam window.
-                # However, stale global pauses from ended exams must not keep sessions alive forever
-                # and block inter-session restart maintenance.
-                pause_active = bool(is_session_paused or is_exam_globally_paused)
-                stale_paused_exam_expired = bool(
-                    pause_active
-                    and normalized_exam_end is not None
-                    and now > normalized_exam_end + timedelta(seconds=stale_pause_grace_seconds)
+                timer = evaluate_timer(
+                    TimerContext(
+                        started_at=session_start,
+                        duration_seconds=int(duration_minutes or 0) * 60,
+                        accumulated_paused_seconds=max(0, int(total_paused_seconds or 0)),
+                        session_paused=bool(is_session_paused),
+                        session_paused_at=session_paused_at,
+                        exam_globally_paused=bool(is_exam_globally_paused),
+                        exam_globally_paused_at=exam_globally_paused_at,
+                        exam_end=exam_end,
+                    ),
+                    CLOSE_EXPIRED_POLICY,
+                    now=now,
                 )
-                if pause_active and not stale_paused_exam_expired:
-                    continue
-
-                normalized_start = (
-                    session_start
-                    if session_start.tzinfo is not None
-                    else session_start.replace(tzinfo=timezone.utc)
-                )
-                base_paused_seconds = max(0, int(total_paused_seconds or 0))
-
-                # Safety net: if pause flags are stale but paused_at is still set,
-                # count that ongoing pause so timeout logic remains conservative.
-                # Once an exam is stale beyond the hard pause grace, stop extending time forever.
-                ongoing_pause_seconds = 0
-                if session_paused_at and not stale_paused_exam_expired:
-                    normalized_session_paused_at = (
-                        session_paused_at
-                        if session_paused_at.tzinfo is not None
-                        else session_paused_at.replace(tzinfo=timezone.utc)
-                    )
-                    ongoing_pause_seconds = max(
-                        ongoing_pause_seconds,
-                        max(0, int((now - normalized_session_paused_at).total_seconds())),
-                    )
-                if exam_globally_paused_at and not stale_paused_exam_expired:
-                    normalized_global_paused_at = (
-                        exam_globally_paused_at
-                        if exam_globally_paused_at.tzinfo is not None
-                        else exam_globally_paused_at.replace(tzinfo=timezone.utc)
-                    )
-                    ongoing_pause_seconds = max(
-                        ongoing_pause_seconds,
-                        max(0, int((now - normalized_global_paused_at).total_seconds())),
-                    )
-
-                effective_paused_seconds = base_paused_seconds + ongoing_pause_seconds
-                elapsed_seconds = max(0, int((now - normalized_start).total_seconds()))
-                effective_elapsed_seconds = max(0, elapsed_seconds - effective_paused_seconds)
-                duration_limit_seconds = int(duration_minutes or 0) * 60
-
-                duration_expired = effective_elapsed_seconds > (duration_limit_seconds + timeout_tolerance_seconds)
-
-                exam_end_expired = stale_paused_exam_expired
-                if normalized_exam_end is not None and not exam_end_expired:
-                    exam_end_with_pause = normalized_exam_end + timedelta(
-                        seconds=effective_paused_seconds + timeout_tolerance_seconds
-                    )
-                    exam_end_expired = now > exam_end_with_pause
-
-                if duration_expired or exam_end_expired:
+                if timer.should_close:
                     expired_ids.append(int(session_id))
 
             if not expired_ids:

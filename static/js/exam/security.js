@@ -61,6 +61,9 @@ class ExamSystem {
         if (syncWorker && this.sessionId) {
             syncWorker.start(this.sessionId);
         }
+        if (journalWorker && this.sessionId) {
+            journalWorker.start(this.sessionId);
+        }
 
         // Initialize server time sync
         await this.initServerTimeSync();
@@ -430,9 +433,11 @@ class ExamSystem {
             this.durationMinutes = startData.duration_minutes;
             this.endTime = new Date(startData.end_time);
 
-            // Start sync worker
             if (syncWorker) {
                 syncWorker.start(this.sessionId);
+            }
+            if (journalWorker) {
+                journalWorker.start(this.sessionId);
             }
 
             // Fix 3: Restore previous answers on refresh

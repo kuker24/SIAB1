@@ -13,6 +13,8 @@ import re
 import os
 import logging
 
+from app.core.request_security_memo import allowed_signatures, developer_mode_enabled
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,125 +95,72 @@ class SXBEnforcerMiddleware(BaseHTTPMiddleware):
         if not is_protected:
             return await call_next(request)
 
-        # Check database developer mode setting only for protected routes.
-        from app.core.cache import is_developer_mode_enabled
-        if await is_developer_mode_enabled():
+        if await developer_mode_enabled(request):
             return await call_next(request)
 
-        if is_protected:
-            user_agent = request.headers.get("user-agent", "").lower()
+        user_agent = request.headers.get("user-agent", "").lower()
+        is_sxb = "sxb-client" in user_agent or "exambro" in user_agent
+        is_seb = "seb" in user_agent or "safe exam browser" in user_agent
 
-            # Check for SXB-Client or Safe Exam Browser
-            is_sxb = "sxb-client" in user_agent or "exambro" in user_agent
-            is_seb = "seb" in user_agent or "safe exam browser" in user_agent
+        if not is_sxb and not is_seb:
+            accept_header = request.headers.get("accept", "")
+            if "text/html" in accept_header:
+                return RedirectResponse(status_code=303, url="/student/dashboard.html")
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Akses ditolak. Gunakan Aplikasi Ujian (APK) atau Safe Exam Browser."}
+            )
 
-            if not is_sxb and not is_seb:
-                # If it's a browser request (HTML), redirect to student dashboard
-                accept_header = request.headers.get("accept", "")
-                if "text/html" in accept_header:
-                    return RedirectResponse(status_code=303, url="/student/dashboard.html")
+        if is_sxb and path.startswith("/api/"):
+            sig = request.headers.get("X-App-Signature")
+            ts = request.headers.get("X-App-Timestamp")
+            if sig and ts:
+                db_sigs = await allowed_signatures(request)
+                if not db_sigs or all(not s.strip() for s in db_sigs):
+                    logger.warning("SXB block: strict mode active but no signatures configured")
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "Sistem APK belum dikonfigurasi. Hubungi admin untuk mengatur App Signatures."}
+                    )
 
-                # Otherwise (API), block it
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": "Akses ditolak. Gunakan Aplikasi Ujian (APK) atau Safe Exam Browser."}
+                normalized_sig = sig.replace(":", "").lower().strip()
+                is_valid_sig = any(
+                    allowed and allowed.strip().lower() == normalized_sig
+                    for allowed in db_sigs
                 )
+                if not is_valid_sig:
+                    allowed_count = sum(1 for s in db_sigs if s and s.strip())
+                    logger.warning(
+                        "SXB block: signature mismatch path=%s sig_prefix=%s allowed_count=%s",
+                        path,
+                        normalized_sig[:12],
+                        allowed_count,
+                    )
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "Invalid App Signature. Unofficial app detected."}
+                    )
 
-            # For SXB clients (Mobile App), logic depends on path
-            if is_sxb:
-                # 1. API REQUESTS (Login, Submit, Data)
-                if path.startswith("/api/"):
-                    # Define endpoints that MUST have signature (Native App Calls)
-                    # Login, Refresh, and Token Validation happen natively, so they MUST send signature.
-                    # Other endpoints (like /api/auth/me, /api/exams) might be called by WebView (AJAX),
-                    # so they might not have signature. We rely on Auth Token for those.
-                    strict_endpoints = [
-                        "/api/auth/login",
-                        "/api/auth/signin",
-                        "/api/auth/refresh",
-                        "/api/validate-apk-token",
-                    ]
-                    is_strict_path = any(path.startswith(p) for p in strict_endpoints)
-
-                    sig = request.headers.get("X-App-Signature")
-                    ts = request.headers.get("X-App-Timestamp")
-
-                    # If Strict Path OR Signature is present, validate it
-                    if is_strict_path or sig:
-                        if not sig or not ts:
-                            # Only block missing headers if it's a strict path
-                            if is_strict_path:
-                                return JSONResponse(
-                                    status_code=403,
-                                    content={"detail": "Security Headers Missing. Update your App."}
-                                )
-                            else:
-                                # Non-strict path without headers -> Allow (Auth middleware will handle security)
-                                return await call_next(request)
-
-                        # Verify Signature
-                        from app.core.cache import get_allowed_signatures
-                        db_sigs = await get_allowed_signatures()
-
-                        # STRICT MODE: No signatures configured = Block APK
-                        if not db_sigs or all(not s.strip() for s in db_sigs):
-                            logger.warning("SXB block: strict mode active but no signatures configured")
-                            return JSONResponse(
-                                status_code=403,
-                                content={"detail": "Sistem APK belum dikonfigurasi. Hubungi admin untuk mengatur App Signatures."}
-                            )
-
-                        # Normalize client signature (Remove colons, lower case)
-                        normalized_sig = sig.replace(":", "").lower().strip() if sig else ""
-
-                        # ONLY validate against Database signatures
-                        # (No hardcoded fallback - Admin Panel is single source of truth)
-                        is_valid_sig = False
-                        for allowed in db_sigs:
-                            if allowed and allowed.strip().lower() == normalized_sig:
-                                is_valid_sig = True
-                                break
-
-                        if not is_valid_sig:
-                            allowed_count = sum(1 for s in db_sigs if s and s.strip())
-                            logger.warning(
-                                "SXB block: signature mismatch path=%s sig_prefix=%s allowed_count=%s",
-                                path,
-                                normalized_sig[:12],
-                                allowed_count,
-                            )
-                            return JSONResponse(
-                                status_code=403,
-                                content={"detail": "Invalid App Signature. Unofficial app detected."}
-                            )
-
-                        # Verify Timestamp freshness (Relaxed to 1 hour for bad clocks)
-                        try:
-                            server_time = int(time.time())
-                            client_time = int(ts)
-                            diff = abs(server_time - client_time)
-
-                            if diff > 3600: # 1 Hour tolerance
-                                logger.warning(
-                                    "SXB block: timestamp expired path=%s diff_seconds=%s",
-                                    path,
-                                    diff,
-                                )
-                                return JSONResponse(status_code=403, content={"detail": "Request Expired (Check Device Time)"})
-                        except Exception as e:
-                            logger.warning(
-                                "SXB timestamp parse error path=%s value=%s error=%s",
-                                path,
-                                ts,
-                                e,
-                            )
-                            # Allow if timestamp parsing fails (fail-open).
-
-                # 2. WEBVIEW REQUESTS (/student/...) -> RELAXED SECURITY
-                # WebViews cannot easily send custom headers.
-                # We rely on the fact that they must have a valid Session Cookie (obtained via strict Login API)
-                # So we ONLY check User-Agent here (which is already done by is_sxb check above)
-                else:
-                    pass
+                try:
+                    server_time = int(time.time())
+                    client_time = int(ts)
+                    diff = abs(server_time - client_time)
+                    if diff > 3600:
+                        logger.warning(
+                            "SXB block: timestamp expired path=%s diff_seconds=%s",
+                            path,
+                            diff,
+                        )
+                        return JSONResponse(
+                            status_code=403,
+                            content={"detail": "Request Expired (Check Device Time)"},
+                        )
+                except Exception as e:
+                    logger.warning(
+                        "SXB timestamp parse error path=%s value=%s error=%s",
+                        path,
+                        ts,
+                        e,
+                    )
 
         return await call_next(request)

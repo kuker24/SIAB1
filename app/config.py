@@ -214,6 +214,10 @@ class Settings(BaseSettings):
         """Get base URL for the application."""
         return f"{self.protocol}://{self.domain}"
 
+    def answer_queue_processing_enabled(self) -> bool:
+        mode = str(self.answer_write_mode or "direct").strip().lower()
+        return bool(self.answer_queue_enabled) and mode in {"queue", "hybrid"}
+
     @model_validator(mode='after')
     def check_security_keys(self) -> 'Settings':
         """Enforce secure defaults and block risky crypto configuration."""

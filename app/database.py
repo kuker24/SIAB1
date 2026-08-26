@@ -11,7 +11,12 @@ import logging
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 from sqlalchemy.exc import SQLAlchemyError
@@ -95,6 +100,15 @@ def _build_engine(database_url: str, pool_size: int, max_overflow: int):
     return create_async_engine(
         database_url,
         **engine_kwargs,
+    )
+
+
+def create_task_engine() -> AsyncEngine:
+    return create_async_engine(
+        settings.database_url,
+        echo=False,
+        poolclass=NullPool,
+        connect_args=build_connect_args(settings.database_url),
     )
 
 

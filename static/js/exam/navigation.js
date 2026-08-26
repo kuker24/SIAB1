@@ -26,6 +26,9 @@
         if (syncWorker && this.sessionId && syncWorker.sessionId !== this.sessionId) {
             syncWorker.start(this.sessionId);
         }
+        if (journalWorker && this.sessionId && journalWorker.sessionId !== this.sessionId) {
+            journalWorker.start(this.sessionId);
+        }
         this.renderQuestion(0);
         this.updateNavigator();
     }
@@ -735,12 +738,16 @@
         metadata.client_answer_ts = Date.now();
         cleanedAnswerData.answer_metadata = metadata;
 
-        notifyNativeAnswerJournal({
+        const journalPayload = {
             session_id: this.sessionId,
             exam_id: this.examId,
             question_id: parseInt(questionId) || 0,
             ...cleanedAnswerData
-        });
+        };
+        notifyNativeAnswerJournal(journalPayload);
+        if (journalWorker) {
+            journalWorker.enqueue(journalPayload);
+        }
         this.pushRuntimeStateToNative(false);
 
         // Legacy matching payloads still use the old direct endpoint.
@@ -797,6 +804,12 @@
                 }
             } else {
                 await this.flushPendingAnswersForForceSubmit();
+            }
+            if (journalWorker) {
+                if (!journalWorker.sessionId && this.sessionId) {
+                    journalWorker.start(this.sessionId);
+                }
+                await journalWorker.flushNow();
             }
         } catch (error) { console.error('Auto-save failed:', error); }
     }
@@ -929,6 +942,7 @@
             clearInterval(this.timerInterval);
             clearInterval(this.autoSaveInterval);
             if (syncWorker) syncWorker.stop();
+            if (journalWorker) journalWorker.stop();
             if (storageManager) await storageManager.clearSessionAnswers(this.sessionId);
             ExamSystem.clearSessionStorage();
 

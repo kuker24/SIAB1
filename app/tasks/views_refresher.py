@@ -80,15 +80,9 @@ def refresh_analytics_views():
 
 async def _refresh_async():
     """Async implementation."""
-    from app.config import settings
-    from app.database import _build_engine
+    from app.database import create_task_engine
 
-    # Reuse production DB engine policy (PgBouncer-safe connect args + pool mode).
-    engine = _build_engine(
-        settings.database_url,
-        settings.db_pool_size,
-        settings.db_max_overflow,
-    )
+    engine = create_task_engine()
 
     # Ensure views/indexes exist first to prevent noisy periodic failures.
     async with engine.begin() as conn:

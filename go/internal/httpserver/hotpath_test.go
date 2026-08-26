@@ -467,6 +467,68 @@ func TestExamWebSocketRequiresUpgrade(t *testing.T) {
 	}
 }
 
+func TestExamWritesProxyToPythonUpstream(t *testing.T) {
+	hits := map[string]int{}
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits[r.Method+" "+r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"proxied": true, "path": r.URL.Path})
+	}))
+	t.Cleanup(up.Close)
+	h := httpserver.New(config.Config{
+		DisableRateLimit: true,
+		JWTSecretKey:     "test-secret",
+		PythonUpstream:   up.URL,
+	}, nil)
+	tok, err := auth.SignUser("test-secret", 9, "siswa", "student", "Nama", "XII", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodPost, "/api/exams/auto-save", `{"session_id":1,"answers":{}}`},
+		{http.MethodPost, "/api/exams/submit-answer", `{"session_id":1,"question_id":2}`},
+		{http.MethodPost, "/api/exams/1/start", `{}`},
+		{http.MethodPost, "/api/exams/submit", `{"session_id":1}`},
+		{http.MethodPost, "/api/exams/auto-save-batch", `{"session_id":1,"answers":[]}`},
+		{http.MethodPost, "/api/exams/answer-journal/sync", `{"session_id":1,"events":[]}`},
+		{http.MethodPost, "/api/exams/log-violation", `{"session_id":1,"event_type":"tab_switch"}`},
+	}
+	for _, tc := range paths {
+		req := httptest.NewRequest(tc.method, tc.path, bytes.NewBufferString(tc.body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+tok)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s %s status=%d body=%s", tc.method, tc.path, rec.Code, rec.Body.String())
+		}
+		if hits[tc.method+" "+tc.path] != 1 {
+			t.Fatalf("%s %s not proxied hits=%v", tc.method, tc.path, hits)
+		}
+	}
+}
+
+func TestExamWritesWithoutUpstreamAreUnavailable(t *testing.T) {
+	h := httpserver.New(config.Config{DisableRateLimit: true, JWTSecretKey: "test-secret"}, nil)
+	tok, err := auth.SignUser("test-secret", 9, "siswa", "student", "Nama", "XII", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/exams/1/start", bytes.NewBufferString(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tok)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestSubmitAnswerJSONDetail(t *testing.T) {
 	h := httpserver.New(config.Config{DisableRateLimit: true, JWTSecretKey: "test-secret"}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/exams/submit-answer", bytes.NewBufferString(`{}`))

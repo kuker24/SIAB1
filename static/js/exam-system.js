@@ -561,6 +561,175 @@ class AnswerSyncWorker {
     }
 }
 
+class AnswerJournalWorker {
+    constructor(getTokenFn) {
+        this.getToken = getTokenFn;
+        this.sessionId = null;
+        this.timerId = null;
+        this.intervalId = null;
+        this.syncInFlight = false;
+        this.failureStreak = 0;
+        this.backoffUntil = 0;
+        this.baseIntervalMs = 10000;
+        this.batchSize = 80;
+        this.storageKey = 'sxb_js_answer_journal_v1';
+    }
+
+    enqueue(payload) {
+        const sessionId = parseInt(payload?.session_id || this.sessionId, 10) || 0;
+        const questionId = parseInt(payload?.question_id, 10) || 0;
+        if (sessionId <= 0 || questionId <= 0) return;
+        const state = this.readState();
+        const nextSeq = parseInt(state.next_sequence, 10) || 1;
+        const nowMs = Date.now();
+        const event = {
+            event_id: `jr_${sessionId}_${nextSeq}_${nowMs}_${this.randomSuffix(5)}`,
+            sequence: nextSeq,
+            question_id: questionId,
+            local_timestamp_ms: nowMs,
+            session_id: sessionId,
+        };
+        if (payload.selected_option_id != null) {
+            event.selected_option_id = payload.selected_option_id;
+        }
+        if (Array.isArray(payload.selected_option_ids)) {
+            event.selected_option_ids = payload.selected_option_ids;
+        }
+        if (payload.answer_text != null) {
+            event.answer_text = String(payload.answer_text);
+        }
+        if (payload.statement_answers && typeof payload.statement_answers === 'object') {
+            event.statement_answers = payload.statement_answers;
+        }
+        if (payload.answer_metadata && typeof payload.answer_metadata === 'object') {
+            event.answer_metadata = payload.answer_metadata;
+        }
+        state.events.push(event);
+        if (state.events.length > 500) {
+            state.events = state.events.slice(-500);
+        }
+        state.next_sequence = nextSeq + 1;
+        this.writeState(state);
+    }
+
+    start(sessionId) {
+        this.sessionId = sessionId;
+        this.stopTimer();
+        const firstDelay = Math.round(Math.random() * this.baseIntervalMs);
+        this.timerId = setTimeout(() => {
+            this.flushNow();
+            this.intervalId = setInterval(() => this.flushNow(), this.baseIntervalMs);
+        }, firstDelay);
+    }
+
+    stop() {
+        this.stopTimer();
+    }
+
+    stopTimer() {
+        if (this.timerId) {
+            clearTimeout(this.timerId);
+            this.timerId = null;
+        }
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    }
+
+    async flushNow() {
+        if (!this.sessionId || this.syncInFlight) return;
+        if (Date.now() < this.backoffUntil) return;
+        if (!navigator.onLine) return;
+        const state = this.readState();
+        const pending = state.events.filter((event) => {
+            return (parseInt(event.session_id, 10) || 0) === parseInt(this.sessionId, 10);
+        });
+        if (pending.length === 0) return;
+        const batch = pending.slice(0, this.batchSize);
+        this.syncInFlight = true;
+        try {
+            const response = await fetch('/api/exams/answer-journal/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getToken()}`
+                },
+                body: JSON.stringify({
+                    session_id: parseInt(this.sessionId, 10) || 0,
+                    events: batch.map((event) => {
+                        const { session_id, ...rest } = event;
+                        return rest;
+                    })
+                })
+            });
+            if (!response.ok) {
+                this.failureStreak = Math.min(6, this.failureStreak + 1);
+                const retryAfter = Number.parseInt(response.headers.get('Retry-After') || '', 10);
+                const baseSeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 8;
+                const jitter = 0.2 + (Math.random() * 0.2);
+                this.backoffUntil = Date.now() + Math.min(
+                    60000,
+                    Math.round((baseSeconds * (2 ** this.failureStreak) * 1000) * (1 + jitter))
+                );
+                return;
+            }
+            this.failureStreak = 0;
+            this.backoffUntil = 0;
+            const body = await response.json();
+            const acked = new Set();
+            (body.acks || []).forEach((ack) => {
+                const status = String(ack?.status || '').toLowerCase();
+                const eventId = String(ack?.event_id || '').trim().toLowerCase();
+                if (eventId && (status === 'applied' || status === 'duplicate')) {
+                    acked.add(eventId);
+                }
+            });
+            if (acked.size === 0) return;
+            state.events = state.events.filter((event) => {
+                return !acked.has(String(event.event_id || '').trim().toLowerCase());
+            });
+            this.writeState(state);
+        } catch (_error) {
+            this.failureStreak = Math.min(6, this.failureStreak + 1);
+            const jitter = 0.2 + (Math.random() * 0.2);
+            this.backoffUntil = Date.now() + Math.min(
+                60000,
+                Math.round((8 * (2 ** this.failureStreak) * 1000) * (1 + jitter))
+            );
+        } finally {
+            this.syncInFlight = false;
+        }
+    }
+
+    readState() {
+        try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) return { next_sequence: 1, events: [] };
+            const parsed = JSON.parse(raw);
+            return {
+                next_sequence: parseInt(parsed.next_sequence, 10) || 1,
+                events: Array.isArray(parsed.events) ? parsed.events : [],
+            };
+        } catch (_error) {
+            return { next_sequence: 1, events: [] };
+        }
+    }
+
+    writeState(state) {
+        localStorage.setItem(this.storageKey, JSON.stringify(state));
+    }
+
+    randomSuffix(length) {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let out = '';
+        for (let i = 0; i < length; i += 1) {
+            out += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return out;
+    }
+}
+
 // ============================================================================
 // SERVICE WORKER REGISTRATION
 // ============================================================================
@@ -582,6 +751,7 @@ if ('serviceWorker' in navigator) {
 
 let storageManager = null;
 let syncWorker = null;
+let journalWorker = null;
 
 /* ===== Module: security.js ===== */
 
@@ -647,6 +817,9 @@ class ExamSystem {
         await this.initOfflineStorage();
         if (syncWorker && this.sessionId) {
             syncWorker.start(this.sessionId);
+        }
+        if (journalWorker && this.sessionId) {
+            journalWorker.start(this.sessionId);
         }
 
         // Initialize server time sync
@@ -1017,9 +1190,11 @@ class ExamSystem {
             this.durationMinutes = startData.duration_minutes;
             this.endTime = new Date(startData.end_time);
 
-            // Start sync worker
             if (syncWorker) {
                 syncWorker.start(this.sessionId);
+            }
+            if (journalWorker) {
+                journalWorker.start(this.sessionId);
             }
 
             // Fix 3: Restore previous answers on refresh
@@ -1753,6 +1928,7 @@ class ExamSystem {
             storageManager = new ExamStorageManager();
             await storageManager.init();
             syncWorker = new AnswerSyncWorker(storageManager, () => this.getToken());
+            journalWorker = new AnswerJournalWorker(() => this.getToken());
 
             console.log('📦 Offline storage initialized');
         } catch (error) {
@@ -1867,6 +2043,9 @@ class ExamSystem {
         // Ensure sync worker always has active session context.
         if (syncWorker && this.sessionId && syncWorker.sessionId !== this.sessionId) {
             syncWorker.start(this.sessionId);
+        }
+        if (journalWorker && this.sessionId && journalWorker.sessionId !== this.sessionId) {
+            journalWorker.start(this.sessionId);
         }
         this.renderQuestion(0);
         this.updateNavigator();
@@ -2577,12 +2756,16 @@ class ExamSystem {
         metadata.client_answer_ts = Date.now();
         cleanedAnswerData.answer_metadata = metadata;
 
-        notifyNativeAnswerJournal({
+        const journalPayload = {
             session_id: this.sessionId,
             exam_id: this.examId,
             question_id: parseInt(questionId) || 0,
             ...cleanedAnswerData
-        });
+        };
+        notifyNativeAnswerJournal(journalPayload);
+        if (journalWorker) {
+            journalWorker.enqueue(journalPayload);
+        }
         this.pushRuntimeStateToNative(false);
 
         // Legacy matching payloads still use the old direct endpoint.
@@ -2639,6 +2822,12 @@ class ExamSystem {
                 }
             } else {
                 await this.flushPendingAnswersForForceSubmit();
+            }
+            if (journalWorker) {
+                if (!journalWorker.sessionId && this.sessionId) {
+                    journalWorker.start(this.sessionId);
+                }
+                await journalWorker.flushNow();
             }
         } catch (error) { console.error('Auto-save failed:', error); }
     }
@@ -2771,6 +2960,7 @@ class ExamSystem {
             clearInterval(this.timerInterval);
             clearInterval(this.autoSaveInterval);
             if (syncWorker) syncWorker.stop();
+            if (journalWorker) journalWorker.stop();
             if (storageManager) await storageManager.clearSessionAnswers(this.sessionId);
             ExamSystem.clearSessionStorage();
 

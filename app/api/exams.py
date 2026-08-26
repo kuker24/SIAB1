@@ -2278,6 +2278,39 @@ def _build_start_question_responses(
     return questions
 
 
+def _questions_to_start_payload(questions: Any) -> List[Dict[str, Any]]:
+    payload: List[Dict[str, Any]] = []
+    for question in questions:
+        raw_options = list(getattr(question, "options", None) or [])
+        payload.append(
+            {
+                "id": getattr(question, "id", 0),
+                "question_text": getattr(question, "question_text", None),
+                "stimulus": getattr(question, "stimulus", None),
+                "question_type": getattr(question, "question_type", None),
+                "pgk_type": getattr(question, "pgk_type", None),
+                "difficulty_level": getattr(question, "difficulty_level", None),
+                "question_settings": dict(getattr(question, "question_settings", None) or {}),
+                "points": getattr(question, "points", 0),
+                "order_index": getattr(question, "order_index", 0),
+                "image_url": getattr(question, "image_url", None),
+                "video_url": getattr(question, "video_url", None),
+                "audio_url": getattr(question, "audio_url", None),
+                "options": [
+                    {
+                        "id": getattr(option, "id", 0),
+                        "option_text": getattr(option, "option_text", None),
+                        "order_index": getattr(option, "order_index", 0),
+                        "option_group": getattr(option, "option_group", None),
+                        "pair_id": getattr(option, "pair_id", None),
+                    }
+                    for option in raw_options
+                ],
+            }
+        )
+    return payload
+
+
 @router.post("/{exam_id}/start", response_model=ExamStartResponse)
 async def start_exam_session(
     exam_id: int,
@@ -2788,99 +2821,14 @@ async def preview_exam(
         exam.creator_id,
     )
     start_time = datetime.now(timezone.utc)
-
-    questions_list = sorted(exam.questions, key=lambda x: x.order_index)
-    if simulate_student_shuffle and exam.shuffle_questions:
-        def get_question_hash(q_id: int) -> int:
-            seed_str = f"{settings.secret_key}_{current_user.id}_{exam.id}_question_{q_id}"
-            return int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
-
-        questions_list.sort(key=lambda q: get_question_hash(q.id))
-
-    # Build questions
-    questions = []
-    for q in questions_list:
-        question_settings = dict(q.question_settings or {})
-        pgk_type = q.pgk_type or question_settings.get("pgk_type", "checkbox")
-        is_table_validation = (
-            q.question_type == "multiple_choice_complex" and pgk_type == "table_validation"
-        )
-        table_statement_shuffle_allowed = bool(
-            question_settings.get("allow_table_statement_shuffle", True)
-        ) if is_table_validation else False
-        if is_table_validation:
-            question_settings["allow_table_statement_shuffle"] = table_statement_shuffle_allowed
-        requires_options = q.question_type in [
-            "multiple_choice",
-            "multiple_choice_complex",
-            "true_false"
-        ] and not is_table_validation
-
-        should_shuffle_options = bool(simulate_student_shuffle and exam.shuffle_options)
-        options = []
-        if requires_options:
-            options_list = sorted(q.options, key=lambda x: x.order_index)
-            is_placeholder = _is_placeholder_question(q.question_settings)
-            can_shuffle_placeholder = _can_shuffle_placeholder_options(
-                q.question_settings,
-                has_image=bool(q.image_url)
-            )
-            if should_shuffle_options and (not is_placeholder or can_shuffle_placeholder):
-                seed_str = f"{settings.secret_key}_{current_user.id}_{exam.id}_question_{q.id}_options"
-                options_list = _stable_shuffle_with_seed(options_list, seed_str)
-
-            options = [
-                QuestionOptionResponse(
-                    id=opt.id,
-                    option_text=opt.option_text,
-                    order_index=opt.order_index,
-                    option_group=opt.option_group or "standard",
-                    pair_id=opt.pair_id
-                )
-                for opt in options_list
-            ]
-
-        if should_shuffle_options and is_table_validation and table_statement_shuffle_allowed:
-            statements = question_settings.get("statements", [])
-            if statements:
-                normalized_texts = []
-                for statement in statements:
-                    if isinstance(statement, dict):
-                        text = str(statement.get("text", "")).strip()
-                    else:
-                        text = str(statement).strip()
-                    normalized_texts.append(text)
-
-                informative_texts = [
-                    text for text in normalized_texts
-                    if text and text not in {"-", "--", "—", "–"}
-                ]
-                has_meaningful_statement_text = len(set(informative_texts)) >= 2
-                is_image_mode = bool(q.image_url)
-
-                if has_meaningful_statement_text and not is_image_mode:
-                    indexed_stmts = [
-                        {"text": statement, "original_index": i}
-                        for i, statement in enumerate(statements)
-                    ]
-                    seed_str = f"{settings.secret_key}_{current_user.id}_{exam.id}_question_{q.id}_statements"
-                    indexed_stmts = _stable_shuffle_with_seed(indexed_stmts, seed_str)
-                    question_settings["statements"] = indexed_stmts
-
-        questions.append(QuestionResponse(
-            id=q.id,
-            question_text=q.question_text,
-            stimulus=q.stimulus,
-            question_type=q.question_type,
-            pgk_type=q.pgk_type,
-            points=q.points,
-            order_index=q.order_index,
-            image_url=q.image_url,
-            video_url=q.video_url,
-            audio_url=q.audio_url,
-            question_settings=question_settings,
-            options=options
-        ))
+    questions = _build_start_question_responses(
+        _questions_to_start_payload(exam.questions),
+        exam_id=exam.id,
+        user_id=current_user.id,
+        shuffle_questions=bool(simulate_student_shuffle and exam.shuffle_questions),
+        shuffle_options=bool(simulate_student_shuffle and exam.shuffle_options),
+        secret_key=settings.secret_key,
+    )
 
     return ExamStartResponse(
         session_id=0, # Dummy ID

@@ -15,9 +15,11 @@ from uuid import uuid4
 from celery import shared_task
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.config import settings
 from app.core.redis_pubsub import get_redis
-from app.database import async_session_maker
+from app.database import async_session_maker, create_task_engine
 from app.models.question import Question
 from app.models.session import Answer, ExamSession
 
@@ -64,11 +66,15 @@ async def enqueue_answer_payload(payload: Dict[str, Any]) -> int:
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def process_answer_queue(self, batch_size: int = 100) -> None:
     """Celery task wrapper for queue processing."""
+    if not settings.answer_queue_processing_enabled():
+        return
     loop: Optional[asyncio.AbstractEventLoop] = None
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(_async_process_answer_queue(max(1, int(batch_size or 1))))
+        loop.run_until_complete(
+            _run_queue_with_task_engine(max(1, int(batch_size or 1)))
+        )
     except Exception as exc:
         logger.error("Error in process_answer_queue: %s", exc)
         self.retry(exc=exc)
@@ -83,6 +89,17 @@ def process_answer_queue(self, batch_size: int = 100) -> None:
                 loop.close()
             except Exception as exc:
                 logger.error("Error closing event loop: %s", exc)
+
+
+async def _run_queue_with_task_engine(batch_size: int) -> int:
+    engine = create_task_engine()
+    try:
+        factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+        return await _async_process_answer_queue(batch_size, session_factory=factory)
+    finally:
+        await engine.dispose()
 
 
 async def process_answer_queue_once(batch_size: int = 100) -> int:
@@ -107,10 +124,15 @@ async def drain_answer_queue(max_rounds: int = 4, batch_size: int = 300) -> int:
     return total_processed
 
 
-async def _async_process_answer_queue(batch_size: int) -> int:
+async def _async_process_answer_queue(
+    batch_size: int,
+    session_factory: Any = None,
+) -> int:
     """Async implementation of answer queue processing."""
+    if not settings.answer_queue_processing_enabled():
+        return 0
+
     import redis.asyncio as aioredis
-    from app.config import settings
 
     redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
     processed_count = 0
@@ -132,7 +154,8 @@ async def _async_process_answer_queue(batch_size: int) -> int:
             )
         )
 
-        async with async_session_maker() as db:
+        factory = session_factory or async_session_maker
+        async with factory() as db:
             try:
                 valid_answers, dropped_invalid = await _filter_answers_with_existing_sessions(
                     db,

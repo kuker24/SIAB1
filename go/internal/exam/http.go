@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"siab1/internal/auth"
 	"siab1/internal/config"
@@ -162,76 +161,11 @@ func registerLoginLane(mux *http.ServeMux, lane string, h http.HandlerFunc) {
 }
 
 func (d deps) autoSave(w http.ResponseWriter, r *http.Request) {
-	userID, ok := d.userOrFallback(w, r)
-	if !ok {
-		return
-	}
-	var body struct {
-		SessionID json.Number    `json:"session_id"`
-		Answers   map[string]any `json:"answers"`
-		Timestamp any            `json:"timestamp"`
-	}
-	if err := readJSON(r, &body); err != nil {
-		writeDetail(w, http.StatusUnprocessableEntity, "Payload tidak valid")
-		return
-	}
-	sessionID, err := strconv.Atoi(strings.TrimSpace(body.SessionID.String()))
-	if err != nil || sessionID <= 0 {
-		writeDetail(w, http.StatusUnprocessableEntity, "session_id must be a valid integer")
-		return
-	}
-	if !d.sessionWritable(w, r, sessionID, userID) {
-		return
-	}
-	saved := 0
-	for key, val := range body.Answers {
-		qid, err := strconv.Atoi(key)
-		if err != nil || qid <= 0 {
-			continue
-		}
-		if err := d.store.UpsertAnswer(r.Context(), sessionID, decodeAnswer(qid, val)); err != nil {
-			writeDetail(w, http.StatusInternalServerError, "Gagal menyimpan jawaban")
-			return
-		}
-		saved++
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":      "success",
-		"saved_count": saved,
-		"timestamp":   time.Now().UTC().Format(time.RFC3339),
-	})
+	d.proxyExamWrite(w, r)
 }
 
 func (d deps) submitAnswer(w http.ResponseWriter, r *http.Request) {
-	userID, ok := d.userOrFallback(w, r)
-	if !ok {
-		return
-	}
-	var body map[string]any
-	if err := readJSON(r, &body); err != nil {
-		writeDetail(w, http.StatusUnprocessableEntity, "Payload tidak valid")
-		return
-	}
-	sessionID := asInt(body["session_id"])
-	questionID := asInt(body["question_id"])
-	if sessionID <= 0 || questionID <= 0 {
-		writeDetail(w, http.StatusUnprocessableEntity, "session_id and question_id required")
-		return
-	}
-	if !d.sessionWritable(w, r, sessionID, userID) {
-		return
-	}
-	row := decodeAnswer(questionID, body)
-	row.QuestionID = questionID
-	if err := d.store.UpsertAnswer(r.Context(), sessionID, row); err != nil {
-		writeDetail(w, http.StatusInternalServerError, "Gagal menyimpan jawaban")
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":      "saved",
-		"question_id": questionID,
-		"message":     "Jawaban berhasil disimpan",
-	})
+	d.proxyExamWrite(w, r)
 }
 
 func (d deps) getAnswers(w http.ResponseWriter, r *http.Request) {
@@ -290,23 +224,6 @@ func (d deps) userOrFallback(w http.ResponseWriter, r *http.Request) (int, bool)
 	return id, true
 }
 
-func (d deps) sessionWritable(w http.ResponseWriter, r *http.Request, sessionID, userID int) bool {
-	status, found, err := d.store.SessionOwned(r.Context(), sessionID, userID)
-	if err != nil {
-		writeDetail(w, http.StatusInternalServerError, "Gagal memeriksa sesi")
-		return false
-	}
-	if !found {
-		writeDetail(w, http.StatusNotFound, "Session not found")
-		return false
-	}
-	if status != "in_progress" && status != "active" {
-		writeDetail(w, http.StatusBadRequest, "Sesi ujian tidak aktif")
-		return false
-	}
-	return true
-}
-
 func (d deps) tryFallback(w http.ResponseWriter, r *http.Request) bool {
 	if d.fallback == nil {
 		writeDetail(w, http.StatusServiceUnavailable, "Database tidak tersedia")
@@ -316,38 +233,8 @@ func (d deps) tryFallback(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func decodeAnswer(questionID int, val any) persistence.AnswerRow {
-	row := persistence.AnswerRow{QuestionID: questionID, Metadata: []byte("{}")}
-	switch v := val.(type) {
-	case map[string]any:
-		if id := asInt(v["selected_option_id"]); id > 0 {
-			row.SelectedOptionID = persistence.IntPtr(id)
-		}
-		if ids := asIntSlice(v["selected_option_ids"]); len(ids) > 0 {
-			row.SelectedOptionIDs = ids
-		}
-		if text, ok := v["answer_text"].(string); ok {
-			row.AnswerText = persistence.StrPtr(text)
-		}
-		if stmts, ok := v["statement_answers"]; ok && stmts != nil {
-			row.Metadata = persistence.MetadataJSON(map[string]any{"statement_answers": stmts})
-		} else if meta, ok := v["answer_metadata"]; ok && meta != nil {
-			row.Metadata = persistence.MetadataJSON(meta)
-		}
-	case []any:
-		row.SelectedOptionIDs = asIntSlice(v)
-	case float64:
-		row.SelectedOptionID = persistence.IntPtr(int(v))
-	case json.Number:
-		if n, err := v.Int64(); err == nil {
-			row.SelectedOptionID = persistence.IntPtr(int(n))
-		}
-	case string:
-		if v != "" {
-			row.AnswerText = persistence.StrPtr(v)
-		}
-	}
-	return row
+func (d deps) proxyExamWrite(w http.ResponseWriter, r *http.Request) {
+	_ = d.tryFallback(w, r)
 }
 
 func exportAnswer(row persistence.AnswerRow) any {
@@ -369,38 +256,6 @@ func exportAnswer(row persistence.AnswerRow) any {
 		return *row.SelectedOptionID
 	}
 	return nil
-}
-
-func asInt(v any) int {
-	switch n := v.(type) {
-	case float64:
-		return int(n)
-	case json.Number:
-		i, _ := n.Int64()
-		return int(i)
-	case int:
-		return n
-	case string:
-		i, _ := strconv.Atoi(n)
-		return i
-	default:
-		return 0
-	}
-}
-
-func asIntSlice(v any) []int32 {
-	list, ok := v.([]any)
-	if !ok {
-		return nil
-	}
-	out := make([]int32, 0, len(list))
-	for _, item := range list {
-		n := asInt(item)
-		if n > 0 {
-			out = append(out, int32(n))
-		}
-	}
-	return out
 }
 
 func readJSON(r *http.Request, dest any) error {

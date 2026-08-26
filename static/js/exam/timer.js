@@ -6,6 +6,7 @@
             storageManager = new ExamStorageManager();
             await storageManager.init();
             syncWorker = new AnswerSyncWorker(storageManager, () => this.getToken());
+            journalWorker = new AnswerJournalWorker(() => this.getToken());
 
             console.log('📦 Offline storage initialized');
         } catch (error) {

@@ -15,6 +15,7 @@ from fastapi import Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core.request_security_memo import allowed_signatures, developer_mode_enabled
 from app.core.seb import (
     validate_seb_config_key_hash,
     validate_seb_request_hash,
@@ -154,10 +155,7 @@ async def validate_seb_headers(
     Raises:
         SEBValidationError: If SEB validation fails
     """
-    # DEVELOPER MODE CHECK: Allow browser access if enabled
-    from app.core.cache import is_developer_mode_enabled
-    if await is_developer_mode_enabled():
-        # Log this bypass for security monitoring
+    if await developer_mode_enabled(request):
         await _log_security_event(
             request, exam_id, "DEVELOPER_MODE_BYPASS",
             "SEB validation bypassed due to developer/tester mode being enabled"
@@ -174,7 +172,6 @@ async def validate_seb_headers(
 
     if build_token or is_mobile_apk:
         # Check if mobile apps are allowed (separate setting)
-        from app.core.cache import get_allowed_signatures
         allow_mobile = await _get_allow_mobile_apps_cached()
 
         if allow_mobile:
@@ -195,7 +192,7 @@ async def validate_seb_headers(
             app_sig = request.headers.get("X-App-Signature")
             app_ts = request.headers.get("X-App-Timestamp")
             if app_sig:
-                allowed_sigs = await get_allowed_signatures()
+                allowed_sigs = await allowed_signatures(request)
                 normalized_sig = app_sig.replace(":", "").lower().strip()
                 signature_valid = any(
                     s and s.strip().lower() == normalized_sig for s in allowed_sigs

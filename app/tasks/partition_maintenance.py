@@ -11,9 +11,10 @@ from typing import Dict, List, Tuple
 
 from celery import shared_task
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import settings
-from app.database import async_session_maker
+from app.database import create_task_engine
 
 logger = logging.getLogger(__name__)
 
@@ -173,28 +174,35 @@ async def run_partition_maintenance() -> Dict[str, object]:
             "reason": "EXAM_LOGS_PARTITION_MAINTENANCE_ENABLED=false",
         }
 
-    async with async_session_maker() as db:
-        is_partitioned = await _is_exam_logs_partitioned(db)
-        if not is_partitioned:
-            return {"status": "skipped", "reason": "exam_logs not partitioned"}
+    engine = create_task_engine()
+    session_maker = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+    try:
+        async with session_maker() as db:
+            is_partitioned = await _is_exam_logs_partitioned(db)
+            if not is_partitioned:
+                return {"status": "skipped", "reason": "exam_logs not partitioned"}
 
-        ensured = await _ensure_future_partitions(
-            db,
-            months_ahead=int(settings.exam_logs_partition_months_ahead),
-        )
-        partitions = await _list_attached_partitions(db)
-        detached_count, detached_names = await _detach_old_partitions(
-            db,
-            partitions,
-            retention_months=int(settings.exam_logs_partition_retention_months),
-        )
-        archives = await _list_archive_tables(db)
-        dropped_archives = await _drop_expired_archives(
-            db,
-            archives,
-            int(settings.exam_logs_archive_retention_days),
-        )
-        await db.commit()
+            ensured = await _ensure_future_partitions(
+                db,
+                months_ahead=int(settings.exam_logs_partition_months_ahead),
+            )
+            partitions = await _list_attached_partitions(db)
+            detached_count, detached_names = await _detach_old_partitions(
+                db,
+                partitions,
+                retention_months=int(settings.exam_logs_partition_retention_months),
+            )
+            archives = await _list_archive_tables(db)
+            dropped_archives = await _drop_expired_archives(
+                db,
+                archives,
+                int(settings.exam_logs_archive_retention_days),
+            )
+            await db.commit()
+    finally:
+        await engine.dispose()
 
     summary: Dict[str, object] = {
         "status": "ok",
