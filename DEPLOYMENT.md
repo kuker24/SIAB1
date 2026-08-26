@@ -116,6 +116,17 @@ docker compose -p siab1 -f docker-compose.production.yml ps
 curl --fail --header 'Host: siab.man1rokanhulu.cloud' http://127.0.0.1:8080/health
 ```
 
+Fresh database tidak membuat akun privileged bawaan. Bootstrap admin pertama dengan
+password satu kali dari terminal operator, lalu hapus variabelnya dari sesi shell:
+
+```bash
+read -rsp 'Initial admin password: ' SIAB1_BOOTSTRAP_ADMIN_PASSWORD
+export SIAB1_BOOTSTRAP_ADMIN_PASSWORD
+docker compose -p siab1 -f docker-compose.production.yml run --rm \
+  -e SIAB1_BOOTSTRAP_ADMIN_PASSWORD api python scripts/bootstrap_admin.py
+unset SIAB1_BOOTSTRAP_ADMIN_PASSWORD
+```
+
 Periksa health, login admin, login peserta, SXB rejection/acceptance, autosave, final submit, WebSocket, upload, dan export sebelum membuka trafik umum.
 
 ## Client Release

@@ -797,7 +797,14 @@
                 const sessionId = Number(session?.session_id || session?.id || 0);
                 const rawSessionStatus = String(session?.status || '').toLowerCase();
                 const allowRowActions = sessionId > 0 && !['completed', 'submitted', 'ended'].includes(rawSessionStatus);
-                const safeStudentName = _escapeJsString(student.full_name || 'Siswa');
+                const studentName = String(student.full_name || 'Siswa');
+                const safeStudentName = escapeHtml(studentName);
+                const safeStudentNameArg = escapeHtml(JSON.stringify(studentName));
+                const safeStudentInitial = escapeHtml(studentName.charAt(0).toUpperCase());
+                const safeUsername = escapeHtml(student.username);
+                const safeStudentClass = escapeHtml(student.student_class);
+                const safeDeviceInfo = escapeHtml(deviceInfo);
+                const safeShortDevice = escapeHtml(shortDevice);
 
                 const connectionKey = getMonitorStudentKey(currentExamIdForModal, student.id);
                 const connectionState = studentConnectionStatus[connectionKey]
@@ -808,25 +815,25 @@
                         <td>
                             <div class="student-info">
                                 <div class="student-avatar">
-                                    ${student.full_name.charAt(0).toUpperCase()}
+                                    ${safeStudentInitial}
                                 </div>
                                 <div class="student-details">
                                     <div class="student-name">
-                                        ${student.full_name}
+                                        ${safeStudentName}
                                         <span id="status-indicator-${student.id}"
                                               class="student-status-indicator ${connectionState}"
                                               title="${connectionState === 'online' ? '🟢 Online' : '🔴 Offline'}">
                                         </span>
                                     </div>
                                     <div class="student-username">
-                                        ${student.username}
-                                        ${student.student_class ? `<span style="margin: 0 4px; color: var(--border-color);">|</span> <i class="fas fa-graduation-cap" style="font-size: 0.7rem;"></i> ${student.student_class}` : ''}
+                                        ${safeUsername}
+                                        ${student.student_class ? `<span style="margin: 0 4px; color: var(--border-color);">|</span> <i class="fas fa-graduation-cap" style="font-size: 0.7rem;"></i> ${safeStudentClass}` : ''}
                                     </div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <span class="status-badge ${status}">${statusLabel}</span>
+                            <span class="status-badge ${status}">${escapeHtml(statusLabel)}</span>
                             ${violationsCount > 0 ? `
                                 <span class="badge badge-danger" style="margin-left: 0.5rem;" title="${violationsCount} pelanggaran">
                                     <i class="fas fa-triangle-exclamation"></i> ${violationsCount}
@@ -834,18 +841,18 @@
                             ` : ''}
                         </td>
                         <td>
-                            <code style="font-size: 0.75rem; color: var(--text-secondary);" title="${deviceInfo}">${shortDevice}</code>
+                            <code style="font-size: 0.75rem; color: var(--text-secondary);" title="${safeDeviceInfo}">${safeShortDevice}</code>
                         </td>
                         <td>
                             ${allowRowActions ? `
                                 <div class="monitor-row-actions">
                                     <button class="monitor-action-btn emergency"
-                                            onclick="allowEmergencyExit(${sessionId}, '${safeStudentName}')"
+                                            onclick="allowEmergencyExit(${sessionId}, ${safeStudentNameArg})"
                                             title="Izinkan keluar (bypass kiosk)">
                                         <i class="fas fa-door-open"></i>
                                     </button>
                                     <button class="monitor-action-btn kick"
-                                            onclick="kickStudentFromExam(${sessionId}, '${safeStudentName}')"
+                                            onclick="kickStudentFromExam(${sessionId}, ${safeStudentNameArg})"
                                             title="Keluarkan paksa dari ujian">
                                         <i class="fas fa-ban"></i>
                                     </button>

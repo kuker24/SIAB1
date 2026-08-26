@@ -592,9 +592,11 @@ async def toggle_publish_exam(
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
             except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(
-                    f"Failed to notify student {target_user_id}: {e}"
+                logger.error(
+                    "Failed to notify student %s: %s",
+                    target_user_id,
+                    str(e),
+                    exc_info=True,
                 )
 
         # Also broadcast to exam monitor channel
@@ -626,9 +628,11 @@ async def toggle_publish_exam(
         )
         await db.commit()
 
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Exam {exam_id} unpublished: deleted {delete_result.rowcount} non-submitted sessions")
+        logger.info(
+            "Exam %s unpublished: deleted %s non-submitted sessions",
+            exam_id,
+            delete_result.rowcount,
+        )
 
     action = "dipublikasikan" if exam.is_published else "dibatalkan publikasinya"
     return {

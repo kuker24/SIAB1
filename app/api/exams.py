@@ -88,7 +88,7 @@ from app.core.roles import (
     is_developer_role,
     normalize_role,
 )
-from app.core.session_recovery import evaluate_session_recovery
+from app.core.session_recovery import RECOVERY_CATEGORY_ADMIN, evaluate_session_recovery
 from app.config import settings
 from app.core.feature_flags import require_feature_enabled
 from app.core.rate_limiter import RateLimiters, check_rate_limit
@@ -2040,6 +2040,244 @@ async def join_exam_by_token(
     )
 
 
+def _build_start_question_responses(
+    questions_payload: List[Dict[str, Any]],
+    *,
+    exam_id: int,
+    user_id: int,
+    shuffle_questions: bool,
+    shuffle_options: bool,
+    secret_key: str,
+) -> List[QuestionResponse]:
+    questions_list: List[SimpleNamespace] = []
+    for raw_question in questions_payload:
+        raw_options = raw_question.get("options") or []
+        normalized_options = [
+            SimpleNamespace(
+                id=safe_int(raw_option.get("id")) or 0,
+                option_text=raw_option.get("option_text"),
+                order_index=safe_int(raw_option.get("order_index")) or 0,
+                option_group=raw_option.get("option_group") or "standard",
+                pair_id=raw_option.get("pair_id"),
+            )
+            for raw_option in raw_options
+        ]
+
+        questions_list.append(
+            SimpleNamespace(
+                id=safe_int(raw_question.get("id")) or 0,
+                question_text=raw_question.get("question_text"),
+                stimulus=raw_question.get("stimulus"),
+                question_type=raw_question.get("question_type"),
+                pgk_type=raw_question.get("pgk_type"),
+                difficulty_level=raw_question.get("difficulty_level"),
+                question_settings=raw_question.get("question_settings") or {},
+                points=float(raw_question.get("points") or 0),
+                order_index=safe_int(raw_question.get("order_index")) or 0,
+                image_url=raw_question.get("image_url"),
+                video_url=raw_question.get("video_url"),
+                audio_url=raw_question.get("audio_url"),
+                cached_options=normalized_options,
+            )
+        )
+
+    questions_list.sort(key=lambda q: q.order_index)
+
+    if shuffle_questions:
+        def get_question_hash(q_id: int) -> int:
+            seed_str = f"{secret_key}_{user_id}_{exam_id}_question_{q_id}"
+            return int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
+
+        questions_list.sort(key=lambda q: get_question_hash(q.id))
+
+    questions: List[QuestionResponse] = []
+    skipped_questions: List[Dict[str, Any]] = []
+
+    for q in questions_list:
+        try:
+            question_settings = dict(q.question_settings or {})
+            question_text = (q.question_text or "").strip()
+            placeholder_source = str(
+                question_settings.get("placeholder_source") or ""
+            ).strip().lower()
+            is_placeholder_question = _is_placeholder_question(question_settings)
+            is_image_placeholder = (
+                is_placeholder_question
+                and bool(q.image_url)
+                and placeholder_source == "image"
+            )
+
+            if not question_text:
+                if is_image_placeholder:
+                    question_text = (
+                        "Perhatikan gambar soal berikut, lalu pilih jawaban yang benar."
+                    )
+                    logger.warning(
+                        "EXAM_START | Question %s uses image-placeholder fallback text",
+                        q.id,
+                    )
+                else:
+                    logger.error("EXAM_START | Question %s has NO QUESTION_TEXT", q.id)
+                    skipped_questions.append({"id": q.id, "reason": "no_text"})
+                    continue
+
+            q_settings = q.question_settings or {}
+            pgk_type = q.pgk_type or q_settings.get("pgk_type", "checkbox")
+            is_table_validation = (
+                q.question_type == "multiple_choice_complex"
+                and pgk_type == "table_validation"
+            )
+
+            requires_options = (
+                q.question_type in ['multiple_choice', 'multiple_choice_complex', 'true_false']
+                and not is_table_validation
+            )
+            question_options = list(getattr(q, "cached_options", []) or [])
+
+            if requires_options and not question_options:
+                logger.error(
+                    "EXAM_START | Question %s (type: %s) has NO OPTIONS",
+                    q.id,
+                    q.question_type,
+                )
+                skipped_questions.append({
+                    "id": q.id,
+                    "text": (q.question_text or "")[:50],
+                    "reason": "no_options",
+                    "type": q.question_type,
+                })
+                continue
+
+            options = []
+            should_shuffle = bool(shuffle_options)
+
+            if requires_options:
+                options_list = sorted(question_options, key=lambda x: x.order_index)
+                is_placeholder = is_placeholder_question
+                can_shuffle_placeholder = _can_shuffle_placeholder_options(
+                    question_settings,
+                    has_image=bool(q.image_url)
+                )
+
+                if should_shuffle and (not is_placeholder or can_shuffle_placeholder):
+                    seed_str = (
+                        f"{secret_key}_{user_id}_{exam_id}_question_{q.id}_options"
+                    )
+                    options_list = _stable_shuffle_with_seed(options_list, seed_str)
+
+                options = [
+                    QuestionOptionResponse(
+                        id=opt.id,
+                        option_text=opt.option_text,
+                        order_index=opt.order_index,
+                        option_group=opt.option_group or "standard",
+                        pair_id=opt.pair_id
+                    )
+                    for opt in options_list
+                ]
+
+            pgk_type = q.pgk_type or question_settings.get("pgk_type", "checkbox")
+            is_table_validation = (
+                q.question_type == "multiple_choice_complex"
+                and pgk_type == "table_validation"
+            )
+            table_statement_shuffle_allowed = bool(
+                question_settings.get("allow_table_statement_shuffle", True)
+            ) if is_table_validation else False
+            if is_table_validation:
+                question_settings["allow_table_statement_shuffle"] = (
+                    table_statement_shuffle_allowed
+                )
+
+            if should_shuffle and is_table_validation and table_statement_shuffle_allowed:
+                statements = question_settings.get("statements", [])
+                if statements:
+                    normalized_texts = []
+                    for s in statements:
+                        if isinstance(s, dict):
+                            text = str(s.get("text", "")).strip()
+                        else:
+                            text = str(s).strip()
+                        normalized_texts.append(text)
+
+                    informative_texts = [
+                        t for t in normalized_texts
+                        if t and t not in {"-", "--", "—", "–"}
+                    ]
+                    has_meaningful_statement_text = len(set(informative_texts)) >= 2
+                    is_image_mode = bool(q.image_url)
+
+                    if has_meaningful_statement_text and not is_image_mode:
+                        indexed_stmts = [
+                            {"text": s, "original_index": i}
+                            for i, s in enumerate(statements)
+                        ]
+                        seed_str = (
+                            f"{secret_key}_{user_id}_{exam_id}_question_{q.id}_statements"
+                        )
+                        indexed_stmts = _stable_shuffle_with_seed(indexed_stmts, seed_str)
+                        question_settings["statements"] = indexed_stmts
+
+            questions.append(QuestionResponse(
+                id=q.id,
+                question_text=question_text,
+                stimulus=q.stimulus,
+                question_type=q.question_type,
+                pgk_type=q.pgk_type,
+                difficulty_level=q.difficulty_level or "medium",
+                category=None,
+                tags=[],
+                question_settings=question_settings,
+                points=q.points,
+                order_index=q.order_index,
+                image_url=q.image_url,
+                video_url=q.video_url,
+                audio_url=q.audio_url,
+                options=options
+            ))
+
+        except Exception as e:
+            logger.error(
+                "EXAM_START | Question %s FAILED to build: %s",
+                q.id,
+                str(e),
+                exc_info=True,
+            )
+            skipped_questions.append({
+                "id": q.id,
+                "text": getattr(q, 'question_text', 'N/A')[:50],
+                "reason": "exception",
+                "error": str(e),
+            })
+            continue
+
+    expected_count = len(questions_list)
+    actual_count = len(questions)
+
+    if skipped_questions:
+        logger.error(
+            "EXAM_START | SKIPPED %s questions: %s",
+            len(skipped_questions),
+            skipped_questions,
+        )
+
+    if actual_count < expected_count:
+        logger.error(
+            "EXAM_START | QUESTION COUNT MISMATCH! Expected %s, got %s",
+            expected_count,
+            actual_count,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Gagal memuat {expected_count - actual_count} soal dari ujian. "
+                "Data ujian tidak lengkap. Silakan hubungi pengawas atau administrator."
+            )
+        )
+
+    return questions
+
+
 @router.post("/{exam_id}/start", response_model=ExamStartResponse)
 async def start_exam_session(
     exam_id: int,
@@ -2156,6 +2394,7 @@ async def start_exam_session(
             reverse=True,
         )
 
+        candidate_recoveries = []
         for candidate in recoverable_sessions:
             logs_result = await db.execute(
                 select(ExamLog)
@@ -2164,6 +2403,17 @@ async def start_exam_session(
                 .limit(30)
             )
             recovery = evaluate_session_recovery(candidate, logs_result.scalars().all())
+            if recovery.get("category") == RECOVERY_CATEGORY_ADMIN:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Sesi dihentikan oleh pengawas/admin. "
+                        "Hubungi pengawas untuk membuka kembali sesi."
+                    ),
+                )
+            candidate_recoveries.append((candidate, recovery))
+
+        for candidate, recovery in candidate_recoveries:
             if not recovery.get("allow_continue"):
                 continue
 
@@ -2308,236 +2558,23 @@ async def start_exam_session(
         "timestamp": now.isoformat()
     })
 
-    # Build questions response from cached payload (without is_correct).
     questions_payload = await exam_service.get_questions_payload(exam_id)
     if not questions_payload:
         raise HTTPException(status_code=404, detail="Soal ujian tidak ditemukan")
 
-    questions_list: List[SimpleNamespace] = []
-    for raw_question in questions_payload:
-        raw_options = raw_question.get("options") or []
-        normalized_options = [
-            SimpleNamespace(
-                id=safe_int(raw_option.get("id")) or 0,
-                option_text=raw_option.get("option_text"),
-                order_index=safe_int(raw_option.get("order_index")) or 0,
-                option_group=raw_option.get("option_group") or "standard",
-                pair_id=raw_option.get("pair_id"),
-            )
-            for raw_option in raw_options
-        ]
-
-        questions_list.append(
-            SimpleNamespace(
-                id=safe_int(raw_question.get("id")) or 0,
-                question_text=raw_question.get("question_text"),
-                stimulus=raw_question.get("stimulus"),
-                question_type=raw_question.get("question_type"),
-                pgk_type=raw_question.get("pgk_type"),
-                difficulty_level=raw_question.get("difficulty_level"),
-                question_settings=raw_question.get("question_settings") or {},
-                points=float(raw_question.get("points") or 0),
-                order_index=safe_int(raw_question.get("order_index")) or 0,
-                image_url=raw_question.get("image_url"),
-                video_url=raw_question.get("video_url"),
-                audio_url=raw_question.get("audio_url"),
-                cached_options=normalized_options,
-            )
-        )
-
-    questions_list.sort(key=lambda q: q.order_index)
-
-    total_questions_from_payload = len(questions_list)
+    total_questions_from_payload = len(questions_payload)
     if int(session_cache_data.get("total_questions") or 0) != total_questions_from_payload:
         session_cache_data["total_questions"] = total_questions_from_payload
         await store_session_data(session.id, session_cache_data)
 
-    # Randomize questions if enabled (deterministic per student).
-    if exam.shuffle_questions:
-        def get_question_hash(q_id: int) -> int:
-            seed_str = f"{settings.secret_key}_{current_user.id}_{exam.id}_question_{q_id}"
-            return int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
-
-        questions_list.sort(key=lambda q: get_question_hash(q.id))
-
-    questions: List[QuestionResponse] = []
-    skipped_questions: List[Dict[str, Any]] = []
-
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug(
-            "EXAM_START | exam=%s user=%s | loading %s questions from cached payload",
-            exam_id,
-            current_user.id,
-            len(questions_list),
-        )
-
-    for q in questions_list:
-        try:
-            question_settings = dict(q.question_settings or {})
-            question_text = (q.question_text or "").strip()
-            placeholder_source = str(question_settings.get("placeholder_source") or "").strip().lower()
-            is_placeholder_question = _is_placeholder_question(question_settings)
-            is_image_placeholder = (
-                is_placeholder_question
-                and bool(q.image_url)
-                and placeholder_source == "image"
-            )
-
-            # VALIDATION: Check required fields first
-            if not question_text:
-                if is_image_placeholder:
-                    question_text = "Perhatikan gambar soal berikut, lalu pilih jawaban yang benar."
-                    logger.warning(
-                        "EXAM_START | Question %s uses image-placeholder fallback text",
-                        q.id,
-                    )
-                else:
-                    error_msg = f"Question {q.id} has NO QUESTION_TEXT"
-                    logger.error(f"EXAM_START | {error_msg}")
-                    skipped_questions.append({"id": q.id, "reason": "no_text"})
-                    continue
-
-            # VALIDATION: Check question has options (ONLY for types that require options)
-            # Essay, short_answer, and PGK table_validation don't need options
-
-            # Determine effective PGK type safely
-            q_settings = q.question_settings or {}
-            pgk_type = q.pgk_type or q_settings.get("pgk_type", "checkbox")
-            is_table_validation = (q.question_type == "multiple_choice_complex" and pgk_type == "table_validation")
-
-            requires_options = (
-                q.question_type in ['multiple_choice', 'multiple_choice_complex', 'true_false']
-                and not is_table_validation
-            )
-            question_options = list(getattr(q, "cached_options", []) or [])
-
-            if requires_options and not question_options:
-                error_msg = f"Question {q.id} (type: {q.question_type}) has NO OPTIONS"
-                logger.error(f"EXAM_START | {error_msg}")
-                skipped_questions.append({"id": q.id, "text": q.question_text[:50], "reason": "no_options", "type": q.question_type})
-                continue
-
-            # Build options (only for question types that have options)
-            options = []
-            should_shuffle = bool(exam.shuffle_options)  # Define outside the if block for use later
-
-            if requires_options:
-                options_list = sorted(question_options, key=lambda x: x.order_index)
-
-                # Placeholder options are shuffled only when explicitly allowed by builder
-                # and never for image-driven placeholders.
-                is_placeholder = is_placeholder_question
-                can_shuffle_placeholder = _can_shuffle_placeholder_options(
-                    question_settings,
-                    has_image=bool(q.image_url)
-                )
-
-                if should_shuffle and (not is_placeholder or can_shuffle_placeholder):
-                    seed_str = f"{settings.secret_key}_{current_user.id}_{exam.id}_question_{q.id}_options"
-                    options_list = _stable_shuffle_with_seed(options_list, seed_str)
-
-                options = [
-                    QuestionOptionResponse(
-                        id=opt.id,
-                        option_text=opt.option_text,
-                        order_index=opt.order_index,
-                        option_group=opt.option_group or "standard",
-                        pair_id=opt.pair_id
-                    )
-                    for opt in options_list
-                ]
-
-            # Prepare question settings (handle Table Validation shuffling)
-            # Determine PGK type (fallback to settings if not in column)
-            pgk_type = q.pgk_type or question_settings.get("pgk_type", "checkbox")
-            is_table_validation = (
-                q.question_type == "multiple_choice_complex" and pgk_type == "table_validation"
-            )
-            table_statement_shuffle_allowed = bool(
-                question_settings.get("allow_table_statement_shuffle", True)
-            ) if is_table_validation else False
-            if is_table_validation:
-                question_settings["allow_table_statement_shuffle"] = table_statement_shuffle_allowed
-
-            # Shuffle statements for Table Validation if enabled
-            if should_shuffle and is_table_validation and table_statement_shuffle_allowed:
-                statements = question_settings.get("statements", [])
-                if statements:
-                    # Do NOT shuffle when statements are image-driven/placeholder,
-                    # because row text does not uniquely identify statement order.
-                    normalized_texts = []
-                    for s in statements:
-                        if isinstance(s, dict):
-                            text = str(s.get("text", "")).strip()
-                        else:
-                            text = str(s).strip()
-                        normalized_texts.append(text)
-
-                    informative_texts = [
-                        t for t in normalized_texts
-                        if t and t not in {"-", "--", "—", "–"}
-                    ]
-                    has_meaningful_statement_text = len(set(informative_texts)) >= 2
-                    is_image_mode = bool(q.image_url)
-
-                    if has_meaningful_statement_text and not is_image_mode:
-                        # Create indexed objects to preserve original mapping
-                        indexed_stmts = [{"text": s, "original_index": i} for i, s in enumerate(statements)]
-
-                        # Use stable hash for consistent order
-                        seed_str = f"{settings.secret_key}_{current_user.id}_{exam.id}_question_{q.id}_statements"
-                        indexed_stmts = _stable_shuffle_with_seed(indexed_stmts, seed_str)
-
-                        # Update settings with shuffled objects
-                        question_settings["statements"] = indexed_stmts
-
-            questions.append(QuestionResponse(
-                id=q.id,
-                question_text=question_text,
-                stimulus=q.stimulus,
-                question_type=q.question_type,
-                pgk_type=q.pgk_type,
-                difficulty_level=q.difficulty_level or "medium",
-                category=None,
-                tags=[],
-                question_settings=question_settings,
-                points=q.points,
-                order_index=q.order_index,
-                image_url=q.image_url,
-                video_url=q.video_url,
-                audio_url=q.audio_url,
-                options=options
-            ))
-
-        except Exception as e:
-            logger.error(f"EXAM_START | Question {q.id} FAILED to build: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            skipped_questions.append({"id": q.id, "text": getattr(q, 'question_text', 'N/A')[:50], "reason": "exception", "error": str(e)})
-            continue
-
-    # VALIDATION: Check final question count
-    expected_count = len(questions_list)
-    actual_count = len(questions)
-
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug(
-            "EXAM_START | exam=%s user=%s | built %s/%s questions",
-            exam_id,
-            current_user.id,
-            actual_count,
-            expected_count,
-        )
-
-    if skipped_questions:
-        logger.error(f"EXAM_START | SKIPPED {len(skipped_questions)} questions: {skipped_questions}")
-
-    if actual_count < expected_count:
-        logger.error(f"EXAM_START | QUESTION COUNT MISMATCH! Expected {expected_count}, got {actual_count}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Gagal memuat {expected_count - actual_count} soal dari ujian. Data ujian tidak lengkap. Silakan hubungi pengawas atau administrator."
-        )
+    questions = _build_start_question_responses(
+        questions_payload,
+        exam_id=exam.id,
+        user_id=current_user.id,
+        shuffle_questions=bool(exam.shuffle_questions),
+        shuffle_options=bool(exam.shuffle_options),
+        secret_key=settings.secret_key,
+    )
 
     return ExamStartResponse(
         session_id=session.id,

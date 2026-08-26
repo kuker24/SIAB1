@@ -13,7 +13,6 @@ echo "╚═══════════════════════�
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-RED='\033[0;31m'
 NC='\033[0m'
 
 # Prepare Prometheus before Uvicorn spawns worker processes.
@@ -106,7 +105,7 @@ verify_admin_user() {
     if [ "$ADMIN_EXISTS" -gt "0" ]; then
         echo -e "${GREEN}✓ Admin user exists${NC}"
     else
-        echo -e "${RED}✗ No admin user found! Check init.sql${NC}"
+        echo -e "${YELLOW}No admin user found. Run scripts/bootstrap_admin.py with an explicit one-time password.${NC}"
     fi
 }
 
@@ -151,7 +150,7 @@ main() {
 }
 
 # Run main initialization
-main
+main "$@"
 
 # Clear stale metric files after initialization subprocesses have exited and
 # immediately before Uvicorn spawns its worker processes.

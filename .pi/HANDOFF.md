@@ -19,14 +19,15 @@ Complete production readiness for the deployed SIAB1 stack at `siab.man1rokanhul
 - SafeLine management binds to `127.0.0.1:9443` and is accessed only through an SSH tunnel.
 - SIAB1 and SafeLine are deployed at `/opt/siab1` and `/opt/safeline`; DNS cutover and public TLS are active.
 - The deployed SIAB1 and SafeLine manifests and critical backend files match the canonical local sources by checksum.
-- Native Android `2.0.1` build 3 is present on the VPS and its checksum is valid. Source
-  `2.0.2+4` is ready but remains unsigned.
+- Native Android `2.0.1` build 3 is present on the VPS and its checksum is valid.
+- Native Android `2.0.2+4` has been rebuilt with the original release key after a post-submit
+  exit-to-home fix and reinstalled on the Xiaomi `2306EPN60G`; it has not been published.
 - Python/FastAPI and Flutter remain supported fallbacks.
 - Legacy phase reports, stale deployment scripts, duplicate client sources, and unused web assets were removed after consolidation.
 
 ## Verification Evidence
 
-- **PASS** - full Python suite: 504 tests.
+- **PASS** - full Python suite: 528 tests.
 - **PASS** - `python scripts/check_security.py` and release gate with `SKIP_HTTP=1`.
 - **PASS** - Go test, vet, and build.
 - **PASS** - Android kiosk Kotlin compile and lint.
@@ -43,13 +44,30 @@ Complete production readiness for the deployed SIAB1 stack at `siab.man1rokanhul
 - **PASS** - Flutter analyze and widget test using an isolated stable SDK.
 - **PASS** - deployed runtime checksum dry-run and full release manifest verification.
 - **POLICY BLOCKED** - export success-path while peak mode disables heavy exports; HTTP 503 guard verified.
-- **BLOCKED** - signed Android `2.0.2+4` release; signing material is unavailable.
-- **NOT RUN** - physical-device APK/SXB smoke on 1-3 Android devices.
+- **PASS** - signed Android `2.0.2+4`; package, version, production URL, APK alignment, and
+  signer continuity with `2.0.1` were verified. SHA-256
+  `44030edda5aad3622ff813a8b4b75657d4691117690963a975542f21e1685a0b`.
+- **PASS** - native post-submit contract: `examSubmitted` now stops the WebView, clears auth,
+  and calls `finishAndRemoveTask()` so `/student/` login never appears. Physical submit retest
+  of this rebuilt APK is still pending.
+- **PASS** - burst-latency apply 2026-08-26 (no `down -v`, zero live sessions): Nginx serves
+  `/static/` from disk (critical JS still `no-store`); `start_exam_session` delegates to
+  `_build_start_question_responses`; Prometheus exporters postgres/redis/nginx/node `up`;
+  Celery `result_expires=3600` and `task_ignore_result=True`; student API `--workers 2`.
+  Origin and public `/health` HTTP 200. Rollback copies at `/opt/siab1/*.bak-burst-20260826`.
+- **PASS** - physical-device Android `2.0.2+4` smoke: clean install, cold launch, invalid and
+  valid login/token flows, trusted native exam start, two-answer autosave, offline/reconnect,
+  final submit with score, screen pinning, screenshot blocking, clean kiosk exit, and no
+  crash/ANR/runtime error. The isolated synthetic exam/user/session and local credentials were
+  removed after verification; the pre-smoke backup remains at
+  `/opt/siab1/backups/pre-physical-smoke-20260826T052900.sql.gz` with its checksum sidecar.
 
 ## Remaining Decisions
 
-- Build and publish signed Android `2.0.2+4` when release signing material is available.
-- Run physical-device APK/SXB smoke on 1-3 representative Android devices.
+- Back up the recovered release signing material to approved external private storage.
+- Clarify whether trusted native sessions should populate `ExamSession.is_secure_app_verified`;
+  native header enforcement passed, but this currently unused observability field remains false.
+- Publish signed Android `2.0.2+4` only after explicit release approval.
 - Test export success-path only during an approved maintenance window with peak mode disabled.
 - Refresh the finite weekly auto-restart entries before the current schedule horizon expires.
 

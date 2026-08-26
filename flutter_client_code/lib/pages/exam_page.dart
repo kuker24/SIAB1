@@ -8,6 +8,7 @@ import '../services/security_service.dart';
 import '../services/api_service.dart';
 import '../services/exam_resilience_service.dart';
 import '../services/signature_verifier.dart';
+import '../security/trusted_origin.dart';
 import '../config.dart';
 import '../widgets/common_widgets.dart';
 import 'session_ended_page.dart';
@@ -104,7 +105,18 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
   Future<void> _prepareAuthScript() async {
     final token = await _apiService.getToken();
     final userData = await _apiService.getStoredUserData();
+    final trustedOrigin = trustedWebOrigin(_apiService.serverUrl);
     String? appSignature;
+
+    if (trustedOrigin == null ||
+        !isTrustedWebOrigin(widget.examUrl, _apiService.serverUrl)) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Origin server ujian tidak valid';
+        });
+      }
+      return;
+    }
 
     try {
       final appSignatureRaw = await SignatureVerifier.getActualSignature();
@@ -124,6 +136,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
       token: token,
       encodedUserData: encodedUserData,
       appSignature: appSignature,
+      trustedOrigin: trustedOrigin,
     );
 
     if (!mounted) return;
@@ -131,6 +144,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
       _authScript = UserScript(
         source: source,
         injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        allowedOriginRules: {trustedOrigin},
+        forMainFrameOnly: true,
       );
       _authPrepared = true;
     });
@@ -153,13 +168,17 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
       }
 
       final signatureLiteral = jsonEncode(appSignature);
+      final trustedOrigin = trustedWebOrigin(_apiService.serverUrl);
+      if (trustedOrigin == null) return;
       final script = """
         try {
+          if (window.top !== window || window.location.origin !== ${jsonEncode(trustedOrigin)}) return;
           localStorage.setItem('sxb_app_signature', $signatureLiteral);
         } catch (_) {}
       """;
 
-      if (_webViewController != null) {
+      if (_webViewController != null &&
+          await _isTrustedControllerOrigin(_webViewController!)) {
         await _webViewController!.evaluateJavascript(source: script);
       }
 
@@ -169,6 +188,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
           _authScript = UserScript(
             source: mergedSource,
             injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+            allowedOriginRules: {trustedOrigin},
+            forMainFrameOnly: true,
           );
         });
       }
@@ -181,6 +202,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
     String? token,
     String? encodedUserData,
     String? appSignature,
+    required String trustedOrigin,
   }) {
     final tokenLiteral = token == null ? 'null' : jsonEncode(token);
     final userDataLiteral =
@@ -188,9 +210,11 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
     final buildTokenLiteral = jsonEncode(AppConfig.buildToken);
     final signatureLiteral =
         appSignature == null ? 'null' : jsonEncode(appSignature);
+    final trustedOriginLiteral = jsonEncode(trustedOrigin);
 
     return """
       try {
+        if (window.top !== window || window.location.origin !== $trustedOriginLiteral) return;
         const token = $tokenLiteral;
         const userB64 = $userDataLiteral;
         const buildToken = $buildTokenLiteral;
@@ -229,11 +253,45 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
   Future<void> _injectAuthNow(InAppWebViewController controller) async {
     final source = _authScript?.source;
     if (source == null || source.isEmpty) return;
+    if (!await _isTrustedControllerOrigin(controller)) return;
     try {
       await controller.evaluateJavascript(source: source);
     } catch (e) {
       debugPrint('SXB auth injection runtime failed: $e');
     }
+  }
+
+  Future<bool> _isTrustedControllerOrigin(
+    InAppWebViewController controller,
+  ) async {
+    try {
+      final currentUrl = await controller.getUrl();
+      return isTrustedWebOrigin(
+        currentUrl?.toString(),
+        _apiService.serverUrl,
+      );
+    } catch (e) {
+      debugPrint('SXB trusted-origin check failed: $e');
+      return false;
+    }
+  }
+
+  void _addTrustedJavaScriptHandler(
+    InAppWebViewController controller, {
+    required String handlerName,
+    required FutureOr<dynamic> Function(List<dynamic>) callback,
+  }) {
+    controller.addJavaScriptHandler(
+      handlerName: handlerName,
+      callback: (args) async {
+        if (!await _isTrustedControllerOrigin(controller)) {
+          debugPrint(
+              'SXB bridge call blocked outside trusted origin: $handlerName');
+          return false;
+        }
+        return callback(args);
+      },
+    );
   }
 
   bool _isTransientNetworkError(String description) {
@@ -2435,7 +2493,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     unawaited(_injectAuthNow(controller));
 
                     // Handler: stable native image preview for Android APK/WebView.
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'openImagePreview',
                       callback: (args) async {
                         return await _handleOpenImagePreview(args);
@@ -2443,7 +2502,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk security events
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'securityHandler',
                       callback: (args) {
                         debugPrint('Security event from web: $args');
@@ -2451,7 +2511,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk set session ID dan exam ID (dari exam start)
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'setSessionId',
                       callback: (args) async {
                         if (args.isNotEmpty) {
@@ -2508,7 +2569,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler: append-only answer event bridge (web -> native journal)
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'answerJournalEvent',
                       callback: (args) async {
                         if (args.isEmpty || _currentSessionId == null) {
@@ -2564,7 +2626,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler: resume state snapshot bridge (web -> native)
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'examStateUpdate',
                       callback: (args) async {
                         if (args.isEmpty) return false;
@@ -2589,7 +2652,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler: timer sync bridge for anti clock-tamper
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'timerSync',
                       callback: (args) async {
                         if (args.isEmpty || _currentSessionId == null) {
@@ -2643,7 +2707,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk exam submitted (allow exit)
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'examSubmitted',
                       callback: (args) async {
                         debugPrint('Exam submitted!');
@@ -2681,7 +2746,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk log violation dari web
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'logViolation',
                       callback: (args) {
                         if (args.length >= 2 && _currentSessionId != null) {
@@ -2704,7 +2770,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk logout - tutup aplikasi
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'userLogout',
                       callback: (args) async {
                         debugPrint(
@@ -2731,7 +2798,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk force kick dari admin
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'forceKicked',
                       callback: (args) async {
                         final reason = args.isNotEmpty
@@ -2862,7 +2930,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk force submit dari admin (submit paksa)
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'forceSubmit',
                       callback: (args) async {
                         final reason = args.isNotEmpty
@@ -2903,7 +2972,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     );
 
                     // Handler untuk exam cancelled (ujian dibatalkan/ditunda)
-                    controller.addJavaScriptHandler(
+                    _addTrustedJavaScriptHandler(
+                      controller,
                       handlerName: 'examCancelled',
                       callback: (args) async {
                         final reason = args.isNotEmpty
@@ -3054,6 +3124,13 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     _mainFrameRetryTimer?.cancel();
                     unawaited(_refreshQueueIndicators());
 
+                    if (!isTrustedWebOrigin(
+                      url?.toString(),
+                      _apiService.serverUrl,
+                    )) {
+                      return;
+                    }
+
                     // Inject security info
                     await controller.evaluateJavascript(
                       source: '''
@@ -3111,19 +3188,9 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     final serverUrl = ApiService().serverUrl;
                     final urlLower = url.toLowerCase();
 
-                    // Allow same-origin (strict host match) and data/blob URLs
-                    final targetUri = Uri.tryParse(url);
-                    final serverUri = Uri.tryParse(serverUrl);
-                    if (targetUri != null && serverUri != null) {
-                      final targetHost = targetUri.host.toLowerCase();
-                      final serverHost = serverUri.host.toLowerCase();
-                      final sameHost = targetHost == serverHost ||
-                          targetHost.endsWith('.$serverHost');
-                      if (sameHost &&
-                          (targetUri.scheme == 'http' ||
-                              targetUri.scheme == 'https')) {
-                        return NavigationActionPolicy.ALLOW;
-                      }
+                    // Require an exact scheme, host, and port match.
+                    if (isTrustedWebOrigin(url, serverUrl)) {
+                      return NavigationActionPolicy.ALLOW;
                     }
                     if (url.startsWith('data:') || url.startsWith('blob:')) {
                       return NavigationActionPolicy.ALLOW;
@@ -3162,15 +3229,6 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                       if (urlLower.contains(domain)) {
                         debugPrint('🚫 Blocked domain: $domain in $url');
                         return NavigationActionPolicy.CANCEL;
-                      }
-                    }
-
-                    // Allow http/https for initial load
-                    if (url.startsWith('http://') ||
-                        url.startsWith('https://')) {
-                      // Check if it's the exam server
-                      if (serverUrl.isEmpty || url.startsWith(serverUrl)) {
-                        return NavigationActionPolicy.ALLOW;
                       }
                     }
 

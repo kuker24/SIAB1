@@ -13,6 +13,9 @@ var protectedPaths = []*regexp.Regexp{
 	regexp.MustCompile(`^/api/exams/\d+/submit`),
 	regexp.MustCompile(`^/api/exams/submit$`),
 	regexp.MustCompile(`^/api/exams/submit-answer$`),
+	regexp.MustCompile(`^/api/exams/auto-save$`),
+	regexp.MustCompile(`^/api/exams/auto-save-batch$`),
+	regexp.MustCompile(`^/api/exams/answer-journal/sync$`),
 	regexp.MustCompile(`^/api/exams/\d+/answer`),
 	regexp.MustCompile(`^/api/sessions/\d+`),
 }

@@ -68,6 +68,28 @@ def test_kiosk_persists_autosave_state_and_enforces_exam_lock() -> None:
     assert "WindowManager.LayoutParams.FLAG_SECURE" in kiosk
 
 
+def test_kiosk_exits_to_home_after_exam_submit() -> None:
+    activity = _source(
+        "android-kiosk/app/src/main/java/id/siab1/kiosk/ui/ExamActivity.kt"
+    )
+    submitted = activity.split("private fun handleExamSubmitted()")[1].split(
+        "private fun ",
+        1,
+    )[0]
+
+    assert '"examSubmitted" -> handleExamSubmitted()' in activity
+    assert "if (examClosed) return true" in activity
+    assert "if (examClosed) {" in activity
+    assert "examClosed = true" in submitted
+    assert "kiosk.stopExamLock()" in submitted
+    assert "stopLoading()" in submitted
+    assert "Prefs.clearAuth()" in submitted
+    assert "finishAndRemoveTask()" in submitted
+    assert "goLogin()" not in submitted
+    assert "loadDashboard()" not in submitted
+    assert "loadUrl(" not in submitted
+
+
 def test_release_build_never_uses_debug_signing() -> None:
     build = _source("android-kiosk/app/build.gradle.kts")
     script = _source("tools/build_native_kiosk_apk.sh")

@@ -47,6 +47,19 @@ func evaluateSessionRecovery(status string, terminated bool, violations int, log
 	}
 }
 
+func blocksReplacementSession(session *persistence.SessionRow, logs []persistence.SessionLog) bool {
+	if session == nil {
+		return false
+	}
+	recovery := evaluateSessionRecovery(
+		session.Status,
+		session.TerminatedByAdmin,
+		session.ViolationCount,
+		logs,
+	)
+	return recovery.Category == "admin_decision" && !recovery.AllowContinue
+}
+
 func containsAdminDecision(logs []persistence.SessionLog) bool {
 	for _, log := range logs {
 		switch strings.ToUpper(strings.TrimSpace(log.EventType)) {

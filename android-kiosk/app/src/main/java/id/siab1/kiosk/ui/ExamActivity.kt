@@ -41,6 +41,7 @@ class ExamActivity : AppCompatActivity() {
     private var kioskWarningAcknowledged = false
     private var kioskWarningDialog: AlertDialog? = null
     private var lockActivationInProgress = false
+    private var examClosed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +97,10 @@ class ExamActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                if (examClosed) {
+                    view?.stopLoading()
+                    return
+                }
                 if (url != null && AppConfig.isTrustedUrl(url)) {
                     view?.evaluateJavascript(startScript, null)
                 } else {
@@ -104,6 +109,7 @@ class ExamActivity : AppCompatActivity() {
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                if (examClosed) return true
                 var url = request.url.toString()
                 if (AppConfig.forceHttps && url.startsWith("http://")) {
                     url = "https://" + url.removePrefix("http://")
@@ -223,9 +229,13 @@ class ExamActivity : AppCompatActivity() {
     }
 
     private fun handleExamSubmitted() {
+        if (examClosed || isFinishing || isDestroyed) return
+        examClosed = true
         kiosk.stopExamLock()
-        Prefs.clearSession()
+        binding.examWebView.stopLoading()
+        Prefs.clearAuth()
         Toast.makeText(this, R.string.exam_submitted, Toast.LENGTH_LONG).show()
+        finishAndRemoveTask()
     }
 
     private fun handleLogViolation(args: JSONArray) {

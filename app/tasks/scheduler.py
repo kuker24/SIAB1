@@ -31,6 +31,8 @@ celery_app.conf.update(
     timezone='UTC',
     enable_utc=True,
     broker_connection_retry_on_startup=True,  # Fix: Celery 6.0 compatibility
+    result_expires=3600,
+    task_ignore_result=True,
     beat_schedule={
         'check-scheduled-publications': {
             'task': 'app.tasks.scheduler.process_scheduled_publications',

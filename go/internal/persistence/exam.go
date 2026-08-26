@@ -443,6 +443,43 @@ SELECT id, user_id, exam_id, start_time, status
 	return &row, nil
 }
 
+func (s *Store) AdminBlockedSession(ctx context.Context, userID, examID int) (*SessionRow, error) {
+	if !s.HasPool() {
+		return nil, fmt.Errorf("no pgx pool")
+	}
+	var row SessionRow
+	err := s.pool.QueryRow(ctx, `
+SELECT es.id, es.user_id, es.exam_id, es.start_time, es.status,
+       COALESCE(es.violation_count, 0), true
+  FROM exam_sessions es
+ WHERE es.user_id = $1
+   AND es.exam_id = $2
+   AND es.status IN ('terminated', 'kicked')
+   AND (
+       COALESCE(es.terminated_by_admin, false)
+       OR EXISTS (
+           SELECT 1 FROM exam_logs el
+            WHERE el.session_id = es.id
+              AND el.event_type IN (
+                  'FORCE_SUBMIT_BY_TEACHER', 'SESSION_TERMINATED',
+                  'ADMIN_KICK_STUDENT', 'SESSION_FORCE_KICK'
+              )
+       )
+   )
+ ORDER BY es.start_time DESC, es.id DESC
+ LIMIT 1`, userID, examID).Scan(
+		&row.ID, &row.UserID, &row.ExamID, &row.StartTime, &row.Status,
+		&row.ViolationCount, &row.TerminatedByAdmin,
+	)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
 func (s *Store) CompletedAttemptCount(ctx context.Context, userID, examID int) (int, error) {
 	if !s.HasPool() {
 		return 0, fmt.Errorf("no pgx pool")

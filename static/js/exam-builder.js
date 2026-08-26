@@ -5155,18 +5155,23 @@ function renderStudentList() {
         return;
     }
 
-    listContainer.innerHTML = filtered.map(s => `
-        <div class="student-item">
-            <input type="checkbox" id="student-${s.id}"
-                   ${publishState.selectedStudents.includes(s.id) ? 'checked' : ''}
-                   onchange="toggleStudentSelection(${s.id})">
-            <div class="student-info">
-                <div class="student-name">${s.full_name}</div>
-                <div class="student-class"><i class="fas fa-users" style="font-size:0.7em;"></i> ${s.student_class}</div>
+    listContainer.innerHTML = filtered.map(s => {
+        const safeName = escapeHtml(s.full_name);
+        const safeClass = escapeHtml(s.student_class);
+        const safeUsername = escapeHtml(s.username);
+        return `
+            <div class="student-item">
+                <input type="checkbox" id="student-${s.id}"
+                       ${publishState.selectedStudents.includes(s.id) ? 'checked' : ''}
+                       onchange="toggleStudentSelection(${s.id})">
+                <div class="student-info">
+                    <div class="student-name">${safeName}</div>
+                    <div class="student-class"><i class="fas fa-users" style="font-size:0.7em;"></i> ${safeClass}</div>
+                </div>
+                <span class="badge badge-secondary" style="font-size:0.7em;">${safeUsername}</span>
             </div>
-            <span class="badge badge-secondary" style="font-size:0.7em;">${s.username}</span>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     document.getElementById('selected-count').textContent = `${publishState.selectedStudents.length} siswa dipilih`;
 }

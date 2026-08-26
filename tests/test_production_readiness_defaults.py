@@ -5,6 +5,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG_SOURCE = (ROOT / "app" / "config.py").read_text(encoding="utf-8")
 COMPOSE_SOURCE = (ROOT / "docker-compose.production.yml").read_text(encoding="utf-8")
 ENV_EXAMPLE_SOURCE = (ROOT / ".env.example").read_text(encoding="utf-8")
+INIT_SQL_SOURCE = (ROOT / "docker" / "init.sql").read_text(encoding="utf-8")
+DEVELOPER_MIGRATION_SOURCE = (
+    ROOT / "app" / "migrations" / "20260423_developer_role_and_seed_accounts.sql"
+).read_text(encoding="utf-8")
 
 
 def test_answer_write_defaults_are_direct_and_queue_off() -> None:
@@ -45,3 +49,9 @@ def test_heavy_export_remains_runtime_configurable_for_peak_mode() -> None:
     assert "HEAVY_EXPORT_ENABLED=${HEAVY_EXPORT_ENABLED:-false}" in COMPOSE_SOURCE
     assert "EXAM_PEAK_MODE=${EXAM_PEAK_MODE:-true}" in COMPOSE_SOURCE
     assert "HEAVY_EXPORT_ENABLED=false" in ENV_EXAMPLE_SOURCE
+
+
+def test_database_bootstrap_does_not_seed_privileged_credentials() -> None:
+    assert "INSERT INTO users" not in INIT_SQL_SOURCE
+    assert "INSERT INTO users" not in DEVELOPER_MIGRATION_SOURCE
+    assert "password_hash" not in DEVELOPER_MIGRATION_SOURCE

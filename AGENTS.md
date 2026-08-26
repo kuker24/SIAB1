@@ -60,7 +60,9 @@ SIAB1 (Sistem Informasi Asesmen Berintegritas) provides protected assessment del
   4. `SXBEnforcerMiddleware`
   5. `LoggingMiddleware`
   6. `PerformanceMonitoringMiddleware`
-- Keep Redis/Celery wiring aligned with task scheduler configuration.
+- Keep Redis/Celery wiring aligned with task scheduler configuration. Celery results expire in 3600s and are ignored by default.
+- Production origin serves `/static/` from Nginx disk (`alias`); critical exam JS stays `no-store`. Prometheus exporters (postgres, redis, nginx, node) must stay `up`.
+- Postgres production budget is `shared_buffers=512MB` / 1536M limit. Do not restore `2560MB` without a measured working-set need. Student API `--workers 2` stays for burst.
 - `DEBUG=true` and `DISABLE_RATE_LIMIT=true` are development-only. Telegram alerts require configured `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_IDS`.
 
 ## Common Commands
@@ -122,7 +124,7 @@ The production stack is deployed on the target VPS. The facts below were verifie
 - Compose project, database, monitoring cluster, and image names use the `siab1` slug.
 - Traffic contract: domain -> SafeLine -> loopback-only Nginx -> student or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
 - Nginx fronts eight student lanes (`api` through `api8`) and two isolated admin/control lanes (`api_admin`, `api_admin2`).
-- Supporting services: PostgreSQL, PgBouncer, Redis, Celery worker, Celery beat, Prometheus, and Grafana. Optional `db_replica` is Compose profile `scaling`.
+- Supporting services: PostgreSQL, PgBouncer, Redis, Celery worker, Celery beat, Prometheus, Grafana, and postgres/redis/nginx/node exporters. Optional `db_replica` is Compose profile `scaling`.
 - Public hostname is `siab.man1rokanhulu.cloud`. Cloudflare provides authoritative DNS in DNS-only mode; SafeLine terminates public TLS and forwards to `127.0.0.1:8080`.
 - SafeLine management binds to `127.0.0.1:9443` and must be accessed through an SSH tunnel. Never expose the management port publicly.
 - The verified host has 16 vCPU, 15 GiB RAM, 4 GiB swap, and a 58 GiB root filesystem. All SIAB1 and SafeLine containers were running; public and origin health returned HTTP 200.

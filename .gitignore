@@ -80,6 +80,8 @@ docs/VPS_*.md
 *.tar.gz
 *.tgz
 *.sql
+!docker/init.sql
+!app/migrations/20260423_developer_role_and_seed_accounts.sql
 *.db
 backups/
 recovery_sistem/

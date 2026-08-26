@@ -24,3 +24,15 @@ func TestEvaluateSessionRecovery(t *testing.T) {
 		t.Fatalf("%+v", rec)
 	}
 }
+
+func TestAdminTerminationBlocksReplacementSession(t *testing.T) {
+	session := &persistence.SessionRow{Status: "terminated", TerminatedByAdmin: true}
+	if !blocksReplacementSession(session, nil) {
+		t.Fatal("admin-terminated session must block replacement")
+	}
+
+	session.TerminatedByAdmin = false
+	if blocksReplacementSession(session, nil) {
+		t.Fatal("network-terminated session must remain recoverable")
+	}
+}

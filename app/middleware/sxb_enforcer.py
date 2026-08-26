@@ -53,6 +53,9 @@ class SXBEnforcerMiddleware(BaseHTTPMiddleware):
             re.compile(r"^/api/exams/\d+/submit"), # Legacy submit path
             re.compile(r"^/api/exams/submit$"),    # Actual submit endpoint
             re.compile(r"^/api/exams/submit-answer$"), # Actual answer endpoint
+            re.compile(r"^/api/exams/auto-save$"),
+            re.compile(r"^/api/exams/auto-save-batch$"),
+            re.compile(r"^/api/exams/answer-journal/sync$"),
             re.compile(r"^/api/exams/\d+/answer"), # Legacy answer path
             re.compile(r"^/api/sessions/\d+"),     # Student exam sessions
         ]

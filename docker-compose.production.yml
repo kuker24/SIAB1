@@ -195,13 +195,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: >
-      postgres -c max_connections=420 -c shared_buffers=2560MB -c effective_cache_size=7GB -c maintenance_work_mem=512MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=300 -c random_page_cost=1.1 -c effective_io_concurrency=300 -c work_mem=4MB -c min_wal_size=1GB -c max_wal_size=4GB -c max_worker_processes=16 -c max_parallel_workers_per_gather=2 -c max_parallel_workers=8 -c max_parallel_maintenance_workers=2 -c autovacuum_max_workers=4 -c autovacuum_naptime=15s -c idle_in_transaction_session_timeout=45000
+      postgres -c max_connections=420 -c shared_buffers=512MB -c effective_cache_size=4GB -c maintenance_work_mem=128MB -c checkpoint_completion_target=0.9 -c wal_buffers=16MB -c default_statistics_target=300 -c random_page_cost=1.1 -c effective_io_concurrency=300 -c work_mem=4MB -c min_wal_size=256MB -c max_wal_size=1GB -c max_worker_processes=8 -c max_parallel_workers_per_gather=2 -c max_parallel_workers=4 -c max_parallel_maintenance_workers=2 -c autovacuum_max_workers=2 -c autovacuum_naptime=15s -c idle_in_transaction_session_timeout=45000
+    shm_size: 576mb
     logging: *default-logging
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 5632M
+          memory: 1536M
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U examuser -d siab1" ]
       interval: 10s
@@ -528,6 +529,74 @@ services:
       resources:
         limits:
           memory: 400M
+    networks:
+      - exam_network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@db:5432/siab1?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - exam_network
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    container_name: redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - exam_network
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.3.0
+    container_name: nginx-exporter
+    command:
+      - --nginx.scrape-uri=http://nginx:8081/nginx_status
+    depends_on:
+      - nginx
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - exam_network
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
     networks:
       - exam_network
 

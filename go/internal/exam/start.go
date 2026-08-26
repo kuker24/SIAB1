@@ -63,6 +63,15 @@ func (d deps) startExam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if session == nil {
+		blockedSession, err := d.store.AdminBlockedSession(r.Context(), userID, examID)
+		if err != nil {
+			writeDetail(w, http.StatusInternalServerError, "Gagal memeriksa status pemulihan sesi")
+			return
+		}
+		if blocksReplacementSession(blockedSession, nil) {
+			writeDetail(w, http.StatusConflict, "Sesi dihentikan oleh pengawas/admin. Hubungi pengawas untuk membuka kembali sesi.")
+			return
+		}
 		done, err := d.store.CompletedAttemptCount(r.Context(), userID, examID)
 		if err != nil {
 			writeDetail(w, http.StatusInternalServerError, "Gagal memeriksa percobaan")

@@ -4,7 +4,7 @@
 # Interactive restore like Windows System Restore
 # ============================================
 
-set -e
+set -euo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -25,12 +25,20 @@ else
     exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 BACKUP_DIR="${BACKUP_ROOT:-${PROJECT_ROOT}/recovery_sistem}"
 BACKUP_SCRIPT="${PROJECT_ROOT}/bin/backup-comprehensive.sh"
+RESTORE_HEALTH_URL="${RESTORE_HEALTH_URL:-http://127.0.0.1:8080/health}"
+DATABASE_SWAPPED=false
+UPLOADS_SWAPPED=false
+SEB_CONFIGS_SWAPPED=false
+UPLOADS_ORIGINAL_PRESENT=false
+SEB_CONFIGS_ORIGINAL_PRESENT=false
+RESTORE_FILE_STAGING=""
+RESTORE_FILE_PREVIOUS=""
 
 # ============================================
 # Function: Display Header
@@ -54,7 +62,7 @@ list_backups() {
         exit 1
     fi
     
-    BACKUPS=($(ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null))
+    mapfile -t BACKUPS < <(ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null)
     
     if [ ${#BACKUPS[@]} -eq 0 ]; then
         echo -e "${YELLOW}No backups found${NC}"
@@ -68,11 +76,14 @@ list_backups() {
     echo ""
     
     local index=1
-    local now=$(date +%s)
+    local now
+    now=$(date +%s)
     
     for backup in "${BACKUPS[@]}"; do
-        local basename=$(basename "$backup")
-        local date_str=$(echo "$basename" | grep -oP '\d{8}_\d{6}')
+        local basename
+        local date_str
+        basename=$(basename "$backup")
+        date_str=$(grep -oP '\d{8}_\d{6}' <<< "$basename")
         
         # Parse date
         local year=${date_str:0:4}
@@ -84,7 +95,8 @@ list_backups() {
         local formatted_date="${year}-${month}-${day} ${hour}:${min}"
         
         # Calculate age
-        local backup_time=$(date -d "$formatted_date" +%s 2>/dev/null || echo "$now")
+        local backup_time
+        backup_time=$(date -d "$formatted_date" +%s 2>/dev/null || echo "$now")
         local age_seconds=$((now - backup_time))
         local age_days=$((age_seconds / 86400))
         local age_hours=$(( (age_seconds % 86400) / 3600 ))
@@ -103,7 +115,8 @@ list_backups() {
         fi
         
         # Size
-        local size=$(du -h "$backup" | cut -f1)
+        local size
+        size=$(du -h "$backup" | cut -f1)
         
         # Latest marker
         local marker=""
@@ -126,7 +139,8 @@ list_backups() {
 # ============================================
 preview_backup() {
     local backup_file=$1
-    local temp_dir=$(mktemp -d)
+    local temp_dir
+    temp_dir=$(mktemp -d)
     
     echo -e "${CYAN}Preview Backup Contents:${NC}"
     echo ""
@@ -182,7 +196,10 @@ create_safety_backup() {
 # ============================================
 stop_services() {
     echo -e "${CYAN}[2/7] Stopping services...${NC}"
-    $DC -f docker-compose.production.yml down 2>/dev/null || true
+    if ! $DC -f docker-compose.production.yml down; then
+        echo -e "${RED}✗ Could not stop all services${NC}"
+        return 1
+    fi
     echo -e "${GREEN}✓ Services stopped${NC}"
     echo ""
 }
@@ -220,9 +237,19 @@ extract_backup() {
 # ============================================
 restore_database() {
     echo -e "${CYAN}[4/7] Restoring database...${NC}"
-    
+    local dump_file="$RESTORE_DIR/database/siab1.sql"
+    local required_table_count
+
+    if [ ! -s "$dump_file" ]; then
+        echo -e "${RED}✗ Database dump is missing or empty${NC}"
+        return 1
+    fi
+
     # Start DB only
-    $DC -f docker-compose.production.yml up -d db
+    if ! $DC -f docker-compose.production.yml up -d db; then
+        echo -e "${RED}✗ Database container failed to start${NC}"
+        return 1
+    fi
     sleep 5
     
     # Wait for DB ready
@@ -238,15 +265,69 @@ restore_database() {
         return 1
     fi
     
-    # Drop and recreate database
-    echo "  Recreating database..."
-    $DC -f docker-compose.production.yml exec -T db psql -U examuser -d postgres -c "DROP DATABASE IF EXISTS siab1;" 2>/dev/null || true
-    $DC -f docker-compose.production.yml exec -T db psql -U examuser -d postgres -c "CREATE DATABASE siab1;" 2>/dev/null
-    
-    # Restore from backup
-    echo "  Restoring data..."
-    cat "$RESTORE_DIR/database/siab1.sql" | \
-        $DC -f docker-compose.production.yml exec -T db psql -U examuser -d siab1 > /dev/null 2>&1
+    echo "  Preparing staging database..."
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "DROP DATABASE IF EXISTS siab1_restore_staging;"; then
+        return 1
+    fi
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "CREATE DATABASE siab1_restore_staging;"; then
+        return 1
+    fi
+
+    echo "  Restoring and validating staged data..."
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 --single-transaction -U examuser \
+        -d siab1_restore_staging < "$dump_file" > /dev/null; then
+        $DC -f docker-compose.production.yml exec -T db \
+            psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+            -c "DROP DATABASE IF EXISTS siab1_restore_staging;" || true
+        echo -e "${RED}✗ Database import failed; current database was not changed${NC}"
+        return 1
+    fi
+
+    required_table_count=$(
+        $DC -f docker-compose.production.yml exec -T db \
+            psql -v ON_ERROR_STOP=1 -At -U examuser -d siab1_restore_staging \
+            -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('users', 'exams', 'exam_sessions', 'answers', 'questions');"
+    )
+    required_table_count=$(printf '%s' "$required_table_count" | tr -d '[:space:]')
+    if [ "$required_table_count" != "5" ]; then
+        $DC -f docker-compose.production.yml exec -T db \
+            psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+            -c "DROP DATABASE IF EXISTS siab1_restore_staging;" || true
+        echo -e "${RED}✗ Staged database is missing required tables${NC}"
+        return 1
+    fi
+
+    echo "  Activating staged database..."
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('siab1', 'siab1_restore_previous') AND pid <> pg_backend_pid();"; then
+        return 1
+    fi
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "DROP DATABASE IF EXISTS siab1_restore_previous;"; then
+        return 1
+    fi
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "ALTER DATABASE siab1 RENAME TO siab1_restore_previous;"; then
+        return 1
+    fi
+    if ! $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "ALTER DATABASE siab1_restore_staging RENAME TO siab1;"; then
+        $DC -f docker-compose.production.yml exec -T db \
+            psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+            -c "ALTER DATABASE siab1_restore_previous RENAME TO siab1;" || true
+        echo -e "${RED}✗ Could not activate staged database${NC}"
+        return 1
+    fi
+    DATABASE_SWAPPED=true
     
     echo -e "${GREEN}✓ Database restored${NC}"
     echo ""
@@ -257,35 +338,133 @@ restore_database() {
 # ============================================
 restore_files() {
     echo -e "${CYAN}[5/7] Restoring files...${NC}"
-    
-    # Backup current files first (in case we need to rollback)
-    if [ -d "uploads" ]; then
-        mv uploads uploads.bak.tmp 2>/dev/null || true
-    fi
-    if [ -d "seb_configs" ]; then
-        mv seb_configs seb_configs.bak.tmp 2>/dev/null || true
-    fi
-    
-    # Restore from backup
-    mkdir -p uploads seb_configs
-    
+    RESTORE_FILE_STAGING="${PROJECT_ROOT}/.restore_files_staging"
+    RESTORE_FILE_PREVIOUS="${PROJECT_ROOT}/.restore_files_previous"
+    rm -rf "$RESTORE_FILE_STAGING" "$RESTORE_FILE_PREVIOUS"
+    mkdir -p "$RESTORE_FILE_STAGING" "$RESTORE_FILE_PREVIOUS" || return 1
+
     if [ -d "$RESTORE_DIR/uploads" ]; then
-        cp -r "$RESTORE_DIR/uploads"/* uploads/ 2>/dev/null || true
-        local upload_count=$(find uploads -type f | wc -l)
+        mkdir -p "$RESTORE_FILE_STAGING/uploads" || return 1
+        if ! cp -a "$RESTORE_DIR/uploads/." "$RESTORE_FILE_STAGING/uploads/"; then
+            echo -e "${RED}✗ Failed to stage uploaded files; current files were not changed${NC}"
+            rm -rf "$RESTORE_FILE_STAGING" "$RESTORE_FILE_PREVIOUS"
+            return 1
+        fi
+    fi
+
+    if [ -d "$RESTORE_DIR/seb_configs" ]; then
+        mkdir -p "$RESTORE_FILE_STAGING/seb_configs" || return 1
+        if ! cp -a "$RESTORE_DIR/seb_configs/." "$RESTORE_FILE_STAGING/seb_configs/"; then
+            echo -e "${RED}✗ Failed to stage SEB configs; current files were not changed${NC}"
+            rm -rf "$RESTORE_FILE_STAGING" "$RESTORE_FILE_PREVIOUS"
+            return 1
+        fi
+    fi
+
+    if [ -d "$RESTORE_FILE_STAGING/uploads" ]; then
+        UPLOADS_ORIGINAL_PRESENT=false
+        if [ -e "${PROJECT_ROOT}/uploads" ]; then
+            UPLOADS_ORIGINAL_PRESENT=true
+            mv "${PROJECT_ROOT}/uploads" "$RESTORE_FILE_PREVIOUS/uploads" || return 1
+        fi
+        UPLOADS_SWAPPED=true
+        if ! mv "$RESTORE_FILE_STAGING/uploads" "${PROJECT_ROOT}/uploads"; then
+            rollback_files
+            return 1
+        fi
+        local upload_count
+        upload_count=$(find "${PROJECT_ROOT}/uploads" -type f | wc -l)
         echo "  Restored $upload_count files to uploads/"
     fi
-    
-    if [ -d "$RESTORE_DIR/seb_configs" ]; then
-        cp -r "$RESTORE_DIR/seb_configs"/* seb_configs/ 2>/dev/null || true
-        local seb_count=$(find seb_configs -type f | wc -l)
+
+    if [ -d "$RESTORE_FILE_STAGING/seb_configs" ]; then
+        SEB_CONFIGS_ORIGINAL_PRESENT=false
+        if [ -e "${PROJECT_ROOT}/seb_configs" ]; then
+            SEB_CONFIGS_ORIGINAL_PRESENT=true
+            mv "${PROJECT_ROOT}/seb_configs" "$RESTORE_FILE_PREVIOUS/seb_configs" || {
+                rollback_files
+                return 1
+            }
+        fi
+        SEB_CONFIGS_SWAPPED=true
+        if ! mv "$RESTORE_FILE_STAGING/seb_configs" "${PROJECT_ROOT}/seb_configs"; then
+            rollback_files
+            return 1
+        fi
+        local seb_count
+        seb_count=$(find "${PROJECT_ROOT}/seb_configs" -type f | wc -l)
         echo "  Restored $seb_count SEB configs"
     fi
-    
-    # Clean temp backups
-    rm -rf uploads.bak.tmp seb_configs.bak.tmp
-    
+
     echo -e "${GREEN}✓ Files restored${NC}"
     echo ""
+}
+
+rollback_files() {
+    if [ "$UPLOADS_SWAPPED" = true ]; then
+        rm -rf "${PROJECT_ROOT}/uploads"
+        if [ "$UPLOADS_ORIGINAL_PRESENT" = true ]; then
+            mv "$RESTORE_FILE_PREVIOUS/uploads" "${PROJECT_ROOT}/uploads" || return 1
+        fi
+        UPLOADS_SWAPPED=false
+    fi
+
+    if [ "$SEB_CONFIGS_SWAPPED" = true ]; then
+        rm -rf "${PROJECT_ROOT}/seb_configs"
+        if [ "$SEB_CONFIGS_ORIGINAL_PRESENT" = true ]; then
+            mv "$RESTORE_FILE_PREVIOUS/seb_configs" "${PROJECT_ROOT}/seb_configs" || return 1
+        fi
+        SEB_CONFIGS_SWAPPED=false
+    fi
+
+    rm -rf "$RESTORE_FILE_STAGING" "$RESTORE_FILE_PREVIOUS"
+}
+
+rollback_database() {
+    if [ "$DATABASE_SWAPPED" != true ]; then
+        return 0
+    fi
+
+    $DC -f docker-compose.production.yml up -d db || return 1
+    sleep 5
+    $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'siab1' AND pid <> pg_backend_pid();" || return 1
+    $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "DROP DATABASE siab1;" || return 1
+    $DC -f docker-compose.production.yml exec -T db \
+        psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+        -c "ALTER DATABASE siab1_restore_previous RENAME TO siab1;" || return 1
+    DATABASE_SWAPPED=false
+}
+
+rollback_restore() {
+    local rollback_ok=true
+
+    echo -e "${YELLOW}Restore failed verification; rolling back all changes...${NC}"
+    stop_services || rollback_ok=false
+    rollback_database || rollback_ok=false
+    rollback_files || rollback_ok=false
+    start_services || rollback_ok=false
+
+    if [ "$rollback_ok" != true ]; then
+        echo -e "${RED}✗ Automatic rollback needs manual attention${NC}"
+        return 1
+    fi
+    echo -e "${GREEN}✓ Previous database and files restored${NC}"
+}
+
+finalize_restore() {
+    if [ "$DATABASE_SWAPPED" = true ]; then
+        $DC -f docker-compose.production.yml exec -T db \
+            psql -v ON_ERROR_STOP=1 -U examuser -d postgres \
+            -c "DROP DATABASE siab1_restore_previous;" || return 1
+        DATABASE_SWAPPED=false
+    fi
+    rm -rf "$RESTORE_FILE_STAGING" "$RESTORE_FILE_PREVIOUS"
+    UPLOADS_SWAPPED=false
+    SEB_CONFIGS_SWAPPED=false
 }
 
 # ============================================
@@ -307,7 +486,7 @@ verify_system() {
     
     # Wait for API
     local attempt=0
-    until curl -sf http://127.0.0.1/health > /dev/null 2>&1 || [ $attempt -eq 20 ]; do
+    until curl -sf "$RESTORE_HEALTH_URL" > /dev/null 2>&1 || [ $attempt -eq 20 ]; do
         attempt=$((attempt + 1))
         echo "  Waiting for API... ($attempt/20)"
         sleep 2
@@ -348,18 +527,58 @@ cleanup() {
     rm -rf "${BACKUP_DIR}/restore_temp" 2>/dev/null || true
 }
 
+run_restore() {
+    local backup_file=$1
+
+    create_safety_backup || return 1
+    stop_services || return 1
+
+    if ! extract_backup "$backup_file"; then
+        start_services || true
+        cleanup
+        return 1
+    fi
+    if ! restore_database; then
+        start_services || true
+        cleanup
+        return 1
+    fi
+    if ! restore_files; then
+        rollback_restore || true
+        cleanup
+        return 1
+    fi
+    if ! start_services; then
+        rollback_restore || true
+        cleanup
+        return 1
+    fi
+    if ! verify_system; then
+        rollback_restore || true
+        cleanup
+        return 1
+    fi
+    if ! finalize_restore; then
+        cleanup
+        return 1
+    fi
+
+    cleanup
+    return 0
+}
+
 # ============================================
 # MAIN SCRIPT
 # ============================================
-
+main() {
 show_header
 
 # List backups
 list_backups
 
 # Get backup selection
-BACKUPS=($(ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null))
-read -p "Select restore point [1-${#BACKUPS[@]}] (or 'q' to quit): " SELECTION
+mapfile -t BACKUPS < <(ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null)
+read -r -p "Select restore point [1-${#BACKUPS[@]}] (or 'q' to quit): " SELECTION
 
 if [[ "$SELECTION" == "q" ]] || [[ "$SELECTION" == "Q" ]]; then
     echo "Cancelled."
@@ -394,7 +613,7 @@ echo "  • Restart all services"
 echo ""
 echo "A safety backup will be created first."
 echo ""
-read -p "Continue with restore? (yes/no): " CONFIRM
+read -r -p "Continue with restore? (yes/no): " CONFIRM
 
 if [[ "$CONFIRM" != "yes" ]]; then
     echo "Restore cancelled."
@@ -408,16 +627,7 @@ echo -e "${CYAN}╚════════════════════�
 echo ""
 
 # Execute restore steps
-create_safety_backup
-stop_services
-extract_backup "$SELECTED_BACKUP"
-restore_database
-restore_files
-start_services
-
-if verify_system; then
-    cleanup
-    
+if run_restore "$SELECTED_BACKUP"; then
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${CYAN}║${NC} ${GREEN}${BOLD}              🎉 SYSTEM RESTORE SUCCESSFUL! 🎉${NC}                          ${CYAN}║${NC}"
@@ -435,11 +645,17 @@ if verify_system; then
     echo ""
 else
     echo ""
-    echo -e "${YELLOW}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${YELLOW}║${NC} ${BOLD}  ⚠️  System restore completed with warnings${NC}                          ${CYAN}║${NC}"
-    echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${RED}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║${NC} ${BOLD}  System restore failed; success was not reported${NC}                    ${RED}║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo "Some services may need manual attention."
+    echo "The script attempted to preserve or restore the previous system state."
     echo "Check logs: docker-compose -f docker-compose.production.yml logs"
     echo ""
+    return 1
+fi
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
 fi
