@@ -22,6 +22,7 @@ from typing import Dict, Optional
 from sqlalchemy import select
 from app.database import async_session_read
 from app.core.apk_profiles import get_token_label, parse_token_profiles
+from app.core.start_db_admission import start_db_segment
 from app.models.system_settings import SystemSettings
 
 logger = logging.getLogger(__name__)
@@ -64,14 +65,15 @@ async def _get_settings_cache() -> Dict[str, Optional[str]]:
         token_validation_bypass = False
         settings_fetch_error = False
         try:
-            async with async_session_read() as db:
-                settings = await db.execute(select(SystemSettings))
-                result = settings.scalar_one_or_none()
-                if result:
-                    minimum_token = result.minimum_apk_token
-                    token_profiles = parse_token_profiles(result.minimum_apk_token)
-                    allowed_tokens = token_profiles.get("tokens", [])
-                    token_validation_bypass = bool(result.token_validation_bypass)
+            async with start_db_segment("security"):
+                async with async_session_read() as db:
+                    settings = await db.execute(select(SystemSettings))
+                    result = settings.scalar_one_or_none()
+                    if result:
+                        minimum_token = result.minimum_apk_token
+                        token_profiles = parse_token_profiles(result.minimum_apk_token)
+                        allowed_tokens = token_profiles.get("tokens", [])
+                        token_validation_bypass = bool(result.token_validation_bypass)
         except Exception:
             settings_fetch_error = True
             minimum_token = _settings_cache["minimum_token"]

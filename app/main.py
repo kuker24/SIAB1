@@ -301,6 +301,10 @@ app.add_middleware(LoggingMiddleware)
 from app.middleware.performance_monitoring import PerformanceMonitoringMiddleware
 app.add_middleware(PerformanceMonitoringMiddleware)
 
+# Bind START admission context before freeze/SXB/security cache fills.
+from app.middleware.start_admission_bind import StartAdmissionBindMiddleware
+app.add_middleware(StartAdmissionBindMiddleware)
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

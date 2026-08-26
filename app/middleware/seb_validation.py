@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.request_security_memo import allowed_signatures, developer_mode_enabled
+from app.core.start_db_admission import start_db_segment
 from app.core.seb import (
     validate_seb_config_key_hash,
     validate_seb_request_hash,
@@ -51,9 +52,10 @@ async def _get_allow_mobile_apps_cached() -> bool:
 
         try:
             from app.database import async_session_read
-            async with async_session_read() as session:
-                result = await session.execute(select(SystemSettings.allow_mobile_apps))
-                allow_mobile = result.scalar_one_or_none()
+            async with start_db_segment("security"):
+                async with async_session_read() as session:
+                    result = await session.execute(select(SystemSettings.allow_mobile_apps))
+                    allow_mobile = result.scalar_one_or_none()
             _allow_mobile_cache["allow_mobile"] = True if allow_mobile is None else bool(allow_mobile)
         except Exception:
             # Keep the last known value during transient DB pressure.
@@ -83,10 +85,16 @@ async def _get_exam_seb_keys_cached(
         if cached and now < cached[0]:
             return cached[1], cached[2]
 
-        result = await db.execute(
-            select(Exam.seb_config_key, Exam.seb_browser_exam_key).where(Exam.id == exam_id)
-        )
-        row = result.first()
+        from app.database import async_session_read
+
+        async with start_db_segment("security"):
+            async with async_session_read() as session:
+                result = await session.execute(
+                    select(Exam.seb_config_key, Exam.seb_browser_exam_key).where(
+                        Exam.id == exam_id
+                    )
+                )
+                row = result.first()
         if not row:
             return None
 

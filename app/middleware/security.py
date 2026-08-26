@@ -4,6 +4,7 @@ Implements industry-standard security headers to prevent common attacks.
 """
 import hashlib
 import json
+import os
 import re
 from collections import defaultdict, deque
 from typing import Callable
@@ -17,6 +18,7 @@ from app.core.redis_pubsub import get_redis
 
 
 _SIMPLE_BYTE_RANGE_RE = re.compile(r"^bytes=\d{0,20}-\d{0,20}$", re.IGNORECASE)
+_REPLICA_NAME = (os.getenv("SIAB_REPLICA") or "").strip()
 
 
 def _request_is_https(request: Request) -> bool:
@@ -111,6 +113,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"  # Allow YouTube popups
         response.headers["Cross-Origin-Resource-Policy"] = "same-site"  # Allow same-site resources
+        if _REPLICA_NAME:
+            response.headers["X-SIAB-Replica"] = _REPLICA_NAME
         
         # Content Security Policy (IMPROVED - Issue #2 fix)
         # Removed 'unsafe-eval' for better security

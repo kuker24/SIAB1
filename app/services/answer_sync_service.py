@@ -17,6 +17,7 @@ from fastapi import HTTPException, Request
 from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.config import settings
 from app.core.exam_answer_validation import (
@@ -149,7 +150,7 @@ async def _ensure_session_in_progress_for_user(
     user_id: int,
     lock_row: bool = False,
 ) -> ExamSession:
-    query = select(ExamSession).where(
+    query = select(ExamSession).options(noload("*")).where(
         ExamSession.id == session_id,
         ExamSession.user_id == user_id,
     )
@@ -439,6 +440,7 @@ class AnswerSyncService:
         await _acquire_session_write_lock(self.db, session_id)
         result = await self.db.execute(
             select(ExamSession)
+            .options(noload("*"))
             .where(
                 ExamSession.id == session_id,
                 ExamSession.user_id == self.current_user.id,
@@ -586,7 +588,9 @@ class AnswerSyncService:
     async def accept_legacy_autosave(self, save_data: AutoSaveRequest) -> AutoSaveResponse:
         """Handle legacy autosave cache updates without direct answer writes."""
         result = await self.db.execute(
-            select(ExamSession).where(
+            select(ExamSession)
+            .options(noload("*"))
+            .where(
                 ExamSession.id == save_data.session_id,
                 ExamSession.user_id == self.current_user.id,
                 ExamSession.status == "in_progress",
@@ -626,7 +630,9 @@ class AnswerSyncService:
     async def accept_batch(self, batch_data: Any) -> Dict[str, Any]:
         """Persist batch autosave in direct DB mode with no-op update skip."""
         result = await self.db.execute(
-            select(ExamSession).where(
+            select(ExamSession)
+            .options(noload("*"))
+            .where(
                 ExamSession.id == batch_data.session_id,
                 ExamSession.user_id == self.current_user.id,
                 ExamSession.status == "in_progress",
@@ -691,7 +697,9 @@ class AnswerSyncService:
         existing_answer_map: Dict[int, Answer] = {}
         if valid_question_ids:
             existing_result = await self.db.execute(
-                select(Answer).where(
+                select(Answer)
+                .options(noload("*"))
+                .where(
                     Answer.session_id == session_id_value,
                     Answer.question_id.in_(valid_question_ids),
                 )
@@ -786,6 +794,7 @@ class AnswerSyncService:
             incoming_metadata = dict(answer_data.answer_metadata or {})
             retry_existing_result = await self.db.execute(
                 select(Answer)
+                .options(noload("*"))
                 .where(
                     Answer.session_id == session_id_value,
                     Answer.question_id == int(answer_data.question_id),
@@ -840,7 +849,9 @@ class AnswerSyncService:
             )
 
         result = await self.db.execute(
-            select(ExamSession).where(
+            select(ExamSession)
+            .options(noload("*"))
+            .where(
                 ExamSession.id == sync_data.session_id,
                 ExamSession.user_id == self.current_user.id,
                 ExamSession.status.in_(["in_progress", "active"]),
@@ -1081,7 +1092,9 @@ class AnswerSyncService:
         if not question_ids:
             return {}
         existing_result = await self.db.execute(
-            select(Answer).where(
+            select(Answer)
+            .options(noload("*"))
+            .where(
                 Answer.session_id == session_id_value,
                 Answer.question_id.in_(question_ids),
             )

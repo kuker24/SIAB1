@@ -89,6 +89,7 @@ from app.core.roles import (
     normalize_role,
 )
 from app.core.session_recovery import RECOVERY_CATEGORY_ADMIN, evaluate_session_recovery
+from app.core.start_db_admission import bind_start_admission, start_db_segment
 from app.config import settings
 from app.core.feature_flags import require_feature_enabled
 from app.core.rate_limiter import RateLimiters, check_rate_limit
@@ -387,23 +388,24 @@ async def _ensure_exam_start_option_integrity(db: AsyncSession, exam_id: int) ->
             str(exc),
         )
 
-    orphaned_check = await db.execute(
-        select(Question.id, Question.question_text, Question.question_type)
-        .outerjoin(QuestionOption, Question.id == QuestionOption.question_id)
-        .where(
-            Question.exam_id == exam_id,
-            QuestionOption.id == None,
-            or_(
-                Question.question_type.in_(["multiple_choice", "true_false"]),
-                and_(
-                    Question.question_type == "multiple_choice_complex",
-                    func.coalesce(Question.pgk_type, "checkbox") != "table_validation",
+    async with start_db_segment("integrity"):
+        orphaned_check = await db.execute(
+            select(Question.id, Question.question_text, Question.question_type)
+            .outerjoin(QuestionOption, Question.id == QuestionOption.question_id)
+            .where(
+                Question.exam_id == exam_id,
+                QuestionOption.id == None,
+                or_(
+                    Question.question_type.in_(["multiple_choice", "true_false"]),
+                    and_(
+                        Question.question_type == "multiple_choice_complex",
+                        func.coalesce(Question.pgk_type, "checkbox") != "table_validation",
+                    ),
                 ),
-            ),
+            )
+            .group_by(Question.id, Question.question_text, Question.question_type)
         )
-        .group_by(Question.id, Question.question_text, Question.question_type)
-    )
-    orphaned_questions = orphaned_check.all()
+        orphaned_questions = orphaned_check.all()
     if orphaned_questions:
         orphaned_ids = [str(q[0]) for q in orphaned_questions]
         logger.error(
@@ -1984,6 +1986,7 @@ async def join_exam_by_token(
     # Find exam by token (keep query lightweight under burst join traffic).
     result = await db.execute(
         select(Exam, User.role.label("creator_role"))
+        .options(noload("*"))
         .join(User, User.id == Exam.creator_id)
         .where(Exam.access_token == token)
     )
@@ -2326,313 +2329,307 @@ async def start_exam_session(
             detail="Hanya peserta ujian yang dapat mengikuti ujian"
         )
 
-    # Validate SEB
-    await validate_seb_headers(request, exam_id, db, require_seb=True)
-    exam_service = ExamService(db)
-    exam = await exam_service.get_exam_with_settings(exam_id)
+    async with bind_start_admission(request):
+        await validate_seb_headers(request, exam_id, db, require_seb=True)
+        exam_service = ExamService(db)
+        async with start_db_segment("main"):
+            exam = await exam_service.get_exam_start_projection(exam_id)
 
-    if not exam:
-        raise HTTPException(status_code=404, detail="Ujian tidak ditemukan")
+            if not exam:
+                raise HTTPException(status_code=404, detail="Ujian tidak ditemukan")
 
-    await _ensure_exam_start_option_integrity(db, exam_id)
+            await _ensure_exam_start_option_integrity(db, exam_id)
 
-    if not exam.is_published:
-        raise HTTPException(status_code=400, detail="Ujian belum dipublikasikan")
+            if not exam.is_published:
+                raise HTTPException(status_code=400, detail="Ujian belum dipublikasikan")
 
-    now = datetime.now(timezone.utc)
-    if now < exam.start_time:
-        raise HTTPException(status_code=400, detail="Ujian belum dimulai")
-    if now > exam.end_time:
-        raise HTTPException(status_code=400, detail="Ujian sudah berakhir")
+            now = datetime.now(timezone.utc)
+            if now < exam.start_time:
+                raise HTTPException(status_code=400, detail="Ujian belum dimulai")
+            if now > exam.end_time:
+                raise HTTPException(status_code=400, detail="Ujian sudah berakhir")
 
-    # Enforce the same participant access policy used by token join.
-    exam_creator_role = await _get_exam_creator_role(db, exam.creator_id)
-    _ensure_exam_participant_access(
-        exam,
-        current_user,
-        exam_creator_role=exam_creator_role,
-    )
-
-    # Check max attempts with COUNT query (avoid loading full session history).
-    completed_attempts_result = await db.execute(
-        select(func.count(ExamSession.id)).where(
-            ExamSession.user_id == current_user.id,
-            ExamSession.exam_id == exam_id,
-            ExamSession.status.in_(("completed", "submitted")),
-        )
-    )
-    completed_attempts = int(completed_attempts_result.scalar() or 0)
-    if completed_attempts >= exam.max_attempts:
-        raise HTTPException(status_code=400, detail="Batas percobaan sudah tercapai")
-
-    # Query only sessions relevant for resume/recovery decisions.
-    existing_result = await db.execute(
-        select(ExamSession)
-        .where(
-            ExamSession.user_id == current_user.id,
-            ExamSession.exam_id == exam_id,
-            ExamSession.status.in_(("in_progress", "active", "terminated", "kicked")),
-        )
-        .order_by(ExamSession.start_time.desc(), ExamSession.id.desc())
-        .limit(16)
-    )
-    existing_sessions = existing_result.scalars().all()
-
-    # Preload answer counts only for candidate resume sessions.
-    answer_counts: Dict[int, int] = {}
-    if len(existing_sessions) > 1:
-        existing_session_ids = [s.id for s in existing_sessions]
-        answer_count_result = await db.execute(
-            select(Answer.session_id, func.count(Answer.id))
-            .where(Answer.session_id.in_(existing_session_ids))
-            .group_by(Answer.session_id)
-        )
-        answer_counts = {int(sid): int(cnt or 0) for sid, cnt in answer_count_result.all()}
-
-    # Check for resumable session.
-    # If duplicate active sessions exist due reconnect/race, prefer the one with most saved answers.
-    resumable_sessions = [s for s in existing_sessions if s.status in ("in_progress", "active")]
-    is_resumed_session = False
-    session = None
-    if resumable_sessions:
-        is_resumed_session = True
-        resumable_sessions.sort(
-            key=lambda s: (
-                answer_counts.get(s.id, 0),
-                s.start_time or datetime.min.replace(tzinfo=timezone.utc),
-                s.id
-            ),
-            reverse=True
-        )
-        session = resumable_sessions[0]
-        logger.info(
-            "EXAM_START | RESUME_SESSION | user=%s exam=%s session=%s answers=%s status=%s",
-            current_user.id,
-            exam_id,
-            session.id,
-            answer_counts.get(session.id, 0),
-            session.status
-        )
-    else:
-        # Auto-reset terminated sessions only when cause is network/disconnection.
-        recoverable_sessions = [
-            s for s in existing_sessions if s.status in ("terminated", "kicked")
-        ]
-        recoverable_sessions.sort(
-            key=lambda s: (
-                answer_counts.get(s.id, 0),
-                s.start_time or datetime.min.replace(tzinfo=timezone.utc),
-                s.id,
-            ),
-            reverse=True,
-        )
-
-        candidate_recoveries = []
-        for candidate in recoverable_sessions:
-            logs_result = await db.execute(
-                select(ExamLog)
-                .where(ExamLog.session_id == candidate.id)
-                .order_by(ExamLog.created_at.desc(), ExamLog.id.desc())
-                .limit(30)
+            exam_creator_role = exam.creator.role if exam.creator else None
+            _ensure_exam_participant_access(
+                exam,
+                current_user,
+                exam_creator_role=exam_creator_role,
             )
-            recovery = evaluate_session_recovery(candidate, logs_result.scalars().all())
-            if recovery.get("category") == RECOVERY_CATEGORY_ADMIN:
-                raise HTTPException(
-                    status_code=409,
-                    detail=(
-                        "Sesi dihentikan oleh pengawas/admin. "
-                        "Hubungi pengawas untuk membuka kembali sesi."
-                    ),
-                )
-            candidate_recoveries.append((candidate, recovery))
 
-        for candidate, recovery in candidate_recoveries:
-            if not recovery.get("allow_continue"):
-                continue
-
-            candidate.status = "in_progress"
-            candidate.end_time = None
-            candidate.terminated_by_admin = False
-            candidate.emergency_exit_allowed = False
-            db.add(
-                ExamLog(
-                    session_id=candidate.id,
-                    event_type="SESSION_AUTO_RESET_NETWORK",
-                    event_data={
-                        "category": recovery.get("category"),
-                        "message": recovery.get("message"),
-                        "trigger": "start_exam_session",
-                    },
-                )
-            )
-            await db.commit()
-            session = candidate
-            is_resumed_session = True
-            logger.warning(
-                "EXAM_START | AUTO_RESET_SESSION | user=%s exam=%s session=%s category=%s",
+            session_state = await exam_service.get_exam_start_session_state(
                 current_user.id,
                 exam_id,
-                candidate.id,
-                recovery.get("category"),
             )
-            break
+            completed_attempts = session_state.attempt_count
+            if completed_attempts >= exam.max_attempts:
+                raise HTTPException(status_code=400, detail="Batas percobaan sudah tercapai")
 
-    if session is None:
-        # Create new session
-        client_info = get_client_info(request)
-        session = ExamSession(
-            user_id=current_user.id,
-            exam_id=exam_id,
-            start_time=now,
-            status="in_progress",
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
-            seb_detected=client_info["seb_detected"]
-        )
-        db.add(session)
-        try:
-            await db.flush()
-            db.add(
-                ExamLog(
-                    session_id=session.id,
-                    event_type="SESSION_START",
-                    event_data={
-                        "ip": client_info["ip_address"],
-                        "seb_detected": client_info["seb_detected"],
-                        "exam_snapshot": {
-                            "title": exam.title,
-                            "subject": exam.subject,
-                            "exam_type": exam.exam_type,
-                            "allowed_classes": exam.allowed_classes,
-                            "allowed_students": exam.allowed_students,
-                            "start_time": exam.start_time.isoformat() if exam.start_time else None,
-                            "end_time": exam.end_time.isoformat() if exam.end_time else None,
-                            "duration_minutes": exam.duration_minutes,
-                        },
-                    }
-                )
-            )
-            await db.commit()
-        except sqlalchemy.exc.IntegrityError as integrity_error:
-            await db.rollback()
+            existing_sessions = session_state.existing_sessions
 
-            race_result = await db.execute(
-                select(ExamSession)
-                .where(
-                    ExamSession.user_id == current_user.id,
-                    ExamSession.exam_id == exam_id,
-                    ExamSession.status.in_(("in_progress", "active")),
+            # Preload answer counts only for candidate resume sessions.
+            answer_counts: Dict[int, int] = {}
+            if len(existing_sessions) > 1:
+                existing_session_ids = [s.id for s in existing_sessions]
+                answer_count_result = await db.execute(
+                    select(Answer.session_id, func.count(Answer.id))
+                    .where(Answer.session_id.in_(existing_session_ids))
+                    .group_by(Answer.session_id)
                 )
-                .order_by(ExamSession.start_time.desc(), ExamSession.id.desc())
-            )
-            raced_session = race_result.scalar_one_or_none()
-            if raced_session is None:
-                logger.error(
-                    "EXAM_START | ACTIVE_SESSION_RACE_MISS | user=%s exam=%s error=%s",
+                answer_counts = {int(sid): int(cnt or 0) for sid, cnt in answer_count_result.all()}
+
+            # Check for resumable session.
+            # If duplicate active sessions exist due reconnect/race, prefer the one with most saved answers.
+            resumable_sessions = [s for s in existing_sessions if s.status in ("in_progress", "active")]
+            is_resumed_session = False
+            session = None
+            if resumable_sessions:
+                is_resumed_session = True
+                resumable_sessions.sort(
+                    key=lambda s: (
+                        answer_counts.get(s.id, 0),
+                        s.start_time or datetime.min.replace(tzinfo=timezone.utc),
+                        s.id
+                    ),
+                    reverse=True
+                )
+                session = resumable_sessions[0]
+                logger.info(
+                    "EXAM_START | RESUME_SESSION | user=%s exam=%s session=%s answers=%s status=%s",
                     current_user.id,
                     exam_id,
-                    str(integrity_error),
+                    session.id,
+                    answer_counts.get(session.id, 0),
+                    session.status
                 )
-                raise HTTPException(
-                    status_code=409,
-                    detail="Konflik saat memulai sesi ujian, silakan coba lagi.",
+            else:
+                # Auto-reset terminated sessions only when cause is network/disconnection.
+                recoverable_sessions = [
+                    s for s in existing_sessions if s.status in ("terminated", "kicked")
+                ]
+                recoverable_sessions.sort(
+                    key=lambda s: (
+                        answer_counts.get(s.id, 0),
+                        s.start_time or datetime.min.replace(tzinfo=timezone.utc),
+                        s.id,
+                    ),
+                    reverse=True,
                 )
 
-            is_resumed_session = True
-            session = raced_session
-            logger.warning(
-                "EXAM_START | ACTIVE_SESSION_RACE_RESUME | user=%s exam=%s session=%s",
-                current_user.id,
-                exam_id,
-                session.id,
-            )
+                candidate_recoveries = []
+                for candidate in recoverable_sessions:
+                    logs_result = await db.execute(
+                        select(ExamLog)
+                        .options(noload("*"))
+                        .where(ExamLog.session_id == candidate.id)
+                        .order_by(ExamLog.created_at.desc(), ExamLog.id.desc())
+                        .limit(30)
+                    )
+                    recovery = evaluate_session_recovery(candidate, logs_result.scalars().all())
+                    if recovery.get("category") == RECOVERY_CATEGORY_ADMIN:
+                        raise HTTPException(
+                            status_code=409,
+                            detail=(
+                                "Sesi dihentikan oleh pengawas/admin. "
+                                "Hubungi pengawas untuk membuka kembali sesi."
+                            ),
+                        )
+                    candidate_recoveries.append((candidate, recovery))
 
-    # Release any open read transaction before Redis calls.
-    await db.commit()
+                for candidate, recovery in candidate_recoveries:
+                    if not recovery.get("allow_continue"):
+                        continue
 
-    # Store session in Redis with idempotent timer data.
-    # Do NOT overwrite started_at for an existing/resumed session.
-    existing_redis_data = await get_session_data(session.id) if is_resumed_session else None
-    started_at_iso = (
-        (existing_redis_data or {}).get("started_at")
-        or session.start_time.isoformat()
-    )
-    session_cache_data = {
-        "session_id": session.id,
-        "user_id": current_user.id,
-        "exam_id": exam_id,
-        "start_time": session.start_time.isoformat(),
-        "end_time": session.end_time.isoformat() if session.end_time else None,
-        "started_at": started_at_iso,
-        "duration_seconds": exam.duration_minutes * 60,
-        "elapsed_seconds": int((existing_redis_data or {}).get("elapsed_seconds") or 0),
-        "paused": False,
-        "duration_minutes": exam.duration_minutes,
-        "status": "in_progress",
-        "answered_count": int((existing_redis_data or {}).get("answered_count") or 0),
-        "answered_count_stale": False,
-        "total_questions": int((existing_redis_data or {}).get("total_questions") or 0),
-        "violation_count": int(session.violation_count or 0),
-    }
-    total_paused_seconds = max(
-        int((existing_redis_data or {}).get("total_paused_seconds") or 0),
-        int(session.total_paused_seconds or 0),
-    )
-    if total_paused_seconds > 0:
-        session_cache_data["total_paused_seconds"] = total_paused_seconds
-    await store_session_data(session.id, session_cache_data)
+                    await db.execute(
+                        update(ExamSession)
+                        .where(ExamSession.id == candidate.id)
+                        .values(
+                            status="in_progress",
+                            end_time=None,
+                            terminated_by_admin=False,
+                            emergency_exit_allowed=False,
+                        )
+                    )
+                    candidate.status = "in_progress"
+                    candidate.end_time = None
+                    candidate.terminated_by_admin = False
+                    candidate.emergency_exit_allowed = False
+                    db.add(
+                        ExamLog(
+                            session_id=candidate.id,
+                            event_type="SESSION_AUTO_RESET_NETWORK",
+                            event_data={
+                                "category": recovery.get("category"),
+                                "message": recovery.get("message"),
+                                "trigger": "start_exam_session",
+                            },
+                        )
+                    )
+                    session = candidate
+                    is_resumed_session = True
+                    logger.warning(
+                        "EXAM_START | AUTO_RESET_SESSION | user=%s exam=%s session=%s category=%s",
+                        current_user.id,
+                        exam_id,
+                        candidate.id,
+                        recovery.get("category"),
+                    )
+                    break
 
-    # Broadcast session start
-    await _publish_exam_monitor_event(exam_id, {
-        "type": "student_started",
-        "user_id": current_user.id,
-        "username": current_user.username,
-        "session_id": session.id,
-        "timestamp": now.isoformat()
-    })
+            if session is None:
+                # Create new session
+                client_info = get_client_info(request)
+                session = ExamSession(
+                    user_id=current_user.id,
+                    exam_id=exam_id,
+                    start_time=now,
+                    status="in_progress",
+                    ip_address=client_info["ip_address"],
+                    user_agent=client_info["user_agent"],
+                    seb_detected=client_info["seb_detected"]
+                )
+                db.add(session)
+                try:
+                    await db.flush()
+                    db.add(
+                        ExamLog(
+                            session_id=session.id,
+                            event_type="SESSION_START",
+                            event_data={
+                                "ip": client_info["ip_address"],
+                                "seb_detected": client_info["seb_detected"],
+                                "exam_snapshot": {
+                                    "title": exam.title,
+                                    "subject": exam.subject,
+                                    "exam_type": exam.exam_type,
+                                    "allowed_classes": exam.allowed_classes,
+                                    "allowed_students": exam.allowed_students,
+                                    "start_time": exam.start_time.isoformat() if exam.start_time else None,
+                                    "end_time": exam.end_time.isoformat() if exam.end_time else None,
+                                    "duration_minutes": exam.duration_minutes,
+                                },
+                            }
+                        )
+                    )
+                except sqlalchemy.exc.IntegrityError as integrity_error:
+                    await db.rollback()
 
-    questions_payload = await exam_service.get_questions_payload(exam_id)
-    if not questions_payload:
-        raise HTTPException(status_code=404, detail="Soal ujian tidak ditemukan")
+                    race_result = await db.execute(
+                        select(ExamSession)
+                        .options(noload("*"))
+                        .where(
+                            ExamSession.user_id == current_user.id,
+                            ExamSession.exam_id == exam_id,
+                            ExamSession.status.in_(("in_progress", "active")),
+                        )
+                        .order_by(ExamSession.start_time.desc(), ExamSession.id.desc())
+                    )
+                    raced_session = race_result.scalar_one_or_none()
+                    if raced_session is None:
+                        logger.error(
+                            "EXAM_START | ACTIVE_SESSION_RACE_MISS | user=%s exam=%s error=%s",
+                            current_user.id,
+                            exam_id,
+                            str(integrity_error),
+                        )
+                        raise HTTPException(
+                            status_code=409,
+                            detail="Konflik saat memulai sesi ujian, silakan coba lagi.",
+                        )
 
-    total_questions_from_payload = len(questions_payload)
-    if int(session_cache_data.get("total_questions") or 0) != total_questions_from_payload:
-        session_cache_data["total_questions"] = total_questions_from_payload
+                    is_resumed_session = True
+                    session = raced_session
+                    logger.warning(
+                        "EXAM_START | ACTIVE_SESSION_RACE_RESUME | user=%s exam=%s session=%s",
+                        current_user.id,
+                        exam_id,
+                        session.id,
+                    )
+
+            await db.commit()
+
+        # Store session in Redis with idempotent timer data.
+        # Do NOT overwrite started_at for an existing/resumed session.
+        existing_redis_data = await get_session_data(session.id) if is_resumed_session else None
+        started_at_iso = (
+            (existing_redis_data or {}).get("started_at")
+            or session.start_time.isoformat()
+        )
+        session_cache_data = {
+            "session_id": session.id,
+            "user_id": current_user.id,
+            "exam_id": exam_id,
+            "start_time": session.start_time.isoformat(),
+            "end_time": session.end_time.isoformat() if session.end_time else None,
+            "started_at": started_at_iso,
+            "duration_seconds": exam.duration_minutes * 60,
+            "elapsed_seconds": int((existing_redis_data or {}).get("elapsed_seconds") or 0),
+            "paused": False,
+            "duration_minutes": exam.duration_minutes,
+            "status": "in_progress",
+            "answered_count": int((existing_redis_data or {}).get("answered_count") or 0),
+            "answered_count_stale": False,
+            "total_questions": int((existing_redis_data or {}).get("total_questions") or 0),
+            "violation_count": int(session.violation_count or 0),
+        }
+        total_paused_seconds = max(
+            int((existing_redis_data or {}).get("total_paused_seconds") or 0),
+            int(session.total_paused_seconds or 0),
+        )
+        if total_paused_seconds > 0:
+            session_cache_data["total_paused_seconds"] = total_paused_seconds
         await store_session_data(session.id, session_cache_data)
 
-    questions = _build_start_question_responses(
-        questions_payload,
-        exam_id=exam.id,
-        user_id=current_user.id,
-        shuffle_questions=bool(exam.shuffle_questions),
-        shuffle_options=bool(exam.shuffle_options),
-        secret_key=settings.secret_key,
-    )
+        # Broadcast session start
+        await _publish_exam_monitor_event(exam_id, {
+            "type": "student_started",
+            "user_id": current_user.id,
+            "username": current_user.username,
+            "session_id": session.id,
+            "timestamp": now.isoformat()
+        })
 
-    return ExamStartResponse(
-        session_id=session.id,
-        exam_id=exam.id,
-        exam_title=exam.title,
-        duration_minutes=exam.duration_minutes,
-        question_count=len(questions),
-        start_time=session.start_time,
-        end_time=session.start_time + timedelta(minutes=exam.duration_minutes),
-        server_time=datetime.now(timezone.utc),
-        show_results=exam.show_results,
-        show_teacher_name=exam.show_teacher_name if exam.show_teacher_name is not None else True,
-        teacher_name=exam.creator.full_name if (exam.show_teacher_name and exam.creator) else None,
-        subject=exam.subject,
-        exam_type=exam.exam_type,
-        shuffle_questions=bool(exam.shuffle_questions),
-        shuffle_options=bool(exam.shuffle_options),
-        session_poll_token=create_session_poll_token(
-            session_id=session.id,
+        questions_payload = await exam_service.get_questions_payload(exam_id)
+        if not questions_payload:
+            raise HTTPException(status_code=404, detail="Soal ujian tidak ditemukan")
+
+        total_questions_from_payload = len(questions_payload)
+        if int(session_cache_data.get("total_questions") or 0) != total_questions_from_payload:
+            session_cache_data["total_questions"] = total_questions_from_payload
+            await store_session_data(session.id, session_cache_data)
+
+        questions = _build_start_question_responses(
+            questions_payload,
+            exam_id=exam.id,
             user_id=current_user.id,
-            expires_minutes=SESSION_POLL_TOKEN_EXPIRES_MINUTES,
-        ),
-        session_poll_token_expires_minutes=SESSION_POLL_TOKEN_EXPIRES_MINUTES,
-        questions=questions
-    )
+            shuffle_questions=bool(exam.shuffle_questions),
+            shuffle_options=bool(exam.shuffle_options),
+            secret_key=settings.secret_key,
+        )
+
+        return ExamStartResponse(
+            session_id=session.id,
+            exam_id=exam.id,
+            exam_title=exam.title,
+            duration_minutes=exam.duration_minutes,
+            question_count=len(questions),
+            start_time=session.start_time,
+            end_time=session.start_time + timedelta(minutes=exam.duration_minutes),
+            server_time=datetime.now(timezone.utc),
+            show_results=exam.show_results,
+            show_teacher_name=exam.show_teacher_name if exam.show_teacher_name is not None else True,
+            teacher_name=exam.creator.full_name if (exam.show_teacher_name and exam.creator) else None,
+            subject=exam.subject,
+            exam_type=exam.exam_type,
+            shuffle_questions=bool(exam.shuffle_questions),
+            shuffle_options=bool(exam.shuffle_options),
+            session_poll_token=create_session_poll_token(
+                session_id=session.id,
+                user_id=current_user.id,
+                expires_minutes=SESSION_POLL_TOKEN_EXPIRES_MINUTES,
+            ),
+            session_poll_token_expires_minutes=SESSION_POLL_TOKEN_EXPIRES_MINUTES,
+            questions=questions
+        )
 
 
 # ============== SPRINT 1.3: NEW ENDPOINTS ==============

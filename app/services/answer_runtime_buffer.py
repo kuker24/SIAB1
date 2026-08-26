@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.config import settings
 from app.core.exam_runtime_cache import invalidate_session_answer_count_cache
@@ -145,7 +146,9 @@ async def _ensure_active_session_for_user(
     user_id: int,
 ) -> ExamSession:
     result = await db.execute(
-        select(ExamSession).where(
+        select(ExamSession)
+        .options(noload("*"))
+        .where(
             ExamSession.id == session_id,
             ExamSession.user_id == user_id,
             ExamSession.status.in_(["in_progress", "active"]),
@@ -423,7 +426,9 @@ async def _flush_session_buffer(db: AsyncSession, redis: Any, session_id: int) -
         return 0
 
     session_result = await db.execute(
-        select(ExamSession).where(
+        select(ExamSession)
+        .options(noload("*"))
+        .where(
             ExamSession.id == session_id,
             ExamSession.status.in_(["in_progress", "active"]),
         )
@@ -435,7 +440,9 @@ async def _flush_session_buffer(db: AsyncSession, redis: Any, session_id: int) -
 
     await _acquire_session_write_lock(db, session_id)
     existing_result = await db.execute(
-        select(Answer).where(
+        select(Answer)
+        .options(noload("*"))
+        .where(
             Answer.session_id == session_id,
             Answer.question_id.in_([int(item["question_id"]) for item in payloads]),
         )
