@@ -9,7 +9,6 @@ import (
 
 var protectedPaths = []*regexp.Regexp{
 	regexp.MustCompile(`^/student/exam`),
-	regexp.MustCompile(`^/api/exams/\d+/start`),
 	regexp.MustCompile(`^/api/exams/\d+/submit`),
 	regexp.MustCompile(`^/api/exams/submit$`),
 	regexp.MustCompile(`^/api/exams/submit-answer$`),
@@ -19,6 +18,8 @@ var protectedPaths = []*regexp.Regexp{
 	regexp.MustCompile(`^/api/exams/\d+/answer`),
 	regexp.MustCompile(`^/api/sessions/\d+`),
 }
+
+var nativeStartPath = regexp.MustCompile(`^/api/exams/\d+/start$`)
 
 var sxbWhitelist = []string{
 	"/static",
@@ -35,6 +36,11 @@ const sxbDenied = "Akses ditolak. Gunakan Aplikasi Ujian (APK) atau Safe Exam Br
 func SXB(enforce bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Native START performs the full FastAPI SXB + SEB chain in one handler.
+			if nativeStartPath.MatchString(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
 			if !enforce {
 				next.ServeHTTP(w, r)
 				return

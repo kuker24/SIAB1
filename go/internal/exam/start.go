@@ -1,18 +1,10 @@
 package exam
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
 	"net/http"
 	"strconv"
 	"time"
-
-	"siab1/internal/persistence"
 )
-
-func (d deps) startExam(w http.ResponseWriter, r *http.Request) {
-	d.proxyExamWrite(w, r)
-}
 
 func (d deps) remainingTime(w http.ResponseWriter, r *http.Request) {
 	userID, ok := d.userOrFallback(w, r)
@@ -104,32 +96,4 @@ func (d deps) runtimePolicy(w http.ResponseWriter, r *http.Request) {
 		"policy_version":                    "20260606-mobile-runtime-adaptive-v2",
 		"source":                            "server_runtime_policy",
 	})
-}
-
-func shuffleQuestions(items []persistence.QuestionRow, seed string) {
-	rnd := seeded(seed)
-	for i := len(items) - 1; i > 0; i-- {
-		j := int(rnd.Uint32() % uint32(i+1))
-		items[i], items[j] = items[j], items[i]
-	}
-}
-
-func shuffleOptions(items []persistence.OptionRow, seed string) {
-	rnd := seeded(seed)
-	for i := len(items) - 1; i > 0; i-- {
-		j := int(rnd.Uint32() % uint32(i+1))
-		items[i], items[j] = items[j], items[i]
-	}
-}
-
-type rng struct{ s uint64 }
-
-func seeded(seed string) *rng {
-	sum := sha256.Sum256([]byte(seed))
-	return &rng{s: binary.BigEndian.Uint64(sum[:8])}
-}
-
-func (r *rng) Uint32() uint32 {
-	r.s = r.s*1664525 + 1013904223
-	return uint32(r.s >> 32)
 }

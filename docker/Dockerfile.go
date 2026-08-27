@@ -4,9 +4,14 @@ ENV GOPROXY=https://proxy.golang.org,direct \
     GOTOOLCHAIN=local
 COPY go/ .
 ARG BIN=server
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/app ./cmd/${BIN}
+ARG REVISION=unknown
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -trimpath -buildvcs=false \
+    -ldflags="-s -w -buildid= -X main.revision=${REVISION}" \
+    -o /out/app ./cmd/${BIN}
 
 FROM alpine:3.20
+ARG REVISION=unknown
+LABEL org.opencontainers.image.revision="${REVISION}"
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata wget
 COPY --from=build /out/app /app/app

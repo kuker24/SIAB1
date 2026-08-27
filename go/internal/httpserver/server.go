@@ -75,7 +75,7 @@ func New(cfg config.Config, store *persistence.Store) http.Handler {
 	if !cfg.DisableRateLimit {
 		h = security.RateLimit(h)
 	}
-	h = security.Headers(h)
+	h = security.Headers(h, cfg.SIABReplica)
 	h = security.CORS(cfg.CORSOrigins)(h)
 	audit.Record("httpserver_ready", "")
 	return h
