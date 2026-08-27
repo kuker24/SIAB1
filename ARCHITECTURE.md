@@ -1,8 +1,8 @@
 # Arsitektur SIAB1
 
 Dokumen ini membedakan arsitektur produksi yang teramati, komponen opsional yang sudah
-tersedia di repository, dan target berikutnya. Basis status saat ini adalah commit `ff3bef9`
-dan verifikasi produksi 2026-08-22.
+tersedia di repository, dan target berikutnya. Basis status saat ini adalah closeout
+student hot-path `2856e47` (Go image `siab1-go:373c131`) dan verifikasi VPS 2026-08-28.
 
 ## Pandangan Klien
 
@@ -44,17 +44,18 @@ SafeLine (TLS/WAF publik)
 127.0.0.1:8080 (loopback-only)
           |
         Nginx
-     _____|____________________
-    |                          |
-student data plane       admin/control plane
-api ... api8             api_admin, api_admin2
-FastAPI app.main         FastAPI app.main
-    |                          |
-    +------------+-------------+
-                 |
-       PgBouncer transaction pool
-                 |
-           PostgreSQL 15
+     _____|______________________________________
+    |                     |                      |
+student hot-path     student non-hot-path   admin/control
+go_server            api ... api8           api_admin, api_admin2
+join/start/answer    FastAPI app.main       FastAPI app.main
+autosave/batch/submit  (fallback for the six)
+    |                     |                      |
+    +---------------------+----------------------+
+                          |
+               PgBouncer transaction pool
+                          |
+                    PostgreSQL 15
 
 Redis 7          cache, lock, stream, dan koordinasi runtime
 Celery           pekerjaan asinkron dan terjadwal
@@ -62,30 +63,31 @@ Prometheus       pengumpulan metrik
 Grafana          visualisasi operasional
 ```
 
-- Seluruh trafik produksi saat ini ditangani FastAPI.
-- Nginx memisahkan delapan lane peserta dari dua lane admin/control dan menerapkan limit khusus
-  untuk login, join, start, polling, submit, dan monitoring berat.
-- Semua lane masih menjalankan modular monolith yang sama dari `app/main.py`. Isolasi yang aktif
-  adalah routing, rate limit, worker, dan kapasitas proses; inventory route aplikasi belum
-  dipisahkan per plane.
+- Enam rute siswa (join, start, submit-answer, auto-save, auto-save-batch, submit) dirutekan
+  100% ke `go_start_backend` (`go_server:8000`, replica `go-start`). FastAPI tetap map default
+  dan `server api:8000 resolve backup`.
+- Login, poll, export, admin, guru, Pengawas, dan sisa API tetap FastAPI (`api`…`api8` plus
+  `api_admin` / `api_admin2`).
+- Nginx memisahkan lane peserta dari lane admin/control dan menerapkan limit khusus untuk login,
+  join, start, polling, submit, dan monitoring berat.
+- Satu sesi punya satu writer. Dual-write jawaban ke Go dan FastAPI dilarang. Rollback adalah
+  swap file canary per rute di `runtime_control/`, bukan `docker compose down -v`.
 - PgBouncer memakai transaction pooling. Operasi database tidak boleh bergantung pada state
   koneksi yang bertahan di luar satu transaksi.
 - PostgreSQL adalah source of truth. Redis menyimpan state turunan, cache, lock, stream,
-  koordinasi, dan buffer opsional; kehilangan Redis tidak boleh menghilangkan jawaban yang telah
+  koordinasi, dan buffer; kehilangan Redis tidak boleh menghilangkan jawaban yang telah
   diakui durable.
 - SafeLine adalah satu-satunya ingress publik. Nginx origin tidak diekspos langsung ke internet.
 
 ## Komponen Opsional
 
-### Go Native-Lean
+### Go worker dan Compose profile
 
-`go_server` dan `go_worker` tersedia di Compose melalui profile `native-lean`, tetapi tidak aktif
-di VPS dan bukan upstream Nginx produksi. Go saat ini berstatus **implemented/optional**, bukan
-**canary**, **production**, atau **primary**.
+`go_server` produksi berjalan sebagai image `siab1-go:373c131`. Repo Compose masih menandai
+service itu di profile `native-lean`; komentar profile bukan topologi live.
 
-Go tidak boleh disebut menangani trafik produksi sampai routing Nginx, container aktif, revision,
-health, contract parity, metrik, dan hasil rekonsiliasi membuktikannya. Broad proxy fallback dari
-Go ke Python, request-level runtime switching, dan dual-write jawaban tidak menjadi target.
+`go_worker` tetap opsional dan bukan bagian closeout hot-path. Jangan mengaktifkannya tanpa
+bukti kebutuhan dan runbook.
 
 ### Read Replica
 
@@ -95,41 +97,32 @@ runbook failover dan recovery.
 
 ## Target Berikutnya
 
-Target terdekat adalah **plane-aligned FastAPI modular monolith**, bukan migrasi bahasa atau
-microservices langsung.
+Hot-path siswa sudah hybrid di Nginx: Go primary, FastAPI fallback. Target berikutnya adalah
+**plane-aligned composition untuk sisa FastAPI**, bukan membalik enam rute ke Python dan bukan
+microservices.
 
 ```text
 SafeLine -> Nginx
-  -> student FastAPI composition -> ExamRuntime
-  -> control FastAPI composition -> control capabilities + ExamRuntime
+  -> student hot-path Go (enam rute) + FastAPI backup
+  -> student FastAPI composition (login, poll, non-hot-path)
+  -> control FastAPI composition -> control capabilities
 
-ExamRuntime
+Kedua runtime
   -> PostgreSQL adapter -> PgBouncer -> PostgreSQL
   -> Redis adapter -> cache/lock/stream/coordination
   -> post-commit monitoring events
 ```
 
-- Buat composition root student yang hanya memuat route dan middleware data plane.
-- Buat composition root control yang memuat admin, guru, Pengawas, monitoring, export, dan
-  operasi sistem.
-- Gunakan satu implementasi domain `ExamRuntime` untuk kedua plane agar policy sesi, integritas,
-  answer merge, locking, final-submit, scoring, dan audit tidak bercabang.
-- Pertahankan satu image, satu repository, satu schema, PostgreSQL, dan Redis pada VPS saat ini.
-  Pemisahan ini adalah boundary proses dan capability, bukan distributed microservices.
-- Pertahankan kontrak HTTP yang ada melalui adapter tipis. Migrasi dilakukan satu operasi lengkap
-  per tahap dan harus tetap dapat dikembalikan ke `app.main:app`.
-
-Boundary ini dipilih karena menyembunyikan kompleksitas konsistensi ujian di balik satu interface
-kecil. Alternatif hybrid Go/FastAPI ditolak sebagai langkah langsung karena menambah kontrak
-lintas bahasa, RPC internal, write-owner switching, dan risiko rollback sebelum bottleneck Python
-terukur. Ide yang dipertahankan dari alternatif tersebut adalah contract fixture lintas runtime,
-canary per sesi, larangan dual-write, dan rollback melalui routing yang deterministik.
+- Pertahankan kontrak HTTP yang ada. Klien tidak memilih runtime.
+- Tambahan rute ke Go hanya setelah gerbang di bawah lulus. Enam rute closeout tidak diulang
+  dari nol kecuali regresi.
+- Satu repository, satu schema, PostgreSQL, dan Redis pada VPS saat ini.
 
 ## Gerbang Performa dan Go
 
 Tidak ada runtime yang boleh diklaim lebih cepat berdasarkan jumlah worker, container sehat,
-bahasa implementasi, atau unit test. Promosi Go hanya dipertimbangkan untuk bottleneck yang telah
-diukur dan harus melewati seluruh gerbang berikut:
+bahasa implementasi, atau unit test. Promosi rute Go tambahan harus melewati seluruh gerbang
+berikut. Enam rute closeout sudah melewatinya pada 2026-08-28:
 
 1. Backup otomatis tersedia dan restore drill berhasil.
 2. Revision deployment dapat dibuktikan dan restart policy disetujui.
@@ -206,8 +199,10 @@ Bukti agregat tersedia di
 ## Entry Point
 
 - FastAPI: `app/main.py`
-- Go API opsional: `go/cmd/server/main.go`
+- Go hot-path: `go/cmd/server/main.go`
 - Go worker opsional: `go/cmd/worker/main.go`
+- Nginx canary live: `runtime_control/nginx.{start,join,answer,autosave,batch,submit}-canary.conf`
+- Closeout probe: `scripts/go_hotpath_lifecycle.py`
 - Android: `android-kiosk/app/src/main/java/id/siab1/kiosk/`
 - Flutter: `flutter_client_code/lib/main.dart`
 - Compose: `docker-compose.production.yml`

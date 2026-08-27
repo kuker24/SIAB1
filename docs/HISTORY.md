@@ -5,7 +5,8 @@ Repository ini dikonsolidasikan dari implementasi lama menjadi SIAB1 dengan hist
 ## Perubahan Utama
 
 - Backend FastAPI di-hardening untuk autentikasi, rate limiting, audit, autosave, submit, recovery, dan operasi asesmen.
-- Jalur Go Native-Lean ditambahkan untuk route utama dengan fallback FastAPI.
+- Enam rute siswa (join, start, submit-answer, auto-save, auto-save-batch, submit) menjadi
+  Go primary di produksi dengan FastAPI sebagai backup Nginx; dual-write jawaban dilarang.
 - Android kiosk native menjadi klien utama; Flutter dipertahankan sebagai fallback.
 - Frontend monolit dipecah menjadi module dengan bundle reproducible.
 - Monitoring, backup, capacity guard, dan release gate ditambahkan.
