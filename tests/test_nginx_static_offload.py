@@ -78,14 +78,20 @@ def test_only_exam_start_canary_can_reach_go() -> None:
     start = _location_block("~ ^/api/exams/[0-9]+/start$")
     assert "proxy_pass http://$start_backend" in start
     assert "http_500" in start
-    for path in (
-        "= /api/exams/submit-answer",
-        "= /api/exams/submit",
-        "/api/",
-    ):
+    routed = (
+        ("= /api/exams/join", "$join_backend"),
+        ("= /api/exams/submit-answer", "$answer_backend"),
+        ("= /api/exams/auto-save", "$autosave_backend"),
+        ("= /api/exams/auto-save-batch", "$batch_backend"),
+        ("= /api/exams/submit", "$submit_backend"),
+    )
+    for path, backend in routed:
         block = _location_block(path)
-        assert "proxy_pass http://fastapi_backend" in block
+        assert f"proxy_pass http://{backend}" in block
         assert "go_server" not in block
+    fallback = _location_block("/api/")
+    assert "proxy_pass http://fastapi_backend" in fallback
+    assert "go_server" not in fallback
 
 
 def test_go_start_uses_scored_pgbouncer_settings_and_n4() -> None:

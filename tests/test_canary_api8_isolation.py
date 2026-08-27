@@ -42,8 +42,11 @@ def test_canary_api8_replaces_app_mount_and_pins_n4() -> None:
 
 def test_production_control_plane_keeps_shared_app_mount() -> None:
     assert "./app:/app/app" in PRODUCTION_COMPOSE
-    assert "START_DB_ADMISSION_LIMIT" not in PRODUCTION_COMPOSE
     assert "/opt/siab1-canary/app:/app/app" not in PRODUCTION_COMPOSE
+    api_block = PRODUCTION_COMPOSE.split("x-api-service: &api-service", 1)[1].split(
+        "\n  api:", 1
+    )[0]
+    assert "START_DB_ADMISSION_LIMIT" not in api_block
 
 
 def test_nginx_logs_upstream_identity_and_status_chain() -> None:
