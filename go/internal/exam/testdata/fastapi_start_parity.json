@@ -1,0 +1,27 @@
+{
+  "stable_shuffle": [5, 1, 2, 3, 4],
+  "question_order": [12, 13, 11, 14],
+  "option_order_question_11": [2, 3, 1, 4],
+  "table_statement_order": [2, 0, 1],
+  "image_placeholder_text": "Perhatikan gambar soal berikut, lalu pilih jawaban yang benar.",
+  "image_placeholder_option_order": [1, 2, 3, 4],
+  "question_keys": [
+    "id", "question_text", "stimulus", "question_type", "pgk_type",
+    "difficulty_level", "category", "tags", "question_settings", "points",
+    "order_index", "image_url", "video_url", "audio_url", "options"
+  ],
+  "option_keys": ["id", "option_text", "order_index", "option_group", "pair_id"],
+  "response_keys": [
+    "session_id", "exam_id", "exam_title", "duration_minutes", "question_count",
+    "start_time", "end_time", "server_time", "show_results", "show_teacher_name",
+    "teacher_name", "subject", "exam_type", "shuffle_questions", "shuffle_options",
+    "session_poll_token", "session_poll_token_expires_minutes", "questions"
+  ],
+  "difficulty_default": "medium",
+  "points": {
+    "int_like": "1.0",
+    "from_1_00": "1.0",
+    "fractional": "1.25",
+    "zero": "0.0"
+  }
+}

@@ -14,86 +14,8 @@ import (
 var (
 	joinMu    sync.Mutex
 	joinHits  = map[string][]time.Time{}
-	joinLimit = 5
+	joinLimit = 10
 )
-
-func (d deps) joinExam(w http.ResponseWriter, r *http.Request) {
-	userID, ok := d.userOrFallback(w, r)
-	if !ok {
-		return
-	}
-	claims, err := auth.Parse(d.secret, auth.Bearer(r.Header.Get("Authorization")))
-	if err != nil {
-		writeDetail(w, http.StatusUnauthorized, auth.FormatDetail(err))
-		return
-	}
-	if claims.Role != "student" && claims.Role != "guruplus" {
-		writeDetail(w, http.StatusForbidden, "Hanya peserta ujian yang dapat mengikuti ujian")
-		return
-	}
-	var body struct {
-		Token string `json:"token"`
-	}
-	if err := readJSON(r, &body); err != nil {
-		writeDetail(w, http.StatusUnprocessableEntity, "Payload tidak valid")
-		return
-	}
-	key := itoa(userID) + ":" + clientIP(r)
-	if !allowJoin(key) {
-		w.Header().Set("Retry-After", "60")
-		writeDetail(w, http.StatusTooManyRequests, "Terlalu banyak percobaan token salah. Tunggu 1 menit.")
-		return
-	}
-	token := strings.ToUpper(strings.TrimSpace(body.Token))
-	if len(token) != 6 {
-		writeDetail(w, http.StatusBadRequest, "Token harus 6 karakter")
-		return
-	}
-	ex, err := d.store.GetExamByToken(r.Context(), token)
-	if err != nil {
-		writeDetail(w, http.StatusInternalServerError, "Gagal memuat ujian")
-		return
-	}
-	if ex == nil {
-		writeDetail(w, http.StatusNotFound, "Token ujian tidak valid")
-		return
-	}
-	if !ex.Published {
-		writeDetail(w, http.StatusForbidden, "Ujian belum dipublikasikan")
-		return
-	}
-	now := time.Now().UTC()
-	if now.Before(ex.StartTime.UTC()) {
-		writeDetail(w, http.StatusForbidden, "Ujian belum dimulai")
-		return
-	}
-	if now.After(ex.EndTime.UTC()) {
-		writeDetail(w, http.StatusForbidden, "Ujian sudah berakhir")
-		return
-	}
-	if ok, detail := participantAccess(ex, userID, claims.Role, claims.StudentClass); !ok {
-		writeDetail(w, http.StatusForbidden, detail)
-		return
-	}
-	done, err := d.store.CompletedAttemptCount(r.Context(), userID, ex.ID)
-	if err != nil {
-		writeDetail(w, http.StatusInternalServerError, "Gagal memeriksa percobaan")
-		return
-	}
-	if done >= ex.MaxAttempts {
-		writeDetail(w, http.StatusForbidden, "Anda sudah menggunakan semua kesempatan ("+itoa(ex.MaxAttempts)+"x)")
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"exam_id":          ex.ID,
-		"title":            ex.Title,
-		"description":      ex.Description,
-		"duration_minutes": ex.DurationMinutes,
-		"question_count":   ex.QuestionCount,
-		"allowed":          true,
-		"message":          "Token valid. Anda dapat memulai ujian.",
-	})
-}
 
 func (d deps) myResults(w http.ResponseWriter, r *http.Request) {
 	userID, ok := d.userOrFallback(w, r)

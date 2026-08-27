@@ -14,6 +14,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import noload
 
 from app.config import settings
 from app.database import get_db_read
@@ -226,7 +227,9 @@ async def _resolve_authenticated_user(token: str, db: AsyncSession) -> Optional[
         ):
             return cached_user
 
-    result = await db.execute(select(User).where(User.id == token_data.user_id))
+    result = await db.execute(
+        select(User).options(noload("*")).where(User.id == token_data.user_id)
+    )
     user = result.scalar_one_or_none()
     if user is None:
         return None
@@ -455,7 +458,9 @@ async def get_current_user_for_refresh(
     if cached_user is not None and cached_user.id == token_data.user_id:
         user = cached_user
     else:
-        result = await db.execute(select(User).where(User.id == token_data.user_id))
+        result = await db.execute(
+            select(User).options(noload("*")).where(User.id == token_data.user_id)
+        )
         db_user = result.scalar_one_or_none()
         user = _build_authenticated_user(db_user) if db_user is not None else None
         if user is not None:

@@ -70,21 +70,36 @@ def test_compose_defines_prometheus_exporters_on_internal_network() -> None:
     assert "DATA_SOURCE_NAME: postgresql://examuser:${DB_PASSWORD" in COMPOSE
 
 
-def test_live_exam_writes_stay_on_python_not_go() -> None:
+def test_only_exam_start_canary_can_reach_go() -> None:
     assert "go_server:" in COMPOSE
     assert 'profiles: ["native-lean"]' in COMPOSE
     assert "PYTHON_UPSTREAM=http://api:8000" in COMPOSE
-    assert "server go_server" not in NGINX_CONF
-    assert "go_server:8000" not in NGINX_CONF
-    for path in (
-        "~ ^/api/exams/[0-9]+/start$",
-        "= /api/exams/submit-answer",
-        "= /api/exams/submit",
-        "/api/",
-    ):
+    assert "server go_server:8000" in NGINX_CONF
+    start = _location_block("~ ^/api/exams/[0-9]+/start$")
+    assert "proxy_pass http://$start_backend" in start
+    assert "http_500" in start
+    routed = (
+        ("= /api/exams/join", "$join_backend"),
+        ("= /api/exams/submit-answer", "$answer_backend"),
+        ("= /api/exams/auto-save", "$autosave_backend"),
+        ("= /api/exams/auto-save-batch", "$batch_backend"),
+        ("= /api/exams/submit", "$submit_backend"),
+    )
+    for path, backend in routed:
         block = _location_block(path)
-        assert "proxy_pass http://fastapi_backend" in block
+        assert f"proxy_pass http://{backend}" in block
         assert "go_server" not in block
+    fallback = _location_block("/api/")
+    assert "proxy_pass http://fastapi_backend" in fallback
+    assert "go_server" not in fallback
+
+
+def test_go_start_uses_scored_pgbouncer_settings_and_n4() -> None:
+    assert "pool_max_conns=4" in COMPOSE
+    assert "default_query_exec_mode=simple_protocol" in COMPOSE
+    assert "statement_cache_capacity=0" in COMPOSE
+    assert "START_DB_ADMISSION_LIMIT=4" in COMPOSE
+    assert "SIAB_REPLICA=go-start" in COMPOSE
 
 
 def test_memory_budget_keeps_burst_workers_and_caps_postgres() -> None:

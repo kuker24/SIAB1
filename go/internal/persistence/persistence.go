@@ -9,8 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
+
+const pgPoolMaxConns int32 = 4
 
 const closeExpiredSQL = `
 UPDATE exam_sessions es
@@ -29,6 +33,7 @@ type Store struct {
 	redisAddr string
 	pgDSN     string
 	pool      *pgxpool.Pool
+	redis     *redis.Client
 }
 
 func Connect(databaseURL, redisURL string) *Store {
@@ -38,19 +43,43 @@ func Connect(databaseURL, redisURL string) *Store {
 		s.pgAddr = hostPortFromURL(s.pgDSN, 5432)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		pool, err := pgxpool.New(ctx, s.pgDSN)
+		poolConfig, err := pgbouncerPoolConfig(s.pgDSN)
 		if err == nil {
-			if err := pool.Ping(ctx); err == nil {
-				s.pool = pool
-			} else {
-				pool.Close()
+			pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+			if err == nil {
+				if err := pool.Ping(ctx); err == nil {
+					s.pool = pool
+				} else {
+					pool.Close()
+				}
 			}
 		}
 	}
 	if redisURL != "" {
 		s.redisAddr = hostPortFromURL(redisURL, 6379)
+		if options, err := redis.ParseURL(redisURL); err == nil {
+			client := redis.NewClient(options)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			if err := client.Ping(ctx).Err(); err == nil {
+				s.redis = client
+			} else {
+				_ = client.Close()
+			}
+			cancel()
+		}
 	}
 	return s
+}
+
+func pgbouncerPoolConfig(databaseURL string) (*pgxpool.Config, error) {
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, err
+	}
+	config.MaxConns = pgPoolMaxConns
+	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	config.ConnConfig.StatementCacheCapacity = 0
+	return config, nil
 }
 
 func StripAsyncPG(raw string) string {
@@ -119,6 +148,10 @@ func (s *Store) Close() {
 	if s != nil && s.pool != nil {
 		s.pool.Close()
 		s.pool = nil
+	}
+	if s != nil && s.redis != nil {
+		_ = s.redis.Close()
+		s.redis = nil
 	}
 }
 

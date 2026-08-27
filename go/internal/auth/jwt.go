@@ -26,8 +26,29 @@ type Claims struct {
 	FullName     string `json:"full_name,omitempty"`
 	StudentClass string `json:"student_class,omitempty"`
 	JobTitle     string `json:"job_title,omitempty"`
-	IsActive     bool   `json:"is_active,omitempty"`
+	IsActive     bool   `json:"is_active"`
 	Exp          int64  `json:"exp"`
+	isActiveSet  bool
+}
+
+func (c *Claims) UnmarshalJSON(data []byte) error {
+	type claimsAlias Claims
+	var decoded claimsAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	*c = Claims(decoded)
+	_, c.isActiveSet = fields["is_active"]
+	return nil
+}
+
+// Active matches FastAPI's hot-path rule: old tokens without is_active remain active.
+func (c Claims) Active() bool {
+	return !c.isActiveSet || c.IsActive
 }
 
 func (c Claims) UserID() (int, error) {
@@ -71,7 +92,10 @@ func Parse(secret, token string) (*Claims, error) {
 	if len(parts) != 3 {
 		return nil, ErrBadToken
 	}
-	if signHS256(secret, parts[0]+"."+parts[1]) != parts[2] {
+	if !validHeader(parts[0]) || !hmac.Equal(
+		[]byte(signHS256(secret, parts[0]+"."+parts[1])),
+		[]byte(parts[2]),
+	) {
 		return nil, ErrBadToken
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -103,7 +127,10 @@ func ParseAllowExpired(secret, token string) (*Claims, error) {
 	if len(parts) != 3 {
 		return nil, ErrBadToken
 	}
-	if signHS256(secret, parts[0]+"."+parts[1]) != parts[2] {
+	if !validHeader(parts[0]) || !hmac.Equal(
+		[]byte(signHS256(secret, parts[0]+"."+parts[1])),
+		[]byte(parts[2]),
+	) {
 		return nil, ErrBadToken
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -145,6 +172,17 @@ func signHS256(secret, data string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write([]byte(data))
 	return b64(mac.Sum(nil))
+}
+
+func validHeader(encoded string) bool {
+	raw, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		return false
+	}
+	var header struct {
+		Algorithm string `json:"alg"`
+	}
+	return json.Unmarshal(raw, &header) == nil && header.Algorithm == "HS256"
 }
 
 func b64(v []byte) string {
@@ -203,10 +241,16 @@ func SignPayload(secret string, payload any) (string, error) {
 }
 
 func SessionPollToken(secret string, sessionID, userID int) (string, error) {
-	return SignPayload(secret, map[string]any{
-		"sub": fmt.Sprintf("%d", userID),
-		"sid": sessionID,
-		"typ": "session_poll",
-		"exp": time.Now().UTC().Add(15 * time.Minute).Unix(),
-	})
+	payload := struct {
+		Sub     string `json:"sub"`
+		SID     int    `json:"sid"`
+		Type    string `json:"typ"`
+		Expires int64  `json:"exp"`
+	}{
+		Sub:     fmt.Sprintf("%d", userID),
+		SID:     sessionID,
+		Type:    "session_poll",
+		Expires: time.Now().UTC().Add(15 * time.Minute).Unix(),
+	}
+	return SignPayload(secret, payload)
 }

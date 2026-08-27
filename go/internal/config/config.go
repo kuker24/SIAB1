@@ -24,6 +24,13 @@ type Config struct {
 	SEBStrictMode            bool
 	SEBDefaultConfigKey      string
 	SEBDefaultBrowserExamKey string
+	SEBChallengeEnabled      bool
+	SEBChallengeRedisPrefix  string
+	StartDBAdmissionLimit    int
+	MonitoringDeltaEnabled   bool
+	MonitoringDeltaMaxLen    int
+	MonitoringDeltaTTL       int
+	SIABReplica              string
 }
 
 func Load() Config {
@@ -45,7 +52,22 @@ func Load() Config {
 		SEBStrictMode:            truthy(getenv("SEB_STRICT_MODE", "true")),
 		SEBDefaultConfigKey:      getenv("SEB_DEFAULT_CONFIG_KEY", "default-seb-config-key"),
 		SEBDefaultBrowserExamKey: getenv("SEB_DEFAULT_BROWSER_EXAM_KEY", "default-browser-exam-key"),
+		SEBChallengeEnabled:      truthy(getenv("SEB_CHALLENGE_ENABLED", "true")),
+		SEBChallengeRedisPrefix:  getenv("SEB_CHALLENGE_REDIS_PREFIX", "seb:challenge:"),
+		StartDBAdmissionLimit:    positiveInt(getenv("START_DB_ADMISSION_LIMIT", "4"), 4),
+		MonitoringDeltaEnabled:   truthy(getenv("MONITORING_DELTA_STREAM_ENABLED", "true")),
+		MonitoringDeltaMaxLen:    positiveInt(getenv("MONITORING_DELTA_STREAM_MAX_LEN", "5000"), 5000),
+		MonitoringDeltaTTL:       positiveInt(getenv("MONITORING_DELTA_STREAM_TTL_SECONDS", "7200"), 7200),
+		SIABReplica:              strings.TrimSpace(os.Getenv("SIAB_REPLICA")),
 	}
+}
+
+func positiveInt(raw string, fallback int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
 }
 
 func getenv(key, fallback string) string {

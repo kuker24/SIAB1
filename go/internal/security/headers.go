@@ -18,9 +18,13 @@ const csp = "default-src 'self'; " +
 	"form-action 'self'; " +
 	"frame-ancestors 'none';"
 
-func Headers(next http.Handler) http.Handler {
+func Headers(next http.Handler, replica string) http.Handler {
+	replica = strings.TrimSpace(replica)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
+		if replica != "" {
+			h.Set("X-SIAB-Replica", replica)
+		}
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-XSS-Protection", "1; mode=block")

@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 from app.api import exams
+from app.services.exam_service import ExamStartSessionState
 
 
 class FakeResult:
@@ -47,6 +48,7 @@ async def test_start_blocks_replacement_after_admin_termination(
         start_time=now - timedelta(minutes=5),
         end_time=now + timedelta(minutes=55),
         max_attempts=2,
+        creator=SimpleNamespace(role="teacher", full_name="Guru"),
     )
     terminated_session = SimpleNamespace(
         id=41,
@@ -55,20 +57,24 @@ async def test_start_blocks_replacement_after_admin_termination(
         terminated_by_admin=True,
         violation_count=0,
     )
-    db = FakeSession(
-        [
-            FakeResult(scalar_value=0),
-            FakeResult(rows=[terminated_session]),
-            FakeResult(rows=[]),
-        ]
-    )
+    db = FakeSession([FakeResult(rows=[])])
 
     class FakeExamService:
         def __init__(self, _db: FakeSession) -> None:
             pass
 
-        async def get_exam_with_settings(self, _exam_id: int) -> Any:
+        async def get_exam_start_projection(self, _exam_id: int) -> Any:
             return exam
+
+        async def get_exam_start_session_state(
+            self,
+            _user_id: int,
+            _exam_id: int,
+        ) -> ExamStartSessionState:
+            return ExamStartSessionState(
+                attempt_count=0,
+                existing_sessions=[terminated_session],
+            )
 
     async def no_op(*_args: Any, **_kwargs: Any) -> None:
         return None

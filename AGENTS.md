@@ -12,29 +12,36 @@ SIAB1 (Sistem Informasi Asesmen Berintegritas) provides protected assessment del
 - Context contract: this file is the durable project map; `.pi/HANDOFF.md` is the only active session checkpoint. Treat every other AI handoff, save, snapshot, or progress note as historical unless that checkpoint explicitly promotes it.
 
 ## Technology
-- Backend: Python 3.11, FastAPI `0.135.1`, async SQLAlchemy `2.0.48`, PostgreSQL, Redis, Celery `5.6.2`, and Nginx.
+- Control and non-hot-path API: Python 3.11, FastAPI `0.135.1`, async SQLAlchemy `2.0.48`.
+- Student hot-path: Go `go_server` (image `siab1-go:373c131` at last VPS closeout). FastAPI stays nginx map default and `go_start_backend` backup.
+- Shared: PostgreSQL, Redis, Celery `5.6.2`, Nginx, PgBouncer.
 - Production images: PostgreSQL `15-alpine`, Redis `7-alpine`, Prometheus `v2.53.0`, Grafana `11.1.0`.
 - Client: Flutter at `flutter_client_code`; entry `flutter_client_code/lib/main.dart`; package version `2.0.0+2`; Dart SDK `>=3.0.0 <4.0.0`.
 
 ## Entry Points
-- API application: `app/main.py`.
+- FastAPI application: `app/main.py`.
+- Go hot-path server: `go/cmd/server/main.go`.
 - Configuration: `app/config.py`; settings read from `.env`. Never read or print environment secrets.
 - Database wiring: `app/database.py`.
-- High-impact API path: `app/api/exams.py`.
+- High-impact FastAPI path: `app/api/exams.py` (fallback + non-hot-path).
+- Live nginx canary maps: `runtime_control/nginx.{start,join,answer,autosave,batch,submit}-canary.conf`.
 - Production orchestration: `docker-compose.production.yml`.
 - Flutter application: `flutter_client_code/lib/main.dart`.
+- Topology: `ARCHITECTURE.md`. Session checkpoint: `.pi/HANDOFF.md`.
 
 ## Repository Structure
-- `app/api`: API routes.
+- `app/api`: FastAPI routes (control plane, login, poll, export, hot-path fallback).
 - `app/core`: shared runtime, policy, and operational logic.
 - `app/middleware`: HTTP security, SXB enforcement, logging, rate limiting, and performance middleware.
 - `app/models`: SQLAlchemy ORM models.
 - `app/schemas`: Pydantic request and response schemas.
 - `app/services`: application services.
 - `app/tasks`: Celery tasks and scheduler.
+- `go`: native student hot-path (join, start, submit-answer, auto-save, auto-save-batch, submit).
+- `runtime_control`: live nginx canary maps; treat as production routing.
 - `flutter_client_code`: Flutter student client.
 - `docker`: production Dockerfiles, Nginx config, certificates mount path, and database initialization.
-- `scripts`: maintenance, security, release-gate, and VPS-readiness commands.
+- `scripts`: maintenance, security, release-gate, VPS-readiness, and hot-path closeout (`scripts/go_hotpath_lifecycle.py`).
 - `monitoring`: Prometheus and Grafana configuration.
 - `tests`: committed pytest suite; 63 files at mapping snapshot.
 - `docs`: operational, deployment, validation, and historical documentation.
@@ -64,6 +71,7 @@ SIAB1 (Sistem Informasi Asesmen Berintegritas) provides protected assessment del
 - Production origin serves `/static/` from Nginx disk (`alias`); critical exam JS stays `no-store`. Prometheus exporters (postgres, redis, nginx, node) must stay `up`.
 - Postgres production budget is `shared_buffers=512MB` / 1536M limit. Do not restore `2560MB` without a measured working-set need. Student API `--workers 2` stays for burst.
 - `DEBUG=true` and `DISABLE_RATE_LIMIT=true` are development-only. Telegram alerts require configured `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_IDS`.
+- Student hot-path writer is Go at 100% canary for join, start, submit-answer, auto-save, auto-save-batch, and submit. FastAPI remains the map default and `server api:8000 resolve backup`. One writer per session; dual-write answers is forbidden. Rollback is a per-route canary swap to FastAPI, not `docker compose down -v`. Do not overwrite live `runtime_control/nginx.*-canary.conf` or change START/JOIN/ANSWER Go handlers without explicit ops intent.
 
 ## Common Commands
 ### Local API
@@ -118,13 +126,14 @@ bash scripts/verify_stable_release_vps.sh
 ```
 
 ## VPS Deployment Map
-The production stack is deployed on the target VPS. The facts below were verified read-only on 2026-08-22 and remain a documented snapshot rather than continuous monitoring evidence.
+The production stack is deployed on the target VPS. Topology below matches the 2026-08-28 student hot-path closeout; treat host sizing and health as a snapshot, not continuous monitoring evidence.
 
 - SIAB1 is deployed at `/opt/siab1`; SafeLine is deployed at `/opt/safeline`.
 - Compose project, database, monitoring cluster, and image names use the `siab1` slug.
-- Traffic contract: domain -> SafeLine -> loopback-only Nginx -> student or admin/control API lanes -> PgBouncer -> PostgreSQL. Service health path: `/health`.
-- Nginx fronts eight student lanes (`api` through `api8`) and two isolated admin/control lanes (`api_admin`, `api_admin2`).
+- Traffic contract: domain -> SafeLine -> loopback-only Nginx. Six student hot-path routes go to `go_start_backend` (Go primary, FastAPI backup). Remaining student and admin/control traffic stays on FastAPI lanes. Then PgBouncer -> PostgreSQL. Service health path: `/health`.
+- Nginx fronts eight student FastAPI lanes (`api` through `api8`), two isolated admin/control lanes (`api_admin`, `api_admin2`), and `go_server` for the hot-path.
 - Supporting services: PostgreSQL, PgBouncer, Redis, Celery worker, Celery beat, Prometheus, Grafana, and postgres/redis/nginx/node exporters. Optional `db_replica` is Compose profile `scaling`.
+- Repo Compose still lists `go_server` under profile `native-lean`; live production runs `siab1-go:373c131`. Do not take the profile comment as current routing.
 - Public hostname is `siab.man1rokanhulu.cloud`. Cloudflare provides authoritative DNS in DNS-only mode; SafeLine terminates public TLS and forwards to `127.0.0.1:8080`.
 - SafeLine management binds to `127.0.0.1:9443` and must be accessed through an SSH tunnel. Never expose the management port publicly.
 - The verified host has 16 vCPU, 15 GiB RAM, 4 GiB swap, and a 58 GiB root filesystem. All SIAB1 and SafeLine containers were running; public and origin health returned HTTP 200.

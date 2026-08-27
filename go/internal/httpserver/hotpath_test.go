@@ -86,6 +86,31 @@ func TestStartExamRequiresAuth(t *testing.T) {
 	}
 }
 
+func TestReplicaHeaderAndAdmissionStatus(t *testing.T) {
+	h := httpserver.New(config.Config{
+		DisableRateLimit:      true,
+		JWTSecretKey:          "test-secret",
+		SIABReplica:           "go-start",
+		StartDBAdmissionLimit: 4,
+	}, nil)
+	req := httptest.NewRequest(http.MethodGet, "/internal/start-admission", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec.Header().Get("X-SIAB-Replica") != "go-start" {
+		t.Fatalf("replica=%q", rec.Header().Get("X-SIAB-Replica"))
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body["limit"] != float64(4) || body["holders"] != float64(0) {
+		t.Fatalf("admission=%v", body)
+	}
+}
+
 func TestMeRequiresAuth(t *testing.T) {
 	h := httpserver.New(config.Config{DisableRateLimit: true, JWTSecretKey: "test-secret"}, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
@@ -467,7 +492,7 @@ func TestExamWebSocketRequiresUpgrade(t *testing.T) {
 	}
 }
 
-func TestExamWritesProxyToPythonUpstream(t *testing.T) {
+func TestNonStartExamWritesProxyToPythonUpstream(t *testing.T) {
 	hits := map[string]int{}
 	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits[r.Method+" "+r.URL.Path]++
@@ -490,11 +515,6 @@ func TestExamWritesProxyToPythonUpstream(t *testing.T) {
 		path   string
 		body   string
 	}{
-		{http.MethodPost, "/api/exams/auto-save", `{"session_id":1,"answers":{}}`},
-		{http.MethodPost, "/api/exams/submit-answer", `{"session_id":1,"question_id":2}`},
-		{http.MethodPost, "/api/exams/1/start", `{}`},
-		{http.MethodPost, "/api/exams/submit", `{"session_id":1}`},
-		{http.MethodPost, "/api/exams/auto-save-batch", `{"session_id":1,"answers":[]}`},
 		{http.MethodPost, "/api/exams/answer-journal/sync", `{"session_id":1,"events":[]}`},
 		{http.MethodPost, "/api/exams/log-violation", `{"session_id":1,"event_type":"tab_switch"}`},
 	}

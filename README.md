@@ -4,9 +4,9 @@
 
 **Sistem Informasi Asesmen Berintegritas** untuk penyelenggaraan asesmen digital yang terlindungi, terpantau, dan dapat diaudit.
 
-SIAB1 menggabungkan aplikasi kiosk Android, runtime FastAPI, PostgreSQL, Redis, Celery,
-serta kontrol SEB/SXB untuk menjaga integritas sesi asesmen dari login sampai pelaporan. Runtime
-Go Native-Lean tersedia sebagai komponen opsional dan belum menerima trafik produksi.
+SIAB1 menggabungkan aplikasi kiosk Android, FastAPI untuk control/non-hot-path, Go untuk
+enam rute siswa (join, start, submit-answer, auto-save, auto-save-batch, submit), PostgreSQL,
+Redis, Celery, serta kontrol SEB/SXB. FastAPI tetap fallback Nginx untuk rute tersebut.
 
 ## Kemampuan Utama
 
@@ -15,8 +15,8 @@ Go Native-Lean tersedia sebagai komponen opsional dan belum menerima trafik prod
 - Autosave, answer journal, final-submit integrity, reconnect, dan recovery sesi.
 - Validasi SEB/SXB, signature policy, rate limiting, CAPTCHA, account lockout, dan audit logging.
 - Monitoring real-time, Prometheus, Grafana, alerting, backup, dan recovery tooling.
-- FastAPI sebagai runtime produksi dengan jalur Go Native-Lean opsional yang harus melewati
-  contract, load, canary, dan rollback gates sebelum dipromosikan.
+- Go sebagai writer produksi untuk enam rute siswa; FastAPI menangani control plane dan
+  menjadi backup Nginx. Dual-write jawaban dilarang.
 
 ## Arsitektur
 
@@ -24,15 +24,19 @@ Go Native-Lean tersedia sebagai komponen opsional dan belum menerima trafik prod
 Android kiosk / browser / Flutter fallback
                     |
              SafeLine -> Nginx
-                    |
-      FastAPI student + control lanes
-                    |
-             PgBouncer / Redis
-                    |
-          PostgreSQL / Celery workers
+          _________|_________
+         |                   |
+   Go student hot-path   FastAPI lanes
+   (6 routes, 100%)      + FastAPI backup
+         |                   |
+         +---------+---------+
+                   |
+            PgBouncer / Redis
+                   |
+         PostgreSQL / Celery workers
 ```
 
-Status produksi, komponen opsional, dan target boundary tersedia di
+Status produksi, fallback, dan target boundary tersedia di
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Struktur Repository
@@ -41,7 +45,7 @@ Status produksi, komponen opsional, dan target boundary tersedia di
 |---|---|
 | `android-kiosk/` | Klien Android native utama |
 | `app/` | API, policy, model, service, middleware, dan task FastAPI |
-| `go/` | Kandidat runtime Go Native-Lean opsional; bukan upstream produksi |
+| `go/` | Runtime Go student hot-path (primary untuk enam rute) |
 | `flutter_client_code/` | Klien Flutter fallback |
 | `templates/`, `static/` | Antarmuka web admin dan peserta |
 | `docker/`, `monitoring/` | Container, Nginx, PgBouncer, Prometheus, dan Grafana |

@@ -1,0 +1,19 @@
+# Isolated api8 canary overlay. Do not apply while public exam traffic is live
+# unless Stage 0 has marked api8 down in Nginx.
+# Compose merges environment lists; volumes use !override so /app/app is not appended.
+name: siab1
+
+services:
+  api8:
+    environment:
+      - START_DB_ADMISSION_LIMIT=4
+      - SIAB_REPLICA=api8
+    volumes: !override
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./seb_configs:/app/seb_configs
+      - ./static:/app/static
+      - ./templates:/app/templates
+      - /opt/siab1-canary/app:/app/app
+      - ./apk_builds:/app/apk_builds
+      - ./runtime_control:/app/runtime_control

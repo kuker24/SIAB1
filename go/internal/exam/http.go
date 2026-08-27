@@ -13,35 +13,52 @@ import (
 )
 
 type deps struct {
-	store     *persistence.Store
-	secret    string
-	appSecret string
-	examPeak  bool
-	fallback  http.Handler
-	sebLegacy bool
-	sebStrict bool
-	sebKey    string
-	sebBEK    string
-	baseURL   string
+	store                 *persistence.Store
+	secret                string
+	appSecret             string
+	examPeak              bool
+	fallback              http.Handler
+	sebLegacy             bool
+	sebStrict             bool
+	sebKey                string
+	sebBEK                string
+	baseURL               string
+	enforceSXB            bool
+	sebChallenge          bool
+	sebChallengePrefix    string
+	startGate             *startAdmission
+	monitoringDelta       bool
+	monitoringDeltaMaxLen int
+	monitoringDeltaTTL    int
+	disableRateLimit      bool
 }
 
 func Register(mux *http.ServeMux, store *persistence.Store, cfg config.Config, fallback http.Handler) {
 	d := deps{
-		store:     store,
-		secret:    cfg.JWTSecretKey,
-		appSecret: cfg.SecretKey,
-		examPeak:  cfg.ExamPeakMode,
-		fallback:  fallback,
-		sebLegacy: cfg.SEBDesktopLegacy,
-		sebStrict: cfg.SEBStrictMode,
-		sebKey:    cfg.SEBDefaultConfigKey,
-		sebBEK:    cfg.SEBDefaultBrowserExamKey,
-		baseURL:   cfg.BaseURL,
+		store:                 store,
+		secret:                cfg.JWTSecretKey,
+		appSecret:             cfg.SecretKey,
+		examPeak:              cfg.ExamPeakMode,
+		fallback:              fallback,
+		sebLegacy:             cfg.SEBDesktopLegacy,
+		sebStrict:             cfg.SEBStrictMode,
+		sebKey:                cfg.SEBDefaultConfigKey,
+		sebBEK:                cfg.SEBDefaultBrowserExamKey,
+		baseURL:               cfg.BaseURL,
+		enforceSXB:            cfg.EnforceSXB,
+		sebChallenge:          cfg.SEBChallengeEnabled,
+		sebChallengePrefix:    cfg.SEBChallengeRedisPrefix,
+		startGate:             newStartAdmission(cfg.StartDBAdmissionLimit),
+		monitoringDelta:       cfg.MonitoringDeltaEnabled,
+		monitoringDeltaMaxLen: cfg.MonitoringDeltaMaxLen,
+		monitoringDeltaTTL:    cfg.MonitoringDeltaTTL,
+		disableRateLimit:      cfg.DisableRateLimit,
 	}
 	mux.HandleFunc("POST /api/exams/auto-save", d.autoSave)
 	mux.HandleFunc("POST /api/exams/submit-answer", d.submitAnswer)
 	mux.HandleFunc("GET /api/exams/session/{session_id}/answers", d.getAnswers)
 	mux.HandleFunc("POST /api/exams/{exam_id}/start", d.startExam)
+	mux.HandleFunc("GET /internal/start-admission", d.startAdmissionStatus)
 	mux.HandleFunc("GET /api/exams/session/{session_id}/remaining-time", d.remainingTime)
 	mux.HandleFunc("GET /api/auth/me", d.me)
 	mux.HandleFunc("GET /api/runtime/policy", d.runtimePolicy)
@@ -160,13 +177,9 @@ func registerLoginLane(mux *http.ServeMux, lane string, h http.HandlerFunc) {
 	mux.HandleFunc("POST /api/"+lane+"/auth/signin", h)
 }
 
-func (d deps) autoSave(w http.ResponseWriter, r *http.Request) {
-	d.proxyExamWrite(w, r)
-}
 
-func (d deps) submitAnswer(w http.ResponseWriter, r *http.Request) {
-	d.proxyExamWrite(w, r)
-}
+
+
 
 func (d deps) getAnswers(w http.ResponseWriter, r *http.Request) {
 	userID, ok := d.userOrFallback(w, r)

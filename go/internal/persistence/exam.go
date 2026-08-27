@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,31 +116,32 @@ type SessionRow struct {
 }
 
 type QuestionRow struct {
-	ID         int
-	ExamID     int
-	Text       string
-	Stimulus   *string
-	Type       string
-	PgkType    *string
-	Difficulty string
-	Settings   []byte
-	Points     float64
-	OrderIndex int
-	ImageURL   *string
-	VideoURL   *string
-	AudioURL   *string
+	ID         int     `json:"id"`
+	ExamID     int     `json:"-"`
+	Text       string  `json:"question_text"`
+	Stimulus   *string `json:"stimulus"`
+	Type       string  `json:"question_type"`
+	PgkType    *string `json:"pgk_type"`
+	Difficulty string  `json:"difficulty_level,omitempty"`
+	Settings   []byte  `json:"question_settings"`
+	Points     float64 `json:"-"`
+	PointsText string  `json:"points"`
+	OrderIndex int     `json:"order_index"`
+	ImageURL   *string `json:"image_url"`
+	VideoURL   *string `json:"video_url"`
+	AudioURL   *string `json:"audio_url"`
 	CategoryID *int
-	Options    []OptionRow
+	Options    []OptionRow `json:"options"`
 }
 
 type OptionRow struct {
-	ID          int
-	QuestionID  int
-	Text        string
-	OrderIndex  int
-	OptionGroup string
-	PairID      *string
-	IsCorrect   bool
+	ID          int     `json:"id"`
+	QuestionID  int     `json:"-"`
+	Text        string  `json:"option_text"`
+	OrderIndex  int     `json:"order_index"`
+	OptionGroup string  `json:"option_group"`
+	PairID      *string `json:"pair_id"`
+	IsCorrect   bool    `json:"-"`
 }
 
 func (s *Store) GetUser(ctx context.Context, id int) (*UserRow, error) {
@@ -557,7 +559,7 @@ func (s *Store) loadQuestions(ctx context.Context, examID int, withKeys bool) ([
 	qrows, err := s.pool.Query(ctx, `
 SELECT id, question_text, stimulus, question_type, pgk_type,
        COALESCE(difficulty_level, 'medium'), COALESCE(question_settings, '{}'::jsonb),
-       COALESCE(points, 1), order_index, image_url, video_url, audio_url
+       COALESCE(points, 1)::text, order_index, image_url, video_url, audio_url
   FROM questions WHERE exam_id = $1 ORDER BY order_index, id`, examID)
 	if err != nil {
 		return nil, err
@@ -569,10 +571,11 @@ SELECT id, question_text, stimulus, question_type, pgk_type,
 		var q QuestionRow
 		if err := qrows.Scan(
 			&q.ID, &q.Text, &q.Stimulus, &q.Type, &q.PgkType, &q.Difficulty,
-			&q.Settings, &q.Points, &q.OrderIndex, &q.ImageURL, &q.VideoURL, &q.AudioURL,
+			&q.Settings, &q.PointsText, &q.OrderIndex, &q.ImageURL, &q.VideoURL, &q.AudioURL,
 		); err != nil {
 			return nil, err
 		}
+		q.Points, _ = strconv.ParseFloat(q.PointsText, 64)
 		questions = append(questions, q)
 		ids = append(ids, q.ID)
 	}

@@ -9,6 +9,7 @@ from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.core.security import AuthenticatedUser, get_current_user_hot_path
 from app.database import get_db, get_db_read
@@ -46,7 +47,9 @@ async def get_session_answers(
 ):
     """Get all saved answers for a session for restore on refresh."""
     result = await db.execute(
-        select(ExamSession).where(
+        select(ExamSession)
+        .options(noload("*"))
+        .where(
             ExamSession.id == session_id,
             ExamSession.user_id == current_user.id,
         )
@@ -59,7 +62,9 @@ async def get_session_answers(
     if session.status not in ["in_progress", "active"]:
         return {"answers": {}, "session_status": session.status}
 
-    result = await db.execute(select(Answer).where(Answer.session_id == session_id))
+    result = await db.execute(
+        select(Answer).options(noload("*")).where(Answer.session_id == session_id)
+    )
     answers = result.scalars().all()
 
     answer_dict: Dict[int, object] = {}

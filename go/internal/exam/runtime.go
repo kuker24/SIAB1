@@ -11,9 +11,7 @@ import (
 	"siab1/internal/persistence"
 )
 
-func (d deps) autoSaveBatch(w http.ResponseWriter, r *http.Request) {
-	d.proxyExamWrite(w, r)
-}
+
 
 func (d deps) journalSync(w http.ResponseWriter, r *http.Request) {
 	d.proxyExamWrite(w, r)
