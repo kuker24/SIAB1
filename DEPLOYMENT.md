@@ -196,3 +196,10 @@ sudo OUTPUT_DIR=/opt/siab1/releases \
 Metadata mencatat source SHA, mode full/delta, fingerprint source, checksum file terdeploy,
 identitas Compose/Nginx, dan referensi backup/rollback. Certificate, upload, live canary,
 backup `.bak`, dan artifact build dinamis dikecualikan.
+
+## GitHub governance
+
+`main` memerlukan pull request. Direct push, force-push, dan penghapusan `main` diblokir.
+Check wajib: `validate` (`Production hardening checks`). Tag `stable-*` tidak boleh dihapus
+atau dipindah. Rollback production memakai fallback per-route atau artifact sebelumnya,
+bukan `git reset` pada `main`. Kebijakan lengkap: `docs/github-governance.md`.
