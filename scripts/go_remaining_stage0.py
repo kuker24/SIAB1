@@ -65,12 +65,12 @@ def call_one(kind: str, base: str, token: str, session_id: int, question_id: int
             "session_id": session_id,
             "answers": {str(question_id): option_id},
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        }, False
+        }, True
     elif kind == "batch":
         path, body, seb = "/api/exams/auto-save-batch", {
             "session_id": session_id,
             "answers": [{"question_id": question_id, "selected_option_id": option_id}],
-        }, False
+        }, True
     else:
         path, body, seb = "/api/exams/submit", {"session_id": session_id}, True
     response = httpx.post(f"{base.rstrip('/')}{path}", headers=headers(token, seb), json=body, timeout=30.0)

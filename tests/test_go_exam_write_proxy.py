@@ -1,8 +1,22 @@
+import ast
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAM = ROOT / "go" / "internal" / "exam"
+
+
+def _seb_assignment_values(function: ast.FunctionDef) -> list[object]:
+    values: list[object] = []
+    for assignment in (node for node in ast.walk(function) if isinstance(node, ast.Assign)):
+        for target in assignment.targets:
+            if isinstance(target, ast.Name) and target.id == "seb":
+                values.append(ast.literal_eval(assignment.value))
+            if isinstance(target, ast.Tuple) and isinstance(assignment.value, ast.Tuple):
+                for name, value in zip(target.elts, assignment.value.elts):
+                    if isinstance(name, ast.Name) and name.id == "seb":
+                        values.append(ast.literal_eval(value))
+    return values
 
 
 def _handler_body(src: str, name: str) -> str:
@@ -53,3 +67,15 @@ def test_pgbouncer_json_and_pool_settings_are_pinned() -> None:
     assert "StatementCacheCapacity = 0" in store
     assert "pgPoolMaxConns int32 = 4" in store
     assert start_sql.count("string(payload)") == 2
+
+
+def test_remaining_hotpath_probe_always_sends_seb_headers() -> None:
+    source = (ROOT / "scripts" / "go_remaining_stage0.py").read_text(encoding="utf-8")
+    module = ast.parse(source)
+    call_one = next(
+        node
+        for node in module.body
+        if isinstance(node, ast.FunctionDef) and node.name == "call_one"
+    )
+
+    assert _seb_assignment_values(call_one) == [True, True, True]
