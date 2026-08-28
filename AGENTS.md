@@ -162,5 +162,6 @@ The production stack is deployed on the target VPS. Topology below matches the 2
 - Validate changes with nearest runnable check: compile, targeted pytest, release gate, or relevant smoke check.
 - Do not delete tooling or infrastructure directories without explicit request.
 - Do not read `.env`, API keys, tokens, certificates, passwords, cookies, or other private data.
+- Changes to `main` go through a pull request; required check is `validate`. Do not force-push or delete `main`. Keep `stable-*` tags immutable. Runtime rollback uses per-route fallback or a prior artifact, then a revert PR. See `docs/github-governance.md`.
 - Do not use `git reset --hard`, `git clean`, force push, commit, push, tag, release, or deploy without explicit request.
 - Cursor rules (`.cursor/rules/`, `.cursorrules`) and Copilot instructions (`.github/copilot-instructions.md`) were absent at mapping snapshot. Treat them as additional constraints if later added.
