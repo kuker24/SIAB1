@@ -96,7 +96,7 @@ def test_production_hardening_workflow_runs_blocking_checks() -> None:
     assert "go test ./..." in source
     assert "go vet ./..." in source
     assert "go build -o" in source
-    assert "gitleaks/gitleaks/v8@v8.30.1" in source
+    assert "zricethezav/gitleaks/v8@v8.30.1" in source
     assert "flutter pub get --enforce-lockfile" in source
     assert "flutter analyze" in source
     assert "flutter test" in source
