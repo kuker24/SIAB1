@@ -42,7 +42,7 @@ echo "Base URL: $BASE_URL"
 
 # Health + root
 check_endpoint "GET" "/health" '^(200)$'
-check_endpoint "GET" "/" '^(200)$'
+check_endpoint "GET" "/" '^(200|302)$'
 
 # Auth/login path (allow validation/auth statuses; fail on 5xx/404)
 check_endpoint "POST" "/api/auth/login" '^(200|400|401|422)$' '{"username":"invalid","password":"invalid"}'

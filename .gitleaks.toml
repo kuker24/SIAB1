@@ -19,3 +19,10 @@ id = "generic-api-key"
     regexTarget = "line"
     paths = ['''^go/internal/persistence/exam_copy\.go$''']
     regexes = ['''^\s*const accessTokenChars\s*=\s*"ABCDEFGHJKMNPQRSTUVWXYZ23456789"\s*$''']
+
+    [[rules.allowlists]]
+    description = "Local parity harness fixture keys"
+    condition = "AND"
+    regexTarget = "line"
+    paths = ['''^scripts/run_(join|remaining_hotpath)_parity_ab\.py$''']
+    regexes = ['''^\s*(JWT_SECRET|SECRET_KEY)\s*=\s*"(join|remain)-parity-[^"]+"\s*$''']
