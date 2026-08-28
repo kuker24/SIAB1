@@ -34,6 +34,16 @@ class ExamRuntime:
 `ExamCommand` dan `ExamOutcome` adalah tipe domain. `Request`, schema Pydantic, ORM model,
 `AsyncSession`, HTTP status, Redis client, dan detail runtime tidak melewati boundary ini.
 
+## Evolusi Runtime
+
+Sebelumnya, modular monolith FastAPI melayani seluruh trafik ujian. Produksi saat ini adalah
+**hybrid modular monolith**: Go menjalankan data plane hot-path siswa, sedangkan FastAPI
+menjalankan control plane, non-hot-path, dan fallback. Ini bukan arsitektur microservices.
+
+Kedua runtime berada dalam satu repository, memakai satu schema PostgreSQL dan Redis yang sama,
+serta mempertahankan kontrak HTTP dan persyaratan SEB/SXB yang sama. Klien tidak memilih Go atau
+Python; Nginx memilih backend berdasarkan rute.
+
 ## Produksi Saat Ini
 
 ```text
@@ -66,6 +76,10 @@ Grafana          visualisasi operasional
 - Enam rute siswa (join, start, submit-answer, auto-save, auto-save-batch, submit) dirutekan
   100% ke `go_start_backend` (`go_server:8000`, replica `go-start`). FastAPI tetap map default
   dan `server api:8000 resolve backup`.
+- Routing tersebut adalah routing produksi 100% dengan mekanisme canary yang dipertahankan
+  sebagai kontrol rollback per rute, bukan tanda bahwa Go masih eksperimental.
+- Go adalah student hot-path data plane. FastAPI adalah control plane, non-hot-path runtime,
+  serta fallback yang mempertahankan kontrak dan policy integritas yang sama.
 - Login, poll, export, admin, guru, Pengawas, dan sisa API tetap FastAPI (`api`…`api8` plus
   `api_admin` / `api_admin2`).
 - Nginx memisahkan lane peserta dari lane admin/control dan menerapkan limit khusus untuk login,
