@@ -161,12 +161,38 @@ Setiap archive `recovery_sistem/backup_*.tar.gz` memiliki sidecar SHA-256. Resto
 memvalidasi checksum dan memulihkan database ke database sementara, lalu menghapus database
 sementara tersebut tanpa mengganti database `siab1`.
 
-Karena deployment VPS berbasis file, buat bukti release setelah sinkronisasi file:
+Karena deployment VPS berbasis file, buat bukti release setelah sinkronisasi file.
+Source release identity bukan runtime filesystem identity.
+
+Fingerprint source yang sama dipakai di Git checkout dan pohon staging:
+
+```bash
+bash scripts/source_release_fingerprint.sh
+```
+
+Full release:
 
 ```bash
 sudo OUTPUT_DIR=/opt/siab1/releases \
+  RELEASE_MODE=full \
+  SOURCE_GIT_SHA=<git-commit> \
+  DEPLOYMENT_DESTINATION=/opt/siab1 \
+  BACKUP_PATH=<backup.tar.gz> \
+  BACKUP_SHA256=<backup-sha256> \
   bash scripts/generate_release_manifest.sh <git-commit>
 ```
 
-Metadata mencatat release ID dan checksum manifest. Manifest hanya mencakup source/config runtime;
-certificate, upload, dan artifact build dinamis dikecualikan.
+Delta release (jangan dilabeli sebagai full-tree commit identity):
+
+```bash
+sudo OUTPUT_DIR=/opt/siab1/releases \
+  RELEASE_MODE=delta \
+  SOURCE_GIT_SHA=<git-commit> \
+  DEPLOYED_PATHS_FILE=/tmp/deployed-paths.txt \
+  DEPLOYMENT_DESTINATION=/opt/siab1 \
+  bash scripts/generate_release_manifest.sh <release-id>
+```
+
+Metadata mencatat source SHA, mode full/delta, fingerprint source, checksum file terdeploy,
+identitas Compose/Nginx, dan referensi backup/rollback. Certificate, upload, live canary,
+backup `.bak`, dan artifact build dinamis dikecualikan.

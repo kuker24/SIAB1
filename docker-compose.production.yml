@@ -9,11 +9,18 @@ x-logging: &default-logging
     max-size: "20m"
     max-file: "5"
 
+x-oci-build-args: &oci-build-args
+  GIT_REVISION: ${SIAB1_GIT_SHA:-unknown}
+  GIT_SOURCE: ${SIAB1_GIT_SOURCE:-https://github.com/kuker24/SIAB1}
+  RELEASE_VERSION: ${SIAB1_RELEASE_ID:-unknown}
+  BUILD_CREATED: ${SIAB1_BUILD_CREATED:-unknown}
+
 x-api-service: &api-service
   image: siab1-api
   build:
     context: .
     dockerfile: docker/Dockerfile.production
+    args: *oci-build-args
   command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-2} --limit-concurrency ${LIMIT_CONCURRENCY:-220} --backlog 8192 --timeout-keep-alive 10 --limit-max-requests ${LIMIT_MAX_REQUESTS:-200000} --no-access-log
   environment:
     - DATABASE_URL=postgresql+asyncpg://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/siab1
@@ -216,6 +223,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.pgbouncer
+      args: *oci-build-args
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -327,6 +335,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.production
+      args: *oci-build-args
     command: celery -A app.tasks.scheduler worker --loglevel=warning --pool=solo --max-tasks-per-child=200
     environment:
       - DATABASE_URL=postgresql+asyncpg://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/siab1
@@ -403,6 +412,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.production
+      args: *oci-build-args
     command: celery -A app.tasks.scheduler beat --loglevel=warning
     environment:
       - DATABASE_URL=postgresql+asyncpg://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/siab1
@@ -445,7 +455,9 @@ services:
     networks:
       - exam_network
 
-  # Native-Lean v2 shadow (Go). Nginx tetap ke Python sampai parity.
+  # Student hot-path Go runtime. Live Nginx maps send six student routes to
+  # go_server at 100% with FastAPI as backup. Repo Compose still lists profile
+  # native-lean; do not treat the profile as current production routing.
   # docker compose -f docker-compose.production.yml --profile native-lean up -d go_server go_worker
   go_server:
     profiles: ["native-lean"]
@@ -456,6 +468,9 @@ services:
       args:
         BIN: server
         REVISION: ${GO_CANDIDATE_SHA:-unknown}
+        GIT_SOURCE: ${SIAB1_GIT_SOURCE:-https://github.com/kuker24/SIAB1}
+        RELEASE_VERSION: ${SIAB1_RELEASE_ID:-${GO_CANDIDATE_SHA:-unknown}}
+        BUILD_CREATED: ${SIAB1_BUILD_CREATED:-unknown}
     environment:
       - DATABASE_URL=postgresql://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/siab1?pool_max_conns=4&default_query_exec_mode=simple_protocol&statement_cache_capacity=0
       - REDIS_URL=redis://redis:6379/0
@@ -498,6 +513,9 @@ services:
       args:
         BIN: worker
         REVISION: ${GO_CANDIDATE_SHA:-unknown}
+        GIT_SOURCE: ${SIAB1_GIT_SOURCE:-https://github.com/kuker24/SIAB1}
+        RELEASE_VERSION: ${SIAB1_RELEASE_ID:-${GO_CANDIDATE_SHA:-unknown}}
+        BUILD_CREATED: ${SIAB1_BUILD_CREATED:-unknown}
     environment:
       - DATABASE_URL=postgresql://examuser:${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}@pgbouncer:6432/siab1?pool_max_conns=4&default_query_exec_mode=simple_protocol&statement_cache_capacity=0
       - REDIS_URL=redis://redis:6379/0
