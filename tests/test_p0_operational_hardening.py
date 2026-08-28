@@ -93,9 +93,20 @@ def test_production_hardening_workflow_runs_blocking_checks() -> None:
     assert "python -m pip_audit --requirement requirements.txt" in source
     assert "python -m pip_audit --requirement requirements.runtime.lock" in source
     assert "tests/test_p0_operational_hardening.py" in source
+    assert "go test ./..." in source
+    assert "go vet ./..." in source
+    assert "go build -o" in source
+    assert "zricethezav/gitleaks/v8@v8.30.1" in source
+    assert "flutter pub get --enforce-lockfile" in source
+    assert "flutter analyze" in source
+    assert "flutter test" in source
     assert "docker compose -f docker-compose.production.yml config --quiet" in source
     assert "docker build --file docker/Dockerfile.production" in source
+    assert "bash scripts/verify_critical_http_paths.sh" in source
     assert "continue-on-error" not in source
+
+    smoke = (ROOT / "scripts" / "verify_critical_http_paths.sh").read_text(encoding="utf-8")
+    assert 'check_endpoint "GET" "/" \'^(200|302)$\'' in smoke
 
 
 def test_production_defaults_protect_exam_peak_capacity() -> None:

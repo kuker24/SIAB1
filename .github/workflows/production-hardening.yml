@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -53,6 +55,24 @@ jobs:
       - name: Run backend regression tests
         run: python -m pytest -q tests
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache-dependency-path: go/go.sum
+
+      - name: Validate native Go hot-path
+        working-directory: go
+        run: |
+          go test ./...
+          go vet ./...
+          go build -o "$RUNNER_TEMP/siab1-go-server" ./cmd/server
+
+      - name: Scan repository for committed secrets
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner --config .gitleaks.toml .
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -62,6 +82,20 @@ jobs:
       - name: Validate native Android kiosk
         working-directory: android-kiosk
         run: ./gradlew :app:lintDebug
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Validate Flutter client
+        working-directory: flutter_client_code
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test
 
       - name: Install shell validation tools
         run: sudo apt-get update && sudo apt-get install --yes shellcheck
@@ -87,3 +121,9 @@ jobs:
 
       - name: Build production API image
         run: docker build --file docker/Dockerfile.production --tag siab1-api:ci .
+
+      - name: Smoke production HTTP paths
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          BASE_URL: https://siab.man1rokanhulu.cloud
+        run: bash scripts/verify_critical_http_paths.sh
