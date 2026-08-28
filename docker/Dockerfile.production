@@ -28,6 +28,15 @@ RUN python -m pip install --no-cache-dir --upgrade "pip>=26.0.1" \
 
 FROM python:3.11-slim AS runtime
 
+ARG GIT_REVISION=unknown
+ARG GIT_SOURCE=https://github.com/kuker24/SIAB1
+ARG RELEASE_VERSION=unknown
+ARG BUILD_CREATED=unknown
+LABEL org.opencontainers.image.revision="${GIT_REVISION}" \
+      org.opencontainers.image.source="${GIT_SOURCE}" \
+      org.opencontainers.image.version="${RELEASE_VERSION}" \
+      org.opencontainers.image.created="${BUILD_CREATED}"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
