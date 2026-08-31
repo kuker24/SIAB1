@@ -215,6 +215,7 @@ window.addEventListener('unhandledrejection', (event) => {
 if (!auth.requireAuth(['admin', 'developer', 'teacher'])) { }
 
 const DEFAULT_BUILDER_SETTINGS = Object.freeze({
+    authoring_defaults_version: 2,
     default_mc_key_only: false,
     default_pgk_key_only: false,
     default_image_layout_mode: 'model1',
@@ -225,12 +226,28 @@ const DEFAULT_BUILDER_SETTINGS = Object.freeze({
 function normalizeBuilderSettings(rawSettings = {}) {
     const raw = rawSettings && typeof rawSettings === 'object' ? rawSettings : {};
     return {
+        authoring_defaults_version: 2,
         default_mc_key_only: raw.default_mc_key_only === true,
         default_pgk_key_only: raw.default_pgk_key_only === true,
         default_image_layout_mode: 'model1',
         smart_auto_shuffle_options: raw.smart_auto_shuffle_options === true,
         smart_auto_shuffle_questions: raw.smart_auto_shuffle_questions === true
     };
+}
+
+function normalizePersistedBuilderSettings(rawSettings = {}) {
+    const raw = rawSettings && typeof rawSettings === 'object' ? rawSettings : {};
+    if (raw.authoring_defaults_version === 2) {
+        return normalizeBuilderSettings(raw);
+    }
+
+    // Legacy exams inherited Mode Cepat as the default. Keep each question's saved
+    // mode intact, but make newly added questions use classic text options.
+    return normalizeBuilderSettings({
+        ...raw,
+        default_mc_key_only: false,
+        default_pgk_key_only: false
+    });
 }
 
 function getBuilderSettings() {
@@ -688,7 +705,7 @@ async function loadExam(id) {
             academic_year: exam.academic_year || '',
             show_teacher_name: exam.show_teacher_name !== false,
             teacher_name: exam.teacher_name || '',
-            builder_settings: normalizeBuilderSettings(exam.builder_settings || DEFAULT_BUILDER_SETTINGS),
+            builder_settings: normalizePersistedBuilderSettings(exam.builder_settings),
             allowed_classes: exam.allowed_classes, // Persist for wizard
             allowed_students: exam.allowed_students // Persist for wizard
         };
