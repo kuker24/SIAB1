@@ -24,7 +24,7 @@ class _EmptyExamDatabase:
 
 
 def _pengawas() -> SimpleNamespace:
-    return SimpleNamespace(id=41, role="teacher", job_title="Pengawas")
+    return SimpleNamespace(id=41, role="gurupengawas", job_title="Pengawas")
 
 
 @pytest.mark.asyncio

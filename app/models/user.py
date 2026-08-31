@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
-from app.core.roles import is_admin_scope_role, is_participant_role, is_teacher_scope_role
+from app.core.roles import (
+    is_admin_scope_role,
+    is_gurupengawas_role,
+    is_participant_role,
+    is_teacher_scope_role,
+)
 
 
 class User(Base):
@@ -17,7 +22,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
-    role = Column(String(20), nullable=False, default="student")  # developer, admin, teacher, student, guruplus
+    role = Column(String(20), nullable=False, default="student")
     student_class = Column(String(50), nullable=True)  # e.g., "XII-IPA-1"
     job_title = Column(String(100), nullable=True)     # e.g., "Kepala Sekolah"
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -43,3 +48,7 @@ class User(Base):
     @property
     def is_student(self) -> bool:
         return is_participant_role(self.role)
+
+    @property
+    def is_pengawas(self) -> bool:
+        return is_gurupengawas_role(self.role)

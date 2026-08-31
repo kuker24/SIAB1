@@ -81,13 +81,12 @@ func (d deps) listExams(w http.ResponseWriter, r *http.Request) {
 	case "developer":
 	case "admin":
 		filter.HideDeveloper = true
+	case "gurupengawas":
+		filter.HideDeveloper = true
+		filter.PublishedOnly = true
 	case "teacher":
 		filter.HideDeveloper = true
-		if isPengawas(claims.Role, claims.JobTitle) {
-			filter.PublishedOnly = true
-		} else {
-			filter.CreatorID = userID
-		}
+		filter.CreatorID = userID
 	default:
 		writeDetail(w, http.StatusForbidden, "Tidak memiliki akses ke daftar ujian")
 		return

@@ -71,9 +71,7 @@ class AuthManager {
     }
 
     isPengawas() {
-        if (this.user?.role !== 'teacher') return false;
-        const jobTitle = this.getNormalizedJobTitle();
-        return jobTitle.includes('pengawas') || jobTitle === 'proktor' || jobTitle === 'invigilator';
+        return this.user?.role === 'gurupengawas';
     }
 
     isPengawasAllowedPath(pathname) {
@@ -83,7 +81,8 @@ class AuthManager {
             || normalized === '/admin/exams.html'
             || normalized === '/admin/monitoring.html'
             || normalized === '/admin/violations.html'
-            || normalized === '/admin/account-security.html';
+            || normalized === '/admin/account-security.html'
+            || normalized === '/admin/results.html';
     }
 
     isStudent() {
@@ -209,7 +208,7 @@ class AuthManager {
             if (userAvatarEl) userAvatarEl.textContent = (this.user.full_name || this.user.username).charAt(0).toUpperCase();
             if (userRoleEl) {
                 if (this.isPengawas()) {
-                    userRoleEl.textContent = 'Pengawas';
+                    userRoleEl.textContent = 'Guru Pengawas';
                 } else {
                     const roleLabels = {
                         developer: 'Developer',
@@ -217,6 +216,7 @@ class AuthManager {
                         teacher: 'Guru',
                         student: 'Siswa',
                         guruplus: 'GuruPlus',
+                        gurupengawas: 'Guru Pengawas',
                     };
                     userRoleEl.textContent = roleLabels[this.user.role]
                         || (this.user.role.charAt(0).toUpperCase() + this.user.role.slice(1));

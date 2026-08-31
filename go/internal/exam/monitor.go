@@ -145,7 +145,7 @@ func (d deps) activeExams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	creatorID := 0
-	if claims.Role == "teacher" && !isPengawas(claims.Role, claims.JobTitle) {
+	if claims.Role == "teacher" {
 		creatorID = userID
 	}
 	rows, err := d.store.ListActiveExams(r.Context(), creatorID)

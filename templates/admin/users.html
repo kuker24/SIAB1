@@ -64,6 +64,12 @@
             border: 1px solid rgba(59, 130, 246, 0.28);
         }
 
+        .role-gurupengawas {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.28);
+        }
+
         /* Custom Checkbox */
         .custom-checkbox {
             appearance: none;
@@ -193,6 +199,7 @@
                         <option value="student">Siswa</option>
                         <option value="guruplus">GuruPlus</option>
                         <option value="teacher">Guru</option>
+                        <option value="gurupengawas">Guru Pengawas</option>
                         <option value="admin">Admin</option>
                         <option value="developer">Developer</option>
                     </select>
@@ -292,6 +299,11 @@
                             <span class="role-icon"><i class="fas fa-user-plus"
                                     style="color: #60a5fa;"></i></span>
                             <div>GuruPlus</div>
+                        </div>
+                        <div class="role-option-card" onclick="selectRole('gurupengawas')" id="role-gurupengawas">
+                            <span class="role-icon"><i class="fas fa-user-shield"
+                                    style="color: #34d399;"></i></span>
+                            <div>Guru Pengawas</div>
                         </div>
                     </div>
                     <input type="hidden" name="role" id="role-input" value="student">
@@ -413,7 +425,8 @@
                 admin: 'Admin',
                 teacher: 'Guru',
                 student: 'Siswa',
-                [GURUPLUS_ROLE]: 'GuruPlus'
+                [GURUPLUS_ROLE]: 'GuruPlus',
+                gurupengawas: 'Guru Pengawas'
             };
             return labels[role] || role;
         }
@@ -700,7 +713,7 @@
             if (role === 'student') {
                 document.getElementById('student-fields').style.display = 'block';
                 document.getElementById('teacher-fields').style.display = 'none';
-            } else if (role === 'teacher') {
+            } else if (role === 'teacher' || role === 'gurupengawas') {
                 document.getElementById('student-fields').style.display = 'none';
                 document.getElementById('teacher-fields').style.display = 'block';
             } else if (role === GURUPLUS_ROLE) {
@@ -738,7 +751,7 @@
                 delete data.job_title;
             } else if (data.role === GURUPLUS_ROLE) {
                 data.student_class = GURUPLUS_CLASS;
-            } else if (data.role === 'teacher') {
+            } else if (data.role === 'teacher' || data.role === 'gurupengawas') {
                 delete data.student_class;
             } else {
                 delete data.student_class;

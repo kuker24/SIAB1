@@ -147,7 +147,7 @@ func applyRoleStudentClass(role string, studentClass *string) *string {
 		name := guruPlusClass
 		return &name
 	}
-	if (role == "teacher" || role == "admin" || role == "developer") &&
+	if (role == "teacher" || role == "admin" || role == "developer" || role == "gurupengawas") &&
 		cls != nil && strings.EqualFold(*cls, guruPlusClass) {
 		return nil
 	}
@@ -162,10 +162,12 @@ func staffCanViewExam(ex *persistence.ExamRow, userID int, role, jobTitle string
 	switch role {
 	case "developer", "admin":
 		return true, false
-	case "teacher":
-		if isPengawas(role, jobTitle) {
-			return ex.Published, false
+	case "gurupengawas":
+		if !ex.Published {
+			return false, true
 		}
+		return true, false
+	case "teacher":
 		return ex.CreatorID == userID, false
 	default:
 		return false, false
@@ -174,13 +176,13 @@ func staffCanViewExam(ex *persistence.ExamRow, userID int, role, jobTitle string
 
 func staffCanMonitor(ex *persistence.ExamRow, userID int, role, jobTitle string) bool {
 	role = strings.ToLower(strings.TrimSpace(role))
+	if developerExamHidden(role, creatorRole(ex)) {
+		return false
+	}
 	switch role {
-	case "developer", "admin":
+	case "developer", "admin", "gurupengawas":
 		return true
 	case "teacher":
-		if isPengawas(role, jobTitle) {
-			return true
-		}
 		return ex.CreatorID == userID
 	default:
 		return false
@@ -193,10 +195,10 @@ func staffCanPauseExam(ex *persistence.ExamRow, userID int, role, jobTitle strin
 		return false, true
 	}
 	switch role {
-	case "developer", "admin":
+	case "developer", "admin", "gurupengawas":
 		return true, false
 	case "teacher":
-		if isPengawas(role, jobTitle) || ex.CreatorID == userID {
+		if ex.CreatorID == userID {
 			return true, false
 		}
 		return false, false
@@ -213,6 +215,11 @@ func staffCanViewResults(ex *persistence.ExamRow, userID int, role string) (ok b
 	switch role {
 	case "developer", "admin":
 		return true, false
+	case "gurupengawas":
+		if !ex.Published {
+			return false, true
+		}
+		return true, false
 	case "teacher":
 		return ex.CreatorID == userID, false
 	default:
@@ -228,13 +235,9 @@ func staffCanMutateExam(ex *persistence.ExamRow, userID int, role, jobTitle stri
 	switch role {
 	case "developer", "admin":
 		return true, false, ""
+	case "gurupengawas":
+		return false, false, "Pengawas tidak diizinkan mengubah ujian ini"
 	case "teacher":
-		if isPengawas(role, jobTitle) {
-			if pengawasUnpublish && ex.Published {
-				return true, false, ""
-			}
-			return false, false, "Pengawas tidak diizinkan mengubah ujian ini"
-		}
 		if ex.CreatorID != userID {
 			return false, false, "Tidak memiliki akses ke ujian ini"
 		}

@@ -53,8 +53,15 @@ func TestStaffCanViewExam(t *testing.T) {
 	if ok, _ := staffCanViewExam(ex, 9, "teacher", ""); ok {
 		t.Fatal("other teacher denied")
 	}
-	if ok, _ := staffCanViewExam(ex, 9, "teacher", "Pengawas"); !ok {
+	if ok, hidden := staffCanViewExam(ex, 9, "gurupengawas", ""); !ok || hidden {
 		t.Fatal("pengawas published")
+	}
+	draft := &persistence.ExamRow{CreatorID: 4, Published: false, CreatorRole: strp("teacher")}
+	if ok, hidden := staffCanViewExam(draft, 9, "gurupengawas", ""); ok || !hidden {
+		t.Fatal("pengawas must not see drafts")
+	}
+	if ok, _ := staffCanViewExam(ex, 9, "teacher", "Pengawas"); ok {
+		t.Fatal("legacy teacher job title must not grant pengawas access")
 	}
 	ex.CreatorRole = strp("developer")
 	if ok, hidden := staffCanViewExam(ex, 1, "admin", ""); ok || !hidden {
@@ -94,7 +101,7 @@ func TestCanAssignRole(t *testing.T) {
 	if canAssignRole("admin", "developer") || canAssignRole("admin", "guruplus") {
 		t.Fatal("admin cannot assign privileged roles")
 	}
-	if !canAssignRole("developer", "guruplus") || !canAssignRole("admin", "teacher") {
+	if !canAssignRole("developer", "guruplus") || !canAssignRole("admin", "teacher") || !canAssignRole("admin", "gurupengawas") {
 		t.Fatal("expected assign")
 	}
 	if canManageUserAccount("admin", "developer") || !canManageUserAccount("developer", "developer") {
@@ -114,8 +121,11 @@ func TestStaffCanMonitor(t *testing.T) {
 	if staffCanMonitor(ex, 9, "teacher", "") {
 		t.Fatal("other teacher")
 	}
-	if !staffCanMonitor(ex, 9, "teacher", "Pengawas") {
+	if !staffCanMonitor(ex, 9, "gurupengawas", "") {
 		t.Fatal("pengawas")
+	}
+	if staffCanMonitor(ex, 9, "teacher", "Pengawas") {
+		t.Fatal("legacy teacher job title must not grant monitor access")
 	}
 }
 
@@ -124,10 +134,10 @@ func TestStaffCanMutateExam(t *testing.T) {
 	if ok, _, _ := staffCanMutateExam(ex, 4, "teacher", "", false); !ok {
 		t.Fatal("owner")
 	}
-	if ok, _, _ := staffCanMutateExam(ex, 9, "teacher", "Pengawas", false); ok {
+	if ok, _, _ := staffCanMutateExam(ex, 9, "gurupengawas", "", false); ok {
 		t.Fatal("pengawas cannot publish")
 	}
-	if ok, _, _ := staffCanMutateExam(ex, 9, "teacher", "Pengawas", true); !ok {
-		t.Fatal("pengawas unpublish")
+	if ok, _, _ := staffCanMutateExam(ex, 9, "gurupengawas", "", true); ok {
+		t.Fatal("pengawas cannot unpublish")
 	}
 }

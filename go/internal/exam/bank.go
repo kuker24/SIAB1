@@ -105,7 +105,7 @@ func (d deps) teacherOrFallback(w http.ResponseWriter, r *http.Request) (int, bo
 	if !ok {
 		return 0, false, false
 	}
-	if claims.Role == "student" || claims.Role == "guruplus" {
+	if claims.Role == "student" || claims.Role == "guruplus" || isPengawas(claims.Role, claims.JobTitle) {
 		writeDetail(w, http.StatusForbidden, "Tidak memiliki akses")
 		return 0, false, false
 	}

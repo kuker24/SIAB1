@@ -15,7 +15,7 @@ func (d deps) analyticsDashboard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if claims.Role == "student" || claims.Role == "guruplus" {
+	if claims.Role == "student" || claims.Role == "guruplus" || isPengawas(claims.Role, claims.JobTitle) {
 		writeDetail(w, http.StatusForbidden, "Tidak memiliki akses")
 		return
 	}
@@ -60,7 +60,7 @@ func (d deps) classPerformance(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if claims.Role == "student" || claims.Role == "guruplus" {
+	if claims.Role == "student" || claims.Role == "guruplus" || isPengawas(claims.Role, claims.JobTitle) {
 		writeDetail(w, http.StatusForbidden, "Tidak memiliki akses")
 		return
 	}

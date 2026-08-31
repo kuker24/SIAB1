@@ -371,7 +371,7 @@ async def get_all_questions(
         current_user,
         exam_creator_id,
         getattr(exam_owner_row, "creator_role", None),
-        allow_pengawas=True,
+        allow_pengawas=False,
     )
 
     result = await db.execute(

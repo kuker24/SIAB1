@@ -66,10 +66,10 @@ const API_BASE_URL = (() => {
         if (userRole === 'admin' || userRole === 'developer') {
             return `${origin}/api/admin`;
         }
+        if (userRole === 'gurupengawas') {
+            return `${origin}/api/pengawas`;
+        }
         if (userRole === 'teacher') {
-            if (userJobTitle.includes('pengawas') || userJobTitle === 'proktor' || userJobTitle === 'invigilator') {
-                return `${origin}/api/pengawas`;
-            }
             return `${origin}/api/teacher`;
         }
         return `${origin}/api/control`;

@@ -678,7 +678,7 @@ def _enforce_login_scope(token: Token, allowed_roles: set[str], scope_label: str
 async def login_control(login_data: UserLogin, request: Request, db: AsyncSession = Depends(get_db_read)):
     """Control-plane login (admin + teacher) for dashboard pages."""
     token = await login(login_data=login_data, request=request, db=db)
-    return _enforce_login_scope(token, {"developer", "admin", "teacher"}, "control")
+    return _enforce_login_scope(token, {"developer", "admin", "teacher", "gurupengawas"}, "control")
 
 
 @router.post("/admin/login", response_model=Token)
@@ -700,9 +700,9 @@ async def login_teacher(login_data: UserLogin, request: Request, db: AsyncSessio
 @router.post("/pengawas/login", response_model=Token)
 @router.post("/pengawas/signin", response_model=Token)
 async def login_pengawas(login_data: UserLogin, request: Request, db: AsyncSession = Depends(get_db_read)):
-    """Pengawas-only login lane (teacher role with job_title pengawas)."""
+    """Pengawas-only login lane (gurupengawas role)."""
     token = await login(login_data=login_data, request=request, db=db)
-    enforced = _enforce_login_scope(token, {"teacher"}, "pengawas")
+    enforced = _enforce_login_scope(token, {"gurupengawas"}, "pengawas")
     if not is_pengawas_identity(enforced.user.role, enforced.user.job_title):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

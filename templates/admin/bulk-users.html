@@ -436,6 +436,7 @@
                                 style="color: ${role === 'teacher' ? '#fbbf24' : '#4ade80'}; font-weight: 600;">
                             <option value="student" ${role === 'student' ? 'selected' : ''}>Siswa</option>
                             <option value="teacher" ${role === 'teacher' ? 'selected' : ''}>Guru</option>
+                            <option value="gurupengawas" ${role === 'gurupengawas' ? 'selected' : ''}>Guru Pengawas</option>
                         </select>
                     </td>
                     <td><input type="text" class="cell-input" data-field="full_name" placeholder="Nama Lengkap"></td>
@@ -459,10 +460,10 @@
             const infoInput = row.querySelector('[data-field="dynamic_info"]');
 
             row.className = `row-role-${role}`;
-            select.style.color = role === 'teacher' ? '#fbbf24' : '#4ade80';
+            select.style.color = role === 'teacher' || role === 'gurupengawas' ? '#fbbf24' : '#4ade80';
 
-            if (role === 'teacher') {
-                infoInput.placeholder = 'Jabatan (Wali Kelas)';
+            if (role === 'teacher' || role === 'gurupengawas') {
+                infoInput.placeholder = role === 'gurupengawas' ? 'Jabatan (Pengawas)' : 'Jabatan (Wali Kelas)';
             } else {
                 infoInput.placeholder = 'Kelas (XII-A)';
                 const preset = document.getElementById('default-class-select').value;
@@ -573,7 +574,7 @@
                         full_name: name.value.trim(),
                         password: pass.value.trim(),
                         role: role,
-                        job_title: role === 'teacher' ? info.value.trim() : null,
+                        job_title: (role === 'teacher' || role === 'gurupengawas') ? info.value.trim() : null,
                         student_class: role === 'student' ? info.value.trim() : null,
                         student_id: null
                     });

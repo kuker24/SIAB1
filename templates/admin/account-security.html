@@ -226,7 +226,7 @@
         const isPengawas = typeof auth.isPengawas === 'function' && auth.isPengawas();
 
         // Allow admin and pengawas only.
-        auth.requireAuth(['admin', 'developer', 'teacher']);
+        auth.requireAuth(['admin', 'developer', 'teacher', 'gurupengawas']);
         if (!isAdmin && !isPengawas) {
             window.location.href = '/admin/exams.html';
         }

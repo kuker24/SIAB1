@@ -727,7 +727,7 @@ func parseUserFilter(r *http.Request) persistence.UserListFilter {
 
 func validUserRole(role string) bool {
 	switch role {
-	case "developer", "admin", "teacher", "student", "guruplus":
+	case "developer", "admin", "teacher", "student", "guruplus", "gurupengawas":
 		return true
 	default:
 		return false
