@@ -32,6 +32,7 @@ from app.core.roles import (
     ROLE_ADMIN,
     ROLE_DEVELOPER,
     ROLE_GURUPLUS,
+    ROLE_GURUPENGAWAS,
     ROLE_STUDENT,
     ROLE_TEACHER,
     can_assign_role,
@@ -73,7 +74,7 @@ def _apply_role_student_class_defaults(
     if normalized_role == GURUPLUS_ROLE:
         return GURUPLUS_CLASS_NAME
 
-    if normalized_role in {ROLE_TEACHER, ROLE_ADMIN, ROLE_DEVELOPER} and normalized_class == GURUPLUS_CLASS_NAME:
+    if normalized_role in {ROLE_TEACHER, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_GURUPENGAWAS} and normalized_class == GURUPLUS_CLASS_NAME:
         return None
 
     return normalized_class
@@ -672,7 +673,7 @@ async def batch_update_users(
         update_fields["role"] = normalized_role
         if normalized_role == GURUPLUS_ROLE:
             update_fields["student_class"] = GURUPLUS_CLASS_NAME
-        elif normalized_role in {ROLE_TEACHER, ROLE_ADMIN, ROLE_DEVELOPER}:
+        elif normalized_role in {ROLE_TEACHER, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_GURUPENGAWAS}:
             update_fields["student_class"] = None
 
     stmt = (
@@ -873,7 +874,7 @@ async def bulk_upload_users(
                 )
                 continue
 
-            if role not in {ROLE_STUDENT, ROLE_TEACHER, GURUPLUS_ROLE}:
+            if role not in {ROLE_STUDENT, ROLE_TEACHER, GURUPLUS_ROLE, ROLE_GURUPENGAWAS}:
                 results["failed"] += 1
                 results["errors"].append(f"Line {row_num}: Role tidak valid ({role})")
                 continue

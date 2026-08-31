@@ -77,7 +77,7 @@ func (d deps) searchQuestions(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if claims.Role == "student" || claims.Role == "guruplus" {
+	if claims.Role == "student" || claims.Role == "guruplus" || isPengawas(claims.Role, claims.JobTitle) {
 		writeDetail(w, http.StatusForbidden, "Tidak memiliki akses")
 		return
 	}
@@ -259,6 +259,10 @@ func (d deps) authorizeExam(w http.ResponseWriter, r *http.Request, examID, user
 		return nil, false
 	}
 	if viewOnly {
+		if isPengawas(claims.Role, claims.JobTitle) {
+			writeDetail(w, http.StatusForbidden, "Pengawas tidak diizinkan melihat soal atau kunci jawaban")
+			return nil, false
+		}
 		ok, hidden := staffCanViewExam(ex, userID, claims.Role, claims.JobTitle)
 		if !ok {
 			if hidden {

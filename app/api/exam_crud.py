@@ -61,7 +61,7 @@ async def list_exams(
     Access rules:
     - Participant roles (student + GuruPlus): Only published exams that match access policy
     - Teachers: Only their own exams
-    - Pengawas (teacher+job_title pengawas): All published exams (monitoring lane)
+    - Guru Pengawas: All published exams (monitoring lane)
     - Admins: All exams (published and drafts)
     """
     # Keep list endpoint lightweight: no heavy relationship loading.
@@ -79,16 +79,14 @@ async def list_exams(
     if _is_exam_participant_role(current_user.role):
         # Participant roles only see published exams
         query = query.where(Exam.is_published == True)
+    elif is_pengawas_user(current_user):
+        query = query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
+        query = query.where(Exam.is_published == True)
     elif current_user.role == "teacher":
         query = query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
-        if is_pengawas_user(current_user):
-            # Pengawas is monitor-only: never expose drafts, but must see all published exams.
+        query = query.where(Exam.creator_id == current_user.id)
+        if published_only:
             query = query.where(Exam.is_published == True)
-        else:
-            # Teachers see ONLY their own exams (published and drafts)
-            query = query.where(Exam.creator_id == current_user.id)
-            if published_only:
-                query = query.where(Exam.is_published == True)
     elif current_user.role in {"admin", ROLE_DEVELOPER}:
         if current_user.role == "admin":
             query = query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
@@ -134,14 +132,13 @@ async def list_exams(
         total = len(exams)
     else:
         count_query = select(func.count(Exam.id)).where(Exam.is_deleted == False)
-        if current_user.role == "teacher":
-            if is_pengawas_user(current_user):
-                count_query = count_query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
+        if is_pengawas_user(current_user):
+            count_query = count_query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
+            count_query = count_query.where(Exam.is_published == True)
+        elif current_user.role == "teacher":
+            count_query = count_query.where(Exam.creator_id == current_user.id)
+            if published_only:
                 count_query = count_query.where(Exam.is_published == True)
-            else:
-                count_query = count_query.where(Exam.creator_id == current_user.id)
-                if published_only:
-                    count_query = count_query.where(Exam.is_published == True)
         elif current_user.role in {"admin", ROLE_DEVELOPER}:
             if current_user.role == "admin":
                 count_query = count_query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
@@ -221,7 +218,9 @@ async def get_exam(
     else:
         _enforce_developer_exam_visibility(current_user, exam.creator_role)
 
-    # 🆕 FIX #4: Standardized permission check (admin bypass)
+    if is_pengawas_user(current_user) and not exam.is_published:
+        raise HTTPException(status_code=404, detail="Ujian tidak ditemukan")
+
     if (
         exam.creator_id != current_user.id
         and not current_user.is_admin

@@ -46,7 +46,7 @@ from app.api.monitoring_schemas import (
     ViolationStats,
 )
 from app.core.security import (
-    get_current_teacher,
+    get_current_exam_monitor,
     get_current_active_admin,
     get_current_user,
     is_pengawas_user,
@@ -345,7 +345,7 @@ async def get_violations_dashboard(
     summary_only: bool = False,
     counted_only: bool = False,
     detail_level: str = "auto",
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read)
 ):
     """
@@ -427,7 +427,7 @@ async def export_violations_dashboard(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     counted_only: bool = False,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read),
 ):
     require_feature_enabled(
@@ -478,7 +478,7 @@ async def export_violations_dashboard(
 @router.get("/exam/{exam_id}/live-stats")
 async def get_live_exam_stats(
     exam_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read)
 ):
     """
@@ -565,7 +565,7 @@ async def get_exam_sessions(
     exam_id: int,
     status: Optional[str] = None,  # in_progress, completed, submitted
     include_recovery: bool = False,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read)
 ):
     """
@@ -780,7 +780,7 @@ async def get_exam_monitor_delta(
     exam_id: int,
     last_id: str = Query(default="0-0"),
     limit: int = Query(default=200, ge=1, le=1000),
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read),
 ):
     """
@@ -818,7 +818,7 @@ async def get_exam_monitor_delta(
 
 @router.get("/active-exams")
 async def get_active_exams(
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read)
 ):
     """
@@ -942,7 +942,7 @@ async def get_violation_types():
 async def kick_student_from_exam(
     session_id: int,
     request: KickStudentRequest,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_write)
 ):
     """
@@ -1080,7 +1080,7 @@ async def kick_student_from_exam(
 @router.get("/sessions/{session_id}/recovery-status")
 async def get_session_recovery_status(
     session_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read),
 ):
     """Inspect why a session was disconnected and whether it may continue."""
@@ -1126,7 +1126,7 @@ async def get_session_recovery_status(
 async def reset_session_after_disconnect(
     session_id: int,
     payload: SessionResetRequest,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_write),
 ):
     """
@@ -1248,7 +1248,7 @@ async def reset_session_after_disconnect(
 async def get_exam_recovery_candidates(
     exam_id: int,
     limit: int = 400,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read),
 ):
     """List candidate sessions for manual reopen/recovery decision."""
@@ -1390,7 +1390,7 @@ async def get_exam_recovery_candidates(
 async def reopen_session_with_override(
     session_id: int,
     payload: SessionOverrideResetRequest,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_write),
 ):
     """

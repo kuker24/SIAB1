@@ -947,7 +947,7 @@
 
         let initialExamQueryApplied = false;
 
-        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+        if (!auth.requireAuth(['admin', 'developer', 'teacher', 'gurupengawas'])) {
             throw new Error('AUTH_REQUIRED');
         }
 
@@ -962,7 +962,7 @@
         let currentUser = auth.getUser();
         const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer');
         const isTeacher = currentUser && currentUser.role === 'teacher';
-        const isPengawas = isTeacher && String(currentUser.job_title || '').toLowerCase().includes('pengawas');
+        const isPengawas = currentUser && currentUser.role === 'gurupengawas';
         const EXPORT_BRANDING = {
             schoolName: 'MADRASAH ALIYAH NEGERI 1 ROKAN HULU',
             reportSubtitle: 'SIAB1 - Dokumen Resmi',

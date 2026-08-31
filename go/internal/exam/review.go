@@ -24,7 +24,7 @@ func (d deps) sessionReview(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if claims.Role == "student" || claims.Role == "guruplus" {
+	if claims.Role == "student" || claims.Role == "guruplus" || isPengawas(claims.Role, claims.JobTitle) {
 		writeDetail(w, http.StatusForbidden, "Tidak memiliki akses")
 		return
 	}

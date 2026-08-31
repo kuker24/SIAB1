@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('developer', 'admin', 'teacher', 'student', 'guruplus')),
+    role VARCHAR(20) NOT NULL CHECK (role IN ('developer', 'admin', 'teacher', 'student', 'guruplus', 'gurupengawas')),
     student_class VARCHAR(50),  -- Kelas (Untuk Siswa)
     job_title VARCHAR(100),     -- Jabatan (Untuk Guru)
     student_id VARCHAR(50),     -- NIS/NIP (Opsional)

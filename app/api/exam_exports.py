@@ -21,7 +21,12 @@ from app.core.exam_access_policy import (
 )
 from app.core.feature_flags import require_feature_enabled
 from app.core.roles import ROLE_DEVELOPER, is_developer_exam_hidden_for_viewer
-from app.core.security import get_current_teacher, get_current_user, is_pengawas_user
+from app.core.security import (
+    get_current_exam_monitor,
+    get_current_teacher,
+    get_current_user,
+    is_pengawas_user,
+)
 from app.database import get_db, get_db_read
 from app.models.exam import Exam
 from app.models.session import ExamSession
@@ -200,7 +205,7 @@ async def get_exam_analytics_pdf(
 @router.get("/{exam_id}/results/pdf")
 async def get_exam_results_pdf(
     exam_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db),
 ):
     """Export exam results as PDF document."""
@@ -232,6 +237,7 @@ async def get_exam_results_pdf(
         db,
         current_user,
         exam.creator_id,
+        allow_pengawas=True,
     )
 
     creator_name = None
@@ -343,7 +349,7 @@ async def get_session_certificate(
             db,
             current_user,
             session.exam.creator_id,
-            allow_pengawas=True,
+            allow_pengawas=False,
         )
 
     passing_score = float(session.exam.passing_score or 70)

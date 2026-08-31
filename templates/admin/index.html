@@ -703,8 +703,8 @@
                 }
 
                 // Success - check role
-                if (result.user.role !== 'developer' && result.user.role !== 'admin' && result.user.role !== 'teacher') {
-                    showAlert('Akses ditolak. Anda bukan developer, admin, atau guru.', 'danger');
+                if (result.user.role !== 'developer' && result.user.role !== 'admin' && result.user.role !== 'teacher' && result.user.role !== 'gurupengawas') {
+                    showAlert('Akses ditolak. Anda bukan developer, admin, guru, atau pengawas.', 'danger');
                     api.clearToken();
                     btn.innerHTML = originalHtml;
                     btn.disabled = false;
@@ -718,8 +718,7 @@
                 hideCaptcha();
                 showAlert('Login berhasil! Mengalihkan...', 'success');
                 setTimeout(() => {
-                    const isPengawas = result.user.role === 'teacher'
-                        && String(result.user.job_title || '').toLowerCase().includes('pengawas');
+                    const isPengawas = result.user.role === 'gurupengawas';
                     window.location.href = isPengawas ? '/admin/exams.html' : '/admin/dashboard.html';
                 }, 1000);
 

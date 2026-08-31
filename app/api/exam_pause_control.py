@@ -18,7 +18,7 @@ from app.core.exam_access_policy import (
 )
 from app.core.roles import is_developer_exam_hidden_for_viewer
 from app.core.redis_pubsub import get_session_data, publish_message, store_session_data
-from app.core.security import get_current_teacher, get_current_user, is_pengawas_user
+from app.core.security import get_current_exam_monitor, get_current_user, is_pengawas_user
 from app.database import get_db
 from app.models.exam import Exam
 from app.models.session import ExamSession
@@ -82,7 +82,7 @@ async def _enforce_exam_owner_or_admin_access(
 @router.post("/{exam_id}/pause-all", response_model=PauseResponse)
 async def pause_exam_globally(
     exam_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db),
 ):
     """Pause exam for all active students."""
@@ -164,7 +164,7 @@ async def pause_exam_globally(
 @router.post("/{exam_id}/resume-all", response_model=PauseResponse)
 async def resume_exam_globally(
     exam_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db),
 ):
     """Resume exam for all paused students."""
