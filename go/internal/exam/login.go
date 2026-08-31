@@ -22,7 +22,7 @@ func (d deps) loginStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d deps) loginControl(w http.ResponseWriter, r *http.Request) {
-	d.handleLogin(w, r, map[string]struct{}{"developer": {}, "admin": {}, "teacher": {}}, "control")
+	d.handleLogin(w, r, map[string]struct{}{"developer": {}, "admin": {}, "teacher": {}, "gurupengawas": {}}, "control")
 }
 
 func (d deps) loginAdmin(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +34,7 @@ func (d deps) loginTeacher(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d deps) loginPengawas(w http.ResponseWriter, r *http.Request) {
-	d.handleLogin(w, r, map[string]struct{}{"teacher": {}}, "pengawas")
+	d.handleLogin(w, r, map[string]struct{}{"gurupengawas": {}}, "pengawas")
 }
 
 func (d deps) handleLogin(w http.ResponseWriter, r *http.Request, allowed map[string]struct{}, scope string) {
@@ -276,14 +276,8 @@ func userJSON(u *persistence.UserRow) map[string]any {
 }
 
 func isPengawas(role, jobTitle string) bool {
-	if strings.ToLower(strings.TrimSpace(role)) != "teacher" {
-		return false
-	}
-	title := strings.ToLower(strings.TrimSpace(jobTitle))
-	if title == "" {
-		return false
-	}
-	return strings.Contains(title, "pengawas") || title == "proktor" || title == "invigilator"
+	_ = jobTitle
+	return strings.ToLower(strings.TrimSpace(role)) == "gurupengawas"
 }
 
 func clientIP(r *http.Request) string {

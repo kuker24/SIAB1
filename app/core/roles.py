@@ -10,9 +10,11 @@ ROLE_ADMIN = "admin"
 ROLE_TEACHER = "teacher"
 ROLE_STUDENT = "student"
 ROLE_GURUPLUS = "guruplus"
+ROLE_GURUPENGAWAS = "gurupengawas"
 
 ADMIN_SCOPE_ROLES = {ROLE_DEVELOPER, ROLE_ADMIN}
 TEACHER_SCOPE_ROLES = {ROLE_DEVELOPER, ROLE_ADMIN, ROLE_TEACHER}
+MONITOR_SCOPE_ROLES = {ROLE_DEVELOPER, ROLE_ADMIN, ROLE_TEACHER, ROLE_GURUPENGAWAS}
 PARTICIPANT_ROLES = {ROLE_STUDENT, ROLE_GURUPLUS}
 
 
@@ -30,6 +32,14 @@ def is_admin_scope_role(value: Optional[str]) -> bool:
 
 def is_teacher_scope_role(value: Optional[str]) -> bool:
     return normalize_role(value) in TEACHER_SCOPE_ROLES
+
+
+def is_monitor_scope_role(value: Optional[str]) -> bool:
+    return normalize_role(value) in MONITOR_SCOPE_ROLES
+
+
+def is_gurupengawas_role(value: Optional[str]) -> bool:
+    return normalize_role(value) == ROLE_GURUPENGAWAS
 
 
 def is_participant_role(value: Optional[str]) -> bool:

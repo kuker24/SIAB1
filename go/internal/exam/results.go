@@ -30,6 +30,9 @@ func (d deps) examsWithResults(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]map[string]any, 0, len(exams))
 	for i := range exams {
+		if isPengawas(claims.Role, claims.JobTitle) && developerExamHidden(claims.Role, creatorRole(&exams[i])) {
+			continue
+		}
 		out = append(out, examJSON(&exams[i]))
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -51,6 +54,10 @@ func (d deps) examResults(w http.ResponseWriter, r *http.Request) {
 	}
 	selected := pickLatestScored(rows)
 	breakdown := strings.EqualFold(r.URL.Query().Get("include_breakdown"), "true")
+	if breakdown && isPengawas(claims.Role, claims.JobTitle) {
+		writeDetail(w, http.StatusForbidden, "Pengawas tidak diizinkan melihat rincian soal atau kunci jawaban.")
+		return
+	}
 	var questions []persistence.QuestionRow
 	bySession := map[int]map[int]persistence.AnswerScore{}
 	if breakdown && len(selected) > 0 {

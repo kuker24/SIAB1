@@ -38,7 +38,7 @@ func (d deps) createExam(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if claims.Role == "student" || claims.Role == "guruplus" {
+	if claims.Role == "student" || claims.Role == "guruplus" || isPengawas(claims.Role, claims.JobTitle) {
 		writeDetail(w, http.StatusForbidden, "Hanya guru atau admin yang dapat membuat ujian")
 		return
 	}
@@ -133,13 +133,12 @@ func (d deps) togglePublish(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	pengawas := isPengawas(claims.Role, claims.JobTitle)
-	ex, ok := d.loadStaffExam(w, r, userID, claims, pengawas)
-	if !ok {
+	if isPengawas(claims.Role, claims.JobTitle) {
+		writeDetail(w, http.StatusForbidden, "Pengawas tidak diizinkan publish atau unpublish ujian.")
 		return
 	}
-	if pengawas && !ex.Published {
-		writeDetail(w, http.StatusForbidden, "Pengawas hanya dapat menarik ujian (unpublish), tidak dapat publish.")
+	ex, ok := d.loadStaffExam(w, r, userID, claims, false)
+	if !ok {
 		return
 	}
 	next := !ex.Published

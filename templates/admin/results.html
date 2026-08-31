@@ -325,7 +325,7 @@
     <script src="/static/js/auth.js"></script>
     <script src="/static/js/sidebar-loader.js"></script>
     <script>
-        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+        if (!auth.requireAuth(['admin', 'developer', 'teacher', 'gurupengawas'])) {
             throw new Error('AUTH_REQUIRED');
         }
 
@@ -335,6 +335,16 @@
         let currentParticipationSummary = null;
         let currentUser = auth.getUser();
         const isTeacher = currentUser && currentUser.role === 'teacher';
+        const isPengawas = currentUser && currentUser.role === 'gurupengawas';
+
+        function applyPengawasResultsRestrictions() {
+            if (!isPengawas) return;
+            document.getElementById('checkbox-mode-btn')?.remove();
+            document.getElementById('bulk-controls')?.remove();
+            document.getElementById('delete-results-btn')?.remove();
+        }
+        applyPengawasResultsRestrictions();
+
         const EXPORT_BRANDING = {
             schoolName: 'MADRASAH ALIYAH NEGERI 1 ROKAN HULU',
             reportSubtitle: 'SIAB1 - Dokumen Resmi',
@@ -470,13 +480,15 @@
                 <a href="#" class="dropdown-item" onclick="exportResults('pdf'); closeExportDropdownGlobal();">
                     <i class="fas fa-file-pdf" style="color: #ef4444;"></i> Export PDF
                 </a>
+                ${isPengawas ? '' : `
                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 0.5rem 0;"></div>
                 <a href="#" class="dropdown-item" onclick="exportSummary(); closeExportDropdownGlobal();">
                     <i class="fas fa-chart-pie" style="color: #8b5cf6;"></i> Statistik
-                </a>
+                </a>`}
                 <a href="#" class="dropdown-item" onclick="printResults(); closeExportDropdownGlobal();">
                     <i class="fas fa-print" style="color: #6366f1;"></i> Print
                 </a>
+                ${isPengawas ? '' : `
                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 0.5rem 0;"></div>
                 <div style="padding: 0.25rem 1rem; font-size: 0.75rem; color: #64748b; font-weight: 600;">EXPORT SOAL</div>
                 <a href="#" class="dropdown-item" onclick="exportCurrentExamQuestions('pdf'); closeExportDropdownGlobal();">
@@ -487,7 +499,7 @@
                 </a>
                 <a href="#" class="dropdown-item" onclick="exportCurrentExamQuestions('excel'); closeExportDropdownGlobal();">
                     <i class="fas fa-file-excel" style="color: #22c55e;"></i> Soal Excel
-                </a>
+                </a>`}
             `;
 
             document.body.appendChild(dropdown);
@@ -826,6 +838,7 @@
         document.getElementById('sort-filter').addEventListener('change', filterResults);
 
         async function ensureExamBreakdownLoaded(examId) {
+            if (isPengawas) return;
             const normalizedExamId = Number(examId);
             if (!normalizedExamId || examBreakdownLoaded.has(normalizedExamId)) {
                 return;
@@ -972,18 +985,23 @@
                             <div><strong>Selesai:</strong></div><div>${formatDate(result.submitted_at)}</div>
                         </div>
                     </div>
+                    ${isPengawas ? '' : `
                     <div style="display:flex; justify-content:flex-end;">
                         <button class="btn btn-primary btn-sm" onclick="openAnswerReview(${result.id})">
                             <i class="fas fa-clipboard-check"></i> Review Jawaban
                         </button>
                     </div>
-                    ${breakdownHtml}
+                    ${breakdownHtml}`}
                 </div>
             `;
             openModal('detail-modal');
         }
 
         async function openAnswerReview(sessionId) {
+            if (isPengawas) {
+                showAlert('Pengawas tidak diizinkan meninjau jawaban', 'warning');
+                return;
+            }
             if (!currentExam || !currentExam.id) {
                 showAlert('Pilih ujian terlebih dahulu', 'warning');
                 return;
@@ -1520,6 +1538,10 @@
         // ================================
 
         async function exportCurrentExamQuestions(format) {
+            if (isPengawas) {
+                showAlert('Pengawas tidak diizinkan mengekspor soal', 'warning');
+                return;
+            }
             if (!currentExam || !currentExam.id) {
                 showAlert('Pilih ujian terlebih dahulu', 'warning');
                 return;
@@ -1780,6 +1802,10 @@
         }
 
         async function deleteAllResults() {
+            if (isPengawas) {
+                showAlert('Pengawas tidak diizinkan menghapus hasil ujian', 'warning');
+                return;
+            }
             console.log('[DELETE] Initiating delete all results for exam:', currentExam?.id);
 
             if (!currentExam || !currentExam.id) {
@@ -1858,6 +1884,7 @@
         // ===== BULK SELECTION FUNCTIONS =====
 
         function toggleCheckboxMode() {
+            if (isPengawas) return;
             checkboxMode = !checkboxMode;
             const btn = document.getElementById('checkbox-mode-btn');
             const bulkControls = document.getElementById('bulk-controls');
@@ -1918,6 +1945,10 @@
         }
 
         async function deleteSelectedExams() {
+            if (isPengawas) {
+                showAlert('Pengawas tidak diizinkan menghapus ujian', 'warning');
+                return;
+            }
             if (selectedExamIds.size === 0) return;
 
             const count = selectedExamIds.size;

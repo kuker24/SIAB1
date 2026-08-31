@@ -41,6 +41,7 @@ from app.core.security import (
     get_current_user,
     get_current_user_hot_path,
     get_current_teacher,
+    get_current_exam_monitor,
     create_session_poll_token,
     is_pengawas_user,
 )
@@ -732,7 +733,7 @@ async def _validate_questions_for_publish(exam_id: int, db: AsyncSession) -> Non
 
 @router.get("/results/all", response_model=List[ExamResponse])
 async def get_exams_with_results(
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read)
 ):
     """
@@ -789,10 +790,10 @@ async def get_exams_with_results(
         .order_by(Exam.created_at.desc())
     )
 
-    # For teachers, only show their own exams
     if current_user.role == "teacher":
         query = query.where(Exam.creator_id == current_user.id)
-    # Admins can see all exams
+    elif is_pengawas_user(current_user):
+        query = query.where(Exam.creator.has(User.role != ROLE_DEVELOPER))
 
     # FIX: Only show published exams
     query = query.where(Exam.is_published == True)
@@ -867,7 +868,7 @@ async def get_my_exam_results(
 @router.get("/{exam_id}/participation-summary")
 async def get_exam_participation_summary(
     exam_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read),
 ):
     """
@@ -895,7 +896,11 @@ async def get_exam_participation_summary(
         raise HTTPException(status_code=404, detail="Exam not found")
 
     _enforce_developer_exam_visibility(current_user, exam["creator_role"])
-    if int(exam["creator_id"]) != current_user.id and not current_user.is_admin:
+    if (
+        int(exam["creator_id"]) != current_user.id
+        and not current_user.is_admin
+        and not is_pengawas_user(current_user)
+    ):
         raise HTTPException(status_code=403, detail="Not authorized to view this exam's participation summary")
 
     allowed_class_values = [
@@ -1019,7 +1024,7 @@ async def export_exam_participation_summary(
         pattern="^(csv|excel|xls|pdf|docx|word)$",
         description="Export format: csv, excel/xls, pdf, docx/word",
     ),
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read),
 ):
     """Export target-vs-submission participation rows as CSV, Excel, PDF, or Word."""
@@ -1050,7 +1055,11 @@ async def export_exam_participation_summary(
         raise HTTPException(status_code=404, detail="Exam not found")
 
     _enforce_developer_exam_visibility(current_user, exam["creator_role"])
-    if int(exam["creator_id"]) != current_user.id and not current_user.is_admin:
+    if (
+        int(exam["creator_id"]) != current_user.id
+        and not current_user.is_admin
+        and not is_pengawas_user(current_user)
+    ):
         raise HTTPException(status_code=403, detail="Not authorized to export this exam's participation summary")
 
     allowed_class_values = [
@@ -1351,7 +1360,7 @@ async def get_exam_results(
         False,
         description="Include per-question score breakdown in response payload",
     ),
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db_read)
 ):
     """
@@ -1359,6 +1368,11 @@ async def get_exam_results(
 
     Returns list of completed/submitted sessions with student info and scores.
     """
+    if is_pengawas_user(current_user) and include_breakdown:
+        raise HTTPException(
+            status_code=403,
+            detail="Pengawas tidak diizinkan melihat rincian soal atau kunci jawaban.",
+        )
     # Verify exam exists and user has access
     exam_result = await db.execute(
         select(
@@ -1368,6 +1382,7 @@ async def get_exam_results(
             Exam.exam_type,
             Exam.passing_score,
             Exam.creator_id,
+            Exam.is_published,
             User.role.label("creator_role"),
         )
         .join(User, User.id == Exam.creator_id)
@@ -1380,8 +1395,10 @@ async def get_exam_results(
 
     _enforce_developer_exam_visibility(current_user, exam["creator_role"])
 
-    # 🆕 FIX #4: Standardized permission check (admin bypass)
-    if exam["creator_id"] != current_user.id and not current_user.is_admin:
+    if is_pengawas_user(current_user):
+        if not exam["is_published"]:
+            raise HTTPException(status_code=404, detail="Exam not found")
+    elif exam["creator_id"] != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not authorized to view this exam's results")
 
     viewer_scope = _build_exam_results_viewer_scope(current_user, int(exam["creator_id"]))
@@ -1578,6 +1595,11 @@ async def get_session_answer_review(
     - ordered questions + options
     - submitted answers for this session
     """
+    if is_pengawas_user(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Pengawas tidak diizinkan meninjau jawaban.",
+        )
     session_row_result = await db.execute(
         select(
             ExamSession.id.label("session_id"),
@@ -2862,7 +2884,7 @@ async def _publish_exam_monitor_event(exam_id: int, payload: Dict[str, Any]) -> 
 @router.post("/sessions/{session_id}/force-submit", response_model=ExamSubmitResponse)
 async def force_submit_session(
     session_id: int,
-    current_user: User = Depends(get_current_teacher),
+    current_user: User = Depends(get_current_exam_monitor),
     db: AsyncSession = Depends(get_db)
 ):
     """

@@ -270,18 +270,34 @@ async def _ensure_users_role_constraint(conn) -> None:
         )
         constraint_row = constraint_result.first()
         existing_def = str(getattr(constraint_row, "constraint_def", "") or "").lower()
-        if "guruplus" in existing_def and "developer" in existing_def:
-            return
+        if "gurupengawas" not in existing_def or "guruplus" not in existing_def or "developer" not in existing_def:
+            await conn.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check"))
+            await conn.execute(
+                text(
+                    "ALTER TABLE users "
+                    "ADD CONSTRAINT users_role_check "
+                    "CHECK (role IN ('developer', 'admin', 'teacher', 'student', 'guruplus', 'gurupengawas'))"
+                )
+            )
+            logger.info(
+                "Updated users_role_check constraint to include 'developer', 'guruplus', and 'gurupengawas'"
+            )
 
-        await conn.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check"))
-        await conn.execute(
+        migrate_result = await conn.execute(
             text(
-                "ALTER TABLE users "
-                "ADD CONSTRAINT users_role_check "
-                "CHECK (role IN ('developer', 'admin', 'teacher', 'student', 'guruplus'))"
+                "UPDATE users "
+                "SET role = 'gurupengawas' "
+                "WHERE lower(trim(role)) = 'teacher' "
+                "AND job_title IS NOT NULL "
+                "AND ("
+                "lower(job_title) LIKE '%pengawas%' "
+                "OR lower(trim(job_title)) IN ('proktor', 'invigilator')"
+                ")"
             )
         )
-        logger.info("Updated users_role_check constraint to include 'developer' and 'guruplus'")
+        migrated = int(getattr(migrate_result, "rowcount", 0) or 0)
+        if migrated:
+            logger.info("Migrated %s teacher accounts to gurupengawas", migrated)
     except Exception:
         # Fail-open: startup must continue even if compatibility migration fails.
         logger.exception("Failed ensuring users role compatibility constraint")

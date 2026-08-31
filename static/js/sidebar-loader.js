@@ -196,7 +196,7 @@ class SidebarLoader {
         const user = JSON.parse(localStorage.getItem('user') || 'null');
         if (!user) return;
 
-        const isPengawas = user.role === 'teacher' && String(user.job_title || '').toLowerCase().includes('pengawas');
+        const isPengawas = user.role === 'gurupengawas';
         if (isPengawas) {
             const removePages = ['dashboard', 'exam-templates', 'results', 'grading', 'analytics', 'exam-analytics', 'settings', 'seb-builder', 'activity'];
             removePages.forEach((page) => {
@@ -216,6 +216,7 @@ class SidebarLoader {
                     submenu.innerHTML = `
                         <li><a href="/admin/exams.html" data-page="exams"><i class="fas fa-list-check"></i> Manajemen Ujian</a></li>
                         <li><a href="/admin/monitoring.html" data-page="monitoring"><i class="fas fa-computer"></i> Sesi Aktif</a></li>
+                        <li><a href="/admin/results.html" data-page="results"><i class="fas fa-square-poll-vertical"></i> Semua Hasil</a></li>
                         <li><a href="/admin/violations.html" data-page="violations"><i class="fas fa-triangle-exclamation"></i> Pelanggaran</a></li>
                         <li><a href="/admin/account-security.html" data-page="account-security"><i class="fas fa-user-shield"></i> Keamanan Akun</a></li>
                     `;

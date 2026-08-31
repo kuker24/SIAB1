@@ -134,13 +134,12 @@ func (d deps) regenerateToken(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	pengawas := isPengawas(claims.Role, claims.JobTitle)
-	ex, ok := d.loadStaffExam(w, r, userID, claims, pengawas)
-	if !ok {
+	if isPengawas(claims.Role, claims.JobTitle) {
+		writeDetail(w, http.StatusForbidden, "Pengawas tidak diizinkan mengganti token ujian.")
 		return
 	}
-	if pengawas && !ex.Published {
-		writeDetail(w, http.StatusForbidden, "Pengawas hanya dapat refresh token untuk ujian yang sedang/published.")
+	ex, ok := d.loadStaffExam(w, r, userID, claims, false)
+	if !ok {
 		return
 	}
 	updated, err := d.store.RegenerateAccessToken(r.Context(), ex.ID)

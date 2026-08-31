@@ -15,7 +15,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for user registration."""
     password: str = Field(..., min_length=6)
-    role: str = Field(default="student", pattern="^(developer|admin|teacher|student|guruplus)$")
+    role: str = Field(
+        default="student",
+        pattern="^(developer|admin|teacher|student|guruplus|gurupengawas)$",
+    )
     student_class: Optional[str] = None  # e.g., "XII-IPA-1"
     job_title: Optional[str] = None      # e.g., "Kepala Sekolah"
 
@@ -25,7 +28,10 @@ class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=100)
     full_name: Optional[str] = Field(None, min_length=1, max_length=255)
     password: Optional[str] = None  # No min_length here, we validate in endpoint
-    role: Optional[str] = Field(None, pattern="^(developer|admin|teacher|student|guruplus)$")
+    role: Optional[str] = Field(
+        None,
+        pattern="^(developer|admin|teacher|student|guruplus|gurupengawas)$",
+    )
     student_class: Optional[str] = None
     job_title: Optional[str] = None
     is_active: Optional[bool] = None

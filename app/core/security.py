@@ -22,6 +22,8 @@ from app.models.user import User
 from app.schemas.user import TokenData
 from app.core.roles import (
     is_admin_scope_role,
+    is_gurupengawas_role,
+    is_monitor_scope_role,
     is_participant_role,
     is_teacher_scope_role,
 )
@@ -40,17 +42,9 @@ def _normalize_job_title(value: Optional[str]) -> str:
     return " ".join(str(value or "").strip().lower().split())
 
 
-def is_pengawas_identity(role: Optional[str], job_title: Optional[str]) -> bool:
-    normalized_role = str(role or "").strip().lower()
-    if normalized_role != "teacher":
-        return False
-    normalized_title = _normalize_job_title(job_title)
-    if not normalized_title:
-        return False
-    return (
-        "pengawas" in normalized_title
-        or normalized_title in {"proktor", "invigilator"}
-    )
+def is_pengawas_identity(role: Optional[str], job_title: Optional[str] = None) -> bool:
+    _ = job_title
+    return is_gurupengawas_role(role)
 
 
 def is_pengawas_user(user: Any) -> bool:
@@ -483,11 +477,23 @@ async def get_current_active_admin(current_user: AuthenticatedUser = Depends(get
 
 
 async def get_current_teacher(current_user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
-    """Require teacher or admin role."""
+    """Require teacher or admin role. Guru Pengawas is excluded."""
     if not current_user.is_teacher:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Akses ditolak. Hanya guru atau admin yang dapat mengakses."
+        )
+    return current_user
+
+
+async def get_current_exam_monitor(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> AuthenticatedUser:
+    """Require teacher, Guru Pengawas, or admin for exam monitoring."""
+    if not is_monitor_scope_role(current_user.role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak. Hanya guru, pengawas, atau admin yang dapat mengakses.",
         )
     return current_user
 

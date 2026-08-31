@@ -6,7 +6,7 @@
 
 /* ===== Module: 00-core-ops-and-sessions.js ===== */
 
-        if (!auth.requireAuth(['admin', 'developer', 'teacher'])) {
+        if (!auth.requireAuth(['admin', 'developer', 'teacher', 'gurupengawas'])) {
             throw new Error('AUTH_REQUIRED');
         }
 
