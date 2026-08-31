@@ -164,6 +164,81 @@ def test_orm_payload_and_dict_payload_share_shuffle_order() -> None:
     ]
 
 
+def _pgk_checkbox(qid: int, option_ids: list[int]) -> dict:
+    return {
+        "id": qid,
+        "question_text": "PGK A",
+        "stimulus": "Bacaan",
+        "question_type": "multiple_choice_complex",
+        "pgk_type": "checkbox",
+        "difficulty_level": "medium",
+        "question_settings": {"pgk_type": "checkbox"},
+        "points": 2,
+        "order_index": 0,
+        "image_url": None,
+        "video_url": None,
+        "audio_url": None,
+        "options": [
+            {
+                "id": option_id,
+                "option_text": f"Opsi {chr(64 + option_id)}",
+                "order_index": idx,
+                "option_group": "standard",
+                "pair_id": None,
+            }
+            for idx, option_id in enumerate(option_ids)
+        ],
+    }
+
+
+def test_pgk_checkbox_options_shuffle_when_enabled() -> None:
+    payload = [_pgk_checkbox(31, [1, 2, 3, 4, 5])]
+    kwargs = dict(
+        exam_id=4,
+        user_id=8,
+        shuffle_questions=False,
+        shuffle_options=True,
+        secret_key="test-secret",
+    )
+    shuffled = _build_start_question_responses(payload, **kwargs)
+    original_ids = [1, 2, 3, 4, 5]
+    got_ids = [opt.id for opt in shuffled[0].options]
+    assert got_ids != original_ids
+    assert sorted(got_ids) == original_ids
+
+
+def test_table_statement_shuffle_skipped_when_disallowed() -> None:
+    question = {
+        "id": 22,
+        "question_text": "Tabel",
+        "stimulus": None,
+        "question_type": "multiple_choice_complex",
+        "pgk_type": "table_validation",
+        "difficulty_level": "medium",
+        "question_settings": {
+            "pgk_type": "table_validation",
+            "allow_table_statement_shuffle": False,
+            "statements": ["Pernyataan A", "Pernyataan B", "Pernyataan C"],
+        },
+        "points": 1,
+        "order_index": 0,
+        "image_url": None,
+        "video_url": None,
+        "audio_url": None,
+        "options": [],
+    }
+    result = _build_start_question_responses(
+        [question],
+        exam_id=3,
+        user_id=7,
+        shuffle_questions=False,
+        shuffle_options=True,
+        secret_key="test-secret",
+    )
+    statements = result[0].question_settings["statements"]
+    assert statements == ["Pernyataan A", "Pernyataan B", "Pernyataan C"]
+
+
 def test_table_statement_shuffle_is_stable_across_preview_payload() -> None:
     question = {
         "id": 21,

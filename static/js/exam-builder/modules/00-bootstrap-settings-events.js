@@ -215,8 +215,8 @@ window.addEventListener('unhandledrejection', (event) => {
 if (!auth.requireAuth(['admin', 'developer', 'teacher'])) { }
 
 const DEFAULT_BUILDER_SETTINGS = Object.freeze({
-    default_mc_key_only: true,
-    default_pgk_key_only: true,
+    default_mc_key_only: false,
+    default_pgk_key_only: false,
     default_image_layout_mode: 'model1',
     smart_auto_shuffle_options: false,
     smart_auto_shuffle_questions: false
@@ -225,8 +225,8 @@ const DEFAULT_BUILDER_SETTINGS = Object.freeze({
 function normalizeBuilderSettings(rawSettings = {}) {
     const raw = rawSettings && typeof rawSettings === 'object' ? rawSettings : {};
     return {
-        default_mc_key_only: raw.default_mc_key_only !== false,
-        default_pgk_key_only: raw.default_pgk_key_only !== false,
+        default_mc_key_only: raw.default_mc_key_only === true,
+        default_pgk_key_only: raw.default_pgk_key_only === true,
         default_image_layout_mode: 'model1',
         smart_auto_shuffle_options: raw.smart_auto_shuffle_options === true,
         smart_auto_shuffle_questions: raw.smart_auto_shuffle_questions === true
@@ -298,9 +298,14 @@ function applyBuilderDefaultsToQuestion(question) {
         question.placeholder_shuffle_user_set = false;
     }
     if (isPgkTable) {
-        question.table_statement_shuffle_user_set = false;
+        if (question.image_url) {
+            question.allow_table_statement_shuffle = false;
+            question.table_statement_shuffle_user_set = false;
+        } else if (question.table_statement_shuffle_user_set !== true) {
+            question.allow_table_statement_shuffle = true;
+        }
     }
-    refreshTableStatementShuffleState(question, { forceDefault: isPgkTable });
+    refreshTableStatementShuffleState(question);
 
     refreshQuestionPlaceholderState(question);
 }
@@ -788,7 +793,6 @@ async function loadExam(id) {
 
             // Extract settings safely
             const settings = q.question_settings || {};
-            const globalDefaults = getBuilderSettings();
             // Resolve PGK Type immediately with fallback
             const resolvedPgkType = q.pgk_type || (settings && settings.pgk_type) || 'checkbox';
             const isPlaceholder = settings.is_placeholder === true;
@@ -845,17 +849,16 @@ async function loadExam(id) {
                 }
             }
 
-            // Default mode cepat aktif untuk PG/PGK-checkbox, kecuali eksplisit dimatikan.
             const inferredKeyOnlyMode = isKeyOnlyEligible
-                ? (settings.use_key_only_mode !== false)
+                ? (settings.use_key_only_mode === true)
                 : false;
             const effectiveLayoutMode = 'model1';
             const effectiveModel2Slots = [];
             const inferredTableStatementShuffle = resolvedPgkType === 'table_validation'
                 ? (
-                    typeof settings.allow_table_statement_shuffle === 'boolean'
-                        ? settings.allow_table_statement_shuffle
-                        : (globalDefaults.smart_auto_shuffle_options === true)
+                    q.image_url
+                        ? false
+                        : (settings.allow_table_statement_shuffle !== false)
                 )
                 : false;
 
@@ -878,6 +881,12 @@ async function loadExam(id) {
             if (q.question_type === 'multiple_choice_complex' && resolvedPgkType === 'table_validation') {
                 pgkStatements = settings.statements || [];
                 pgkAnswers = settings.statement_answers || [];
+                if (!Array.isArray(pgkStatements) || pgkStatements.length < 2) {
+                    pgkStatements = ['', '', '', ''];
+                    pgkAnswers = [true, false, true, false];
+                } else if (!Array.isArray(pgkAnswers) || pgkAnswers.length < pgkStatements.length) {
+                    pgkAnswers = pgkStatements.map((_, idx) => pgkAnswers[idx] === true);
+                }
             }
 
             // --- 4. CONSTRUCT FRONTEND QUESTION OBJECT ---
@@ -909,7 +918,7 @@ async function loadExam(id) {
                 allow_placeholder_shuffle: allowPlaceholderShuffle,
                 placeholder_shuffle_user_set: true,
                 allow_table_statement_shuffle: inferredTableStatementShuffle,
-                table_statement_shuffle_user_set: typeof settings.allow_table_statement_shuffle === 'boolean',
+                table_statement_shuffle_user_set: settings.table_statement_shuffle_user_set === true,
                 use_key_only_mode: inferredKeyOnlyMode,
                 answer_layout_mode: effectiveLayoutMode,
                 model2_slots: effectiveModel2Slots,

@@ -494,12 +494,16 @@ function refreshTableStatementShuffleState(question, options = {}) {
     const isTableType = question.type === 'multiple_choice_complex' && resolvedPgkType === 'table_validation';
     if (!isTableType) return;
 
-    const autoDefault = getBuilderSettings().smart_auto_shuffle_options === true;
     const forceDefault = options.forceDefault === true;
     const userSet = question.table_statement_shuffle_user_set === true;
 
+    if (question.image_url) {
+        question.allow_table_statement_shuffle = false;
+        return;
+    }
+
     if (forceDefault || !userSet) {
-        question.allow_table_statement_shuffle = autoDefault;
+        question.allow_table_statement_shuffle = true;
         if (forceDefault) {
             question.table_statement_shuffle_user_set = false;
         }
@@ -507,7 +511,7 @@ function refreshTableStatementShuffleState(question, options = {}) {
     }
 
     if (typeof question.allow_table_statement_shuffle !== 'boolean') {
-        question.allow_table_statement_shuffle = autoDefault;
+        question.allow_table_statement_shuffle = true;
     }
 }
 
@@ -751,7 +755,7 @@ function getTableValidationShuffleNoticeHtml(question, index) {
                 <span style="font-size:0.78rem; color: var(--text-secondary);">Centang kalau urutan pernyataan ingin diacak</span>
             </label>
             <small style="display:block; margin-top:0.25rem; color: var(--text-secondary);">
-                Berlaku jika toggle global "Acak Opsi" aktif.
+                Jika "Acak Opsi" aktif, baris pernyataan diacak. Kunci Benar/Salah tetap menempel pada pernyataan.
             </small>
         </div>
     `;
@@ -883,7 +887,7 @@ function generateQuestionCard(question, index) {
                        ${useKeyOnlyMode ? 'checked' : ''}
                        onchange="toggleKeyOnlyMode(${index}, this.checked)"
                        onclick="event.stopPropagation()">
-                <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat: pilih kunci saja (teks opsi opsional)</span>
+                <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat (opsional): pilih kunci saja tanpa isi teks opsi</span>
             </label>
             ${placeholderShuffleNotice}
             ${model2Controls}
@@ -990,13 +994,15 @@ function generateQuestionCard(question, index) {
                         </div>
                         <select onchange="changePGKType(${index}, this.value)"
                                 onclick="event.stopPropagation()"
-                                style="padding: 0.35rem 0.75rem; background: var(--dark-lighter); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; cursor: pointer;">
-                            <option value="checkbox" ${currentPgkType === 'checkbox' ? 'selected' : ''}>📋 Tipe A: Multiple Response</option>
-                            <option value="table_validation" ${currentPgkType === 'table_validation' ? 'selected' : ''}>✅ Tipe B: Tabel Validasi</option>
+                                style="padding: 0.35rem 0.75rem; background: var(--dark-lighter); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; cursor: pointer; min-width: 240px;">
+                            <option value="checkbox" ${currentPgkType === 'checkbox' ? 'selected' : ''}>📋 Tipe A: Pilih beberapa opsi</option>
+                            <option value="table_validation" ${currentPgkType === 'table_validation' ? 'selected' : ''}>✅ Tipe B: Tabel Benar/Salah</option>
                         </select>
                     </div>
                     <small style="color: var(--text-secondary); display: block;">
-                        ${currentPgkType === 'checkbox' ? 'Siswa memilih semua jawaban yang benar (min. 2 jawaban benar)' : 'Siswa menilai setiap pernyataan Benar/Salah'}
+                        ${currentPgkType === 'checkbox'
+                ? 'Tipe A: isi teks opsi A-E, lalu centang semua jawaban yang benar (min. 2). Ganti ke Tipe B untuk pernyataan Benar/Salah.'
+                : 'Tipe B: isi setiap pernyataan, lalu pilih Benar atau Salah di kolom kanan.'}
                     </small>
                     ${currentPgkType === 'checkbox'
                 ? `<small style="display:block; margin-top:0.35rem; color:${pgkKeyOnlyMode ? 'var(--success)' : 'var(--warning)'};">
@@ -1041,7 +1047,7 @@ function generateQuestionCard(question, index) {
                                ${question.use_key_only_mode === true ? 'checked' : ''}
                                onchange="toggleKeyOnlyMode(${index}, this.checked)"
                                onclick="event.stopPropagation()">
-                        <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat: centang kunci saja (teks opsi opsional)</span>
+                        <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat (opsional): centang kunci saja tanpa isi teks opsi</span>
                     </label>
                     ${getLayoutModeControlsHtml(question, index)}
                     ${getPlaceholderShuffleNoticeHtml(question, index)}
@@ -1080,7 +1086,7 @@ function generateQuestionCard(question, index) {
                 <div class="table-validation-container">
                     <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between;">
                         <div>
-                            <i class="fas fa-table"></i> Tabel Pernyataan (Tentukan Benar/Salah)
+                            <i class="fas fa-table"></i> Tabel Pernyataan — pilih Benar atau Salah per baris
                             ${question.image_url ? '<span style="color: var(--success); font-size: 0.75rem; margin-left: 0.5rem;"><i class="fas fa-check-circle"></i> Teks pernyataan diabaikan (pakai foto)</span>' : ''}
                         </div>
                     </div>
@@ -1096,7 +1102,10 @@ function generateQuestionCard(question, index) {
                     </div>
 
                     <!-- Table Rows -->
-                    ${(question.statements || ['', '', '', '']).map((stmt, stmtIndex) => `
+                    ${((Array.isArray(question.statements) && question.statements.length >= 2)
+                ? question.statements
+                : (question.statements = ['', '', '', ''], question.statement_answers = [true, false, true, false], question.statements)
+            ).map((stmt, stmtIndex) => `
                         <div class="statement-row" style="display: grid; grid-template-columns: 40px 1fr 70px 70px 40px; gap: 0.5rem; padding: 0.75rem; background: var(--dark-lighter); border: 1px solid var(--border-color); border-top: none; align-items: center; ${stmtIndex === (question.statements || []).length - 1 ? 'border-radius: 0 0 0.5rem 0.5rem;' : ''}">
                             <div style="text-align: center; font-weight: 600; color: var(--text-secondary);">${stmtIndex + 1}</div>
                             <input type="text"

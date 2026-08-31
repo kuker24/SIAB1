@@ -392,8 +392,9 @@ function getTutorialSteps() {
             ],
             tips: [
                 'Mulai dari tipe soal yang paling sering dipakai.',
-                'Default PG: 4 opsi (A-D), boleh dikurangi sampai 3 (A-C).',
-                'Default PGK Tipe A: 5 opsi (A-E), boleh dikurangi sampai 4 (A-D).',
+                'Default PG: isi teks opsi A-D, lalu pilih 1 kunci.',
+                'PGK Tipe A: isi teks opsi A-E, centang minimal 2 kunci.',
+                'PGK Tipe B: isi pernyataan, lalu pilih Benar/Salah per baris.',
                 'Gunakan poin yang konsisten agar penilaian adil.'
             ],
             action: hasQuestions
@@ -414,7 +415,8 @@ function getTutorialSteps() {
                 }
             ],
             tips: [
-                'Untuk PGK checkbox, centang minimal 2 jawaban benar.',
+                'Untuk PGK Tipe A, centang minimal 2 jawaban benar.',
+                'Untuk PGK Tipe B, setiap pernyataan wajib punya Benar atau Salah.',
                 'Untuk isian singkat, isi kata kunci jika bukan manual grading.'
             ],
             action: hasKeys
@@ -454,10 +456,9 @@ function getTutorialSteps() {
             ],
             tips: [
                 'Minimal aktifkan salah satu: Acak Soal atau Acak Opsi.',
-                'Untuk soal bergambar: jika opsi masih otomatis (teks kosong), urutan dibuat tetap.',
-                'Kalau teks opsi diisi manual, pengacakan mengikuti toggle global Acak Opsi.',
-                'Untuk mode cepat (opsi kosong non-gambar), default-nya akan ikut tercentang jika Auto Acak Opsi ON.',
-                'Untuk PGK Tipe B, centang acak pernyataan bisa diatur per soal.'
+                'Teks opsi PG/PGK Tipe A ikut diacak jika Acak Opsi ON.',
+                'PGK Tipe B: baris pernyataan ikut diacak; kunci Benar/Salah tetap menempel.',
+                'Opsi yang tertulis di dalam foto soal tidak diacak.'
             ],
             action: shuffleReady && placeholderAutoReady && tableShuffleReady
                 ? 'Mode acak sudah aktif dan default placeholder/PGK Tipe B sudah sinkron.'

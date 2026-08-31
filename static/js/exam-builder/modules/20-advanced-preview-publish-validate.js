@@ -244,15 +244,21 @@ function changePGKType(questionIndex, newType) {
         : false;
 
     if (newType === 'table_validation') {
-        // Initialize table validation data if needed
-        if (!question.statements) {
+        if (!Array.isArray(question.statements) || question.statements.length < 2) {
             question.statements = ['', '', '', ''];
             question.statement_answers = [true, false, true, false];
+        } else if (!Array.isArray(question.statement_answers) || question.statement_answers.length !== question.statements.length) {
+            question.statement_answers = question.statements.map((_, idx) => (
+                Array.isArray(question.statement_answers) ? question.statement_answers[idx] === true : idx % 2 === 0
+            ));
         }
         question.answer_layout_mode = 'model1';
         question.model2_slots = [];
         question.allow_placeholder_shuffle = false;
         question.placeholder_shuffle_user_set = false;
+        if (question.table_statement_shuffle_user_set !== true) {
+            question.allow_table_statement_shuffle = !question.image_url;
+        }
         refreshTableStatementShuffleState(question);
     } else {
         ensureOptionSlots(question, getMinimumOptionCount(question));
@@ -635,7 +641,10 @@ function buildQuestionPayloadFromState(q, orderIndex, currentExamId) {
             statements: currentPgkType === 'table_validation' ? (q.statements || []) : undefined,
             statement_answers: currentPgkType === 'table_validation' ? (q.statement_answers || []) : undefined,
             allow_table_statement_shuffle: currentPgkType === 'table_validation'
-                ? (q.allow_table_statement_shuffle !== false)
+                ? (!q.image_url && q.allow_table_statement_shuffle !== false)
+                : undefined,
+            table_statement_shuffle_user_set: currentPgkType === 'table_validation'
+                ? (q.table_statement_shuffle_user_set === true)
                 : undefined,
             is_placeholder: isPlaceholder,
             placeholder_source: placeholderSource,

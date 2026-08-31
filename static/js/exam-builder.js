@@ -223,8 +223,8 @@ window.addEventListener('unhandledrejection', (event) => {
 if (!auth.requireAuth(['admin', 'developer', 'teacher'])) { }
 
 const DEFAULT_BUILDER_SETTINGS = Object.freeze({
-    default_mc_key_only: true,
-    default_pgk_key_only: true,
+    default_mc_key_only: false,
+    default_pgk_key_only: false,
     default_image_layout_mode: 'model1',
     smart_auto_shuffle_options: false,
     smart_auto_shuffle_questions: false
@@ -233,8 +233,8 @@ const DEFAULT_BUILDER_SETTINGS = Object.freeze({
 function normalizeBuilderSettings(rawSettings = {}) {
     const raw = rawSettings && typeof rawSettings === 'object' ? rawSettings : {};
     return {
-        default_mc_key_only: raw.default_mc_key_only !== false,
-        default_pgk_key_only: raw.default_pgk_key_only !== false,
+        default_mc_key_only: raw.default_mc_key_only === true,
+        default_pgk_key_only: raw.default_pgk_key_only === true,
         default_image_layout_mode: 'model1',
         smart_auto_shuffle_options: raw.smart_auto_shuffle_options === true,
         smart_auto_shuffle_questions: raw.smart_auto_shuffle_questions === true
@@ -306,9 +306,14 @@ function applyBuilderDefaultsToQuestion(question) {
         question.placeholder_shuffle_user_set = false;
     }
     if (isPgkTable) {
-        question.table_statement_shuffle_user_set = false;
+        if (question.image_url) {
+            question.allow_table_statement_shuffle = false;
+            question.table_statement_shuffle_user_set = false;
+        } else if (question.table_statement_shuffle_user_set !== true) {
+            question.allow_table_statement_shuffle = true;
+        }
     }
-    refreshTableStatementShuffleState(question, { forceDefault: isPgkTable });
+    refreshTableStatementShuffleState(question);
 
     refreshQuestionPlaceholderState(question);
 }
@@ -796,7 +801,6 @@ async function loadExam(id) {
 
             // Extract settings safely
             const settings = q.question_settings || {};
-            const globalDefaults = getBuilderSettings();
             // Resolve PGK Type immediately with fallback
             const resolvedPgkType = q.pgk_type || (settings && settings.pgk_type) || 'checkbox';
             const isPlaceholder = settings.is_placeholder === true;
@@ -853,17 +857,16 @@ async function loadExam(id) {
                 }
             }
 
-            // Default mode cepat aktif untuk PG/PGK-checkbox, kecuali eksplisit dimatikan.
             const inferredKeyOnlyMode = isKeyOnlyEligible
-                ? (settings.use_key_only_mode !== false)
+                ? (settings.use_key_only_mode === true)
                 : false;
             const effectiveLayoutMode = 'model1';
             const effectiveModel2Slots = [];
             const inferredTableStatementShuffle = resolvedPgkType === 'table_validation'
                 ? (
-                    typeof settings.allow_table_statement_shuffle === 'boolean'
-                        ? settings.allow_table_statement_shuffle
-                        : (globalDefaults.smart_auto_shuffle_options === true)
+                    q.image_url
+                        ? false
+                        : (settings.allow_table_statement_shuffle !== false)
                 )
                 : false;
 
@@ -886,6 +889,12 @@ async function loadExam(id) {
             if (q.question_type === 'multiple_choice_complex' && resolvedPgkType === 'table_validation') {
                 pgkStatements = settings.statements || [];
                 pgkAnswers = settings.statement_answers || [];
+                if (!Array.isArray(pgkStatements) || pgkStatements.length < 2) {
+                    pgkStatements = ['', '', '', ''];
+                    pgkAnswers = [true, false, true, false];
+                } else if (!Array.isArray(pgkAnswers) || pgkAnswers.length < pgkStatements.length) {
+                    pgkAnswers = pgkStatements.map((_, idx) => pgkAnswers[idx] === true);
+                }
             }
 
             // --- 4. CONSTRUCT FRONTEND QUESTION OBJECT ---
@@ -917,7 +926,7 @@ async function loadExam(id) {
                 allow_placeholder_shuffle: allowPlaceholderShuffle,
                 placeholder_shuffle_user_set: true,
                 allow_table_statement_shuffle: inferredTableStatementShuffle,
-                table_statement_shuffle_user_set: typeof settings.allow_table_statement_shuffle === 'boolean',
+                table_statement_shuffle_user_set: settings.table_statement_shuffle_user_set === true,
                 use_key_only_mode: inferredKeyOnlyMode,
                 answer_layout_mode: effectiveLayoutMode,
                 model2_slots: effectiveModel2Slots,
@@ -1455,12 +1464,16 @@ function refreshTableStatementShuffleState(question, options = {}) {
     const isTableType = question.type === 'multiple_choice_complex' && resolvedPgkType === 'table_validation';
     if (!isTableType) return;
 
-    const autoDefault = getBuilderSettings().smart_auto_shuffle_options === true;
     const forceDefault = options.forceDefault === true;
     const userSet = question.table_statement_shuffle_user_set === true;
 
+    if (question.image_url) {
+        question.allow_table_statement_shuffle = false;
+        return;
+    }
+
     if (forceDefault || !userSet) {
-        question.allow_table_statement_shuffle = autoDefault;
+        question.allow_table_statement_shuffle = true;
         if (forceDefault) {
             question.table_statement_shuffle_user_set = false;
         }
@@ -1468,7 +1481,7 @@ function refreshTableStatementShuffleState(question, options = {}) {
     }
 
     if (typeof question.allow_table_statement_shuffle !== 'boolean') {
-        question.allow_table_statement_shuffle = autoDefault;
+        question.allow_table_statement_shuffle = true;
     }
 }
 
@@ -1712,7 +1725,7 @@ function getTableValidationShuffleNoticeHtml(question, index) {
                 <span style="font-size:0.78rem; color: var(--text-secondary);">Centang kalau urutan pernyataan ingin diacak</span>
             </label>
             <small style="display:block; margin-top:0.25rem; color: var(--text-secondary);">
-                Berlaku jika toggle global "Acak Opsi" aktif.
+                Jika "Acak Opsi" aktif, baris pernyataan diacak. Kunci Benar/Salah tetap menempel pada pernyataan.
             </small>
         </div>
     `;
@@ -1844,7 +1857,7 @@ function generateQuestionCard(question, index) {
                        ${useKeyOnlyMode ? 'checked' : ''}
                        onchange="toggleKeyOnlyMode(${index}, this.checked)"
                        onclick="event.stopPropagation()">
-                <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat: pilih kunci saja (teks opsi opsional)</span>
+                <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat (opsional): pilih kunci saja tanpa isi teks opsi</span>
             </label>
             ${placeholderShuffleNotice}
             ${model2Controls}
@@ -1951,13 +1964,15 @@ function generateQuestionCard(question, index) {
                         </div>
                         <select onchange="changePGKType(${index}, this.value)"
                                 onclick="event.stopPropagation()"
-                                style="padding: 0.35rem 0.75rem; background: var(--dark-lighter); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; cursor: pointer;">
-                            <option value="checkbox" ${currentPgkType === 'checkbox' ? 'selected' : ''}>📋 Tipe A: Multiple Response</option>
-                            <option value="table_validation" ${currentPgkType === 'table_validation' ? 'selected' : ''}>✅ Tipe B: Tabel Validasi</option>
+                                style="padding: 0.35rem 0.75rem; background: var(--dark-lighter); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; cursor: pointer; min-width: 240px;">
+                            <option value="checkbox" ${currentPgkType === 'checkbox' ? 'selected' : ''}>📋 Tipe A: Pilih beberapa opsi</option>
+                            <option value="table_validation" ${currentPgkType === 'table_validation' ? 'selected' : ''}>✅ Tipe B: Tabel Benar/Salah</option>
                         </select>
                     </div>
                     <small style="color: var(--text-secondary); display: block;">
-                        ${currentPgkType === 'checkbox' ? 'Siswa memilih semua jawaban yang benar (min. 2 jawaban benar)' : 'Siswa menilai setiap pernyataan Benar/Salah'}
+                        ${currentPgkType === 'checkbox'
+                ? 'Tipe A: isi teks opsi A-E, lalu centang semua jawaban yang benar (min. 2). Ganti ke Tipe B untuk pernyataan Benar/Salah.'
+                : 'Tipe B: isi setiap pernyataan, lalu pilih Benar atau Salah di kolom kanan.'}
                     </small>
                     ${currentPgkType === 'checkbox'
                 ? `<small style="display:block; margin-top:0.35rem; color:${pgkKeyOnlyMode ? 'var(--success)' : 'var(--warning)'};">
@@ -2002,7 +2017,7 @@ function generateQuestionCard(question, index) {
                                ${question.use_key_only_mode === true ? 'checked' : ''}
                                onchange="toggleKeyOnlyMode(${index}, this.checked)"
                                onclick="event.stopPropagation()">
-                        <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat: centang kunci saja (teks opsi opsional)</span>
+                        <span style="font-size:0.82rem; color: var(--text-secondary);">Mode cepat (opsional): centang kunci saja tanpa isi teks opsi</span>
                     </label>
                     ${getLayoutModeControlsHtml(question, index)}
                     ${getPlaceholderShuffleNoticeHtml(question, index)}
@@ -2041,7 +2056,7 @@ function generateQuestionCard(question, index) {
                 <div class="table-validation-container">
                     <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between;">
                         <div>
-                            <i class="fas fa-table"></i> Tabel Pernyataan (Tentukan Benar/Salah)
+                            <i class="fas fa-table"></i> Tabel Pernyataan — pilih Benar atau Salah per baris
                             ${question.image_url ? '<span style="color: var(--success); font-size: 0.75rem; margin-left: 0.5rem;"><i class="fas fa-check-circle"></i> Teks pernyataan diabaikan (pakai foto)</span>' : ''}
                         </div>
                     </div>
@@ -2057,7 +2072,10 @@ function generateQuestionCard(question, index) {
                     </div>
 
                     <!-- Table Rows -->
-                    ${(question.statements || ['', '', '', '']).map((stmt, stmtIndex) => `
+                    ${((Array.isArray(question.statements) && question.statements.length >= 2)
+                ? question.statements
+                : (question.statements = ['', '', '', ''], question.statement_answers = [true, false, true, false], question.statements)
+            ).map((stmt, stmtIndex) => `
                         <div class="statement-row" style="display: grid; grid-template-columns: 40px 1fr 70px 70px 40px; gap: 0.5rem; padding: 0.75rem; background: var(--dark-lighter); border: 1px solid var(--border-color); border-top: none; align-items: center; ${stmtIndex === (question.statements || []).length - 1 ? 'border-radius: 0 0 0.5rem 0.5rem;' : ''}">
                             <div style="text-align: center; font-weight: 600; color: var(--text-secondary);">${stmtIndex + 1}</div>
                             <input type="text"
@@ -2765,15 +2783,21 @@ function changePGKType(questionIndex, newType) {
         : false;
 
     if (newType === 'table_validation') {
-        // Initialize table validation data if needed
-        if (!question.statements) {
+        if (!Array.isArray(question.statements) || question.statements.length < 2) {
             question.statements = ['', '', '', ''];
             question.statement_answers = [true, false, true, false];
+        } else if (!Array.isArray(question.statement_answers) || question.statement_answers.length !== question.statements.length) {
+            question.statement_answers = question.statements.map((_, idx) => (
+                Array.isArray(question.statement_answers) ? question.statement_answers[idx] === true : idx % 2 === 0
+            ));
         }
         question.answer_layout_mode = 'model1';
         question.model2_slots = [];
         question.allow_placeholder_shuffle = false;
         question.placeholder_shuffle_user_set = false;
+        if (question.table_statement_shuffle_user_set !== true) {
+            question.allow_table_statement_shuffle = !question.image_url;
+        }
         refreshTableStatementShuffleState(question);
     } else {
         ensureOptionSlots(question, getMinimumOptionCount(question));
@@ -3156,7 +3180,10 @@ function buildQuestionPayloadFromState(q, orderIndex, currentExamId) {
             statements: currentPgkType === 'table_validation' ? (q.statements || []) : undefined,
             statement_answers: currentPgkType === 'table_validation' ? (q.statement_answers || []) : undefined,
             allow_table_statement_shuffle: currentPgkType === 'table_validation'
-                ? (q.allow_table_statement_shuffle !== false)
+                ? (!q.image_url && q.allow_table_statement_shuffle !== false)
+                : undefined,
+            table_statement_shuffle_user_set: currentPgkType === 'table_validation'
+                ? (q.table_statement_shuffle_user_set === true)
                 : undefined,
             is_placeholder: isPlaceholder,
             placeholder_source: placeholderSource,
@@ -4449,8 +4476,9 @@ function getTutorialSteps() {
             ],
             tips: [
                 'Mulai dari tipe soal yang paling sering dipakai.',
-                'Default PG: 4 opsi (A-D), boleh dikurangi sampai 3 (A-C).',
-                'Default PGK Tipe A: 5 opsi (A-E), boleh dikurangi sampai 4 (A-D).',
+                'Default PG: isi teks opsi A-D, lalu pilih 1 kunci.',
+                'PGK Tipe A: isi teks opsi A-E, centang minimal 2 kunci.',
+                'PGK Tipe B: isi pernyataan, lalu pilih Benar/Salah per baris.',
                 'Gunakan poin yang konsisten agar penilaian adil.'
             ],
             action: hasQuestions
@@ -4471,7 +4499,8 @@ function getTutorialSteps() {
                 }
             ],
             tips: [
-                'Untuk PGK checkbox, centang minimal 2 jawaban benar.',
+                'Untuk PGK Tipe A, centang minimal 2 jawaban benar.',
+                'Untuk PGK Tipe B, setiap pernyataan wajib punya Benar atau Salah.',
                 'Untuk isian singkat, isi kata kunci jika bukan manual grading.'
             ],
             action: hasKeys
@@ -4511,10 +4540,9 @@ function getTutorialSteps() {
             ],
             tips: [
                 'Minimal aktifkan salah satu: Acak Soal atau Acak Opsi.',
-                'Untuk soal bergambar: jika opsi masih otomatis (teks kosong), urutan dibuat tetap.',
-                'Kalau teks opsi diisi manual, pengacakan mengikuti toggle global Acak Opsi.',
-                'Untuk mode cepat (opsi kosong non-gambar), default-nya akan ikut tercentang jika Auto Acak Opsi ON.',
-                'Untuk PGK Tipe B, centang acak pernyataan bisa diatur per soal.'
+                'Teks opsi PG/PGK Tipe A ikut diacak jika Acak Opsi ON.',
+                'PGK Tipe B: baris pernyataan ikut diacak; kunci Benar/Salah tetap menempel.',
+                'Opsi yang tertulis di dalam foto soal tidak diacak.'
             ],
             action: shuffleReady && placeholderAutoReady && tableShuffleReady
                 ? 'Mode acak sudah aktif dan default placeholder/PGK Tipe B sudah sinkron.'
