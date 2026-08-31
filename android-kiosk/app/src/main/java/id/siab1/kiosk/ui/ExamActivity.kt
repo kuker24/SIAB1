@@ -101,15 +101,22 @@ class ExamActivity : AppCompatActivity() {
                     view?.stopLoading()
                     return
                 }
+                val mainUrl = view?.url
+                val isMainFrame = url != null && mainUrl != null && urlsMatch(url, mainUrl)
                 if (url != null && AppConfig.isTrustedUrl(url)) {
-                    view?.evaluateJavascript(startScript, null)
-                } else {
+                    if (isMainFrame || mainUrl.isNullOrBlank() || AppConfig.isTrustedUrl(mainUrl)) {
+                        view?.evaluateJavascript(startScript, null)
+                    }
+                    return
+                }
+                if (isMainFrame || mainUrl.isNullOrBlank() || !AppConfig.isTrustedUrl(mainUrl)) {
                     view?.stopLoading()
                 }
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 if (examClosed) return true
+                if (!request.isForMainFrame) return false
                 var url = request.url.toString()
                 if (AppConfig.forceHttps && url.startsWith("http://")) {
                     url = "https://" + url.removePrefix("http://")
@@ -327,6 +334,18 @@ class ExamActivity : AppCompatActivity() {
                     .setPositiveButton(android.R.string.ok, null)
                     .show()
             }
+        }
+    }
+
+    private fun urlsMatch(left: String, right: String): Boolean {
+        return try {
+            val a = java.net.URI(left)
+            val b = java.net.URI(right)
+            a.scheme.equals(b.scheme, ignoreCase = true) &&
+                a.host.equals(b.host, ignoreCase = true) &&
+                a.path == b.path
+        } catch (_: Exception) {
+            left == right
         }
     }
 

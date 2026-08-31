@@ -1,21 +1,8 @@
 #!/usr/bin/env python3
 """
-SIAB1 SEB - APK BUILDER GUI v3.1
-=================================
-Desktop GUI untuk konfigurasi dan build Android artifacts (APK/AAB).
-
-Features:
-    - Konfigurasi app name, version, package
-    - Konfigurasi Server URL root (builder otomatis menurunkan /student/)
-    - Konfigurasi keamanan (Kiosk, Screenshot, Root Detection)
-    - Upload custom icon
-    - Build mode: Universal APK, Split APK (ABI), Android App Bundle (AAB)
-    - Auto-generate config.dart
-    - APK connection hardening notes (clean URL + transient retry)
-    - Updates pubspec.yaml, local.properties, AndroidManifest, and build.gradle
-
-Requirements:
-    pip install pillow pyyaml
+SIAB1 APK Builder GUI
+=====================
+Desktop GUI untuk konfigurasi dan build APK native android-kiosk.
 """
 
 import tkinter as tk
@@ -50,6 +37,18 @@ def normalize_apk_display_name(app_name: str | None) -> str:
 
 from apk_builder_core.artifacts import find_latest_artifact, sha256_file
 from apk_builder_core.context import detect_project_context
+from apk_builder_core.native_kiosk import (
+    DEFAULT_PRODUCTION_URL,
+    NATIVE_KIOSK_PACKAGE,
+    apply_native_kiosk_config,
+    is_placeholder_server_url,
+    kiosk_release_apk_path,
+    load_optional_server_url,
+    load_release_signing_env,
+    read_native_kiosk_config,
+    signing_env_ready,
+    signing_status_text,
+)
 from apk_builder_core.environment import (
     build_tool_env,
     ensure_gradle_memory_config,
@@ -73,9 +72,10 @@ from apk_builder_core.validators import (
 )
 
 try:
-    from PIL import Image, ImageTk
+    from PIL import Image
     PIL_AVAILABLE = True
 except ImportError:
+    Image = None
     PIL_AVAILABLE = False
 
 
@@ -253,7 +253,7 @@ def validate_generated_config_text(
 class APKBuilderGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("SIAB1 - APK Builder v3.1")
+        self.root.title("SIAB1 - APK Builder v3.2 (Native Kiosk)")
         self.root.geometry("1024x860")
         self.root.resizable(True, True)
 
@@ -261,6 +261,7 @@ class APKBuilderGUI:
         self.project_root = context.project_root
         self.flutter_project = context.flutter_project
         self.config_dart_path = context.config_dart_path
+        self.kiosk_project = context.kiosk_project
 
         # Find JDK, Android SDK, and Flutter paths
         self.jdk_path = find_jdk(self.project_root)
@@ -269,13 +270,13 @@ class APKBuilderGUI:
 
         # App Configuration Variables
         self.app_name_var = tk.StringVar(value=DEFAULT_APP_NAME)
-        self.package_var = tk.StringVar(value="id.siab1.flutter")
-        self.version_name_var = tk.StringVar(value="1.0.2")
-        self.version_code_var = tk.StringVar(value="2")
+        self.package_var = tk.StringVar(value=NATIVE_KIOSK_PACKAGE)
+        self.version_name_var = tk.StringVar(value="2.0.2")
+        self.version_code_var = tk.StringVar(value="4")
         self.icon_path_var = tk.StringVar(value="")
 
         # Server Configuration Variables
-        self.server_url_var = tk.StringVar(value="https://siab1.invalid/")
+        self.server_url_var = tk.StringVar(value=DEFAULT_PRODUCTION_URL)
         self.use_https_var = tk.BooleanVar(value=True)
 
         # Security Configuration Variables
@@ -307,6 +308,10 @@ class APKBuilderGUI:
 
         self.setup_ui()
         self.load_current_config()
+
+    def _uses_native_kiosk(self) -> bool:
+        gradle = self.kiosk_project / "app" / "build.gradle.kts"
+        return gradle.is_file()
 
     def _find_jdk(self):
         """Compatibility wrapper kept for internal call sites."""
@@ -350,7 +355,7 @@ class APKBuilderGUI:
 
         title = tk.Label(
             header,
-            text="APK Builder - SIAB1 SEB v3.1",
+            text="APK Builder - SIAB1 Native Kiosk",
             font=("Segoe UI", 20, "bold"),
             bg="#4F46E5",
             fg="white",
@@ -383,7 +388,10 @@ class APKBuilderGUI:
         row = ttk.Frame(app_frame)
         row.pack(fill=tk.X, pady=3)
         ttk.Label(row, text="Package Name:", width=18).pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.package_var, width=50).pack(side=tk.LEFT, padx=(5, 0))
+        package_entry = ttk.Entry(row, textvariable=self.package_var, width=50)
+        package_entry.pack(side=tk.LEFT, padx=(5, 0))
+        if self._uses_native_kiosk():
+            package_entry.state(["disabled"])
 
         # Version
         row = ttk.Frame(app_frame)
@@ -415,8 +423,11 @@ class APKBuilderGUI:
         helper_frame = ttk.Frame(server_frame)
         helper_frame.pack(fill=tk.X, pady=3)
         ttk.Label(helper_frame, text="", width=18).pack(side=tk.LEFT)
-        ttk.Label(helper_frame, text="Contoh: https://ujian.sekolah.id atau http://192.168.1.100:8000",
-                 foreground="gray").pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(
+            helper_frame,
+            text=f"Contoh: {DEFAULT_PRODUCTION_URL}",
+            foreground="gray",
+        ).pack(side=tk.LEFT, padx=(5, 0))
 
         note_frame = ttk.Frame(server_frame)
         note_frame.pack(fill=tk.X, pady=(6, 0))
@@ -444,21 +455,26 @@ class APKBuilderGUI:
         security_frame = ttk.LabelFrame(main_frame, text="Konfigurasi Keamanan", padding="12")
         security_frame.pack(fill=tk.X, pady=(0, 10))
 
-        # Security checkboxes - Row 1
-        row = ttk.Frame(security_frame)
-        row.pack(fill=tk.X, pady=3)
-        ttk.Checkbutton(row, text="Enable Kiosk Mode (Lock Screen)",
-                       variable=self.enable_kiosk_var).pack(side=tk.LEFT, padx=(0, 20))
-        ttk.Checkbutton(row, text="Block Screenshot",
-                       variable=self.block_screenshot_var).pack(side=tk.LEFT)
-
-        # Security checkboxes - Row 2
-        row = ttk.Frame(security_frame)
-        row.pack(fill=tk.X, pady=3)
-        ttk.Checkbutton(row, text="Detect Root/Jailbreak",
-                       variable=self.detect_root_var).pack(side=tk.LEFT, padx=(0, 20))
-        ttk.Checkbutton(row, text="Block Task Switching (Alt+Tab)",
-                       variable=self.block_task_switch_var).pack(side=tk.LEFT)
+        if self._uses_native_kiosk():
+            ttk.Label(
+                security_frame,
+                text="Proteksi kiosk native selalu aktif: lock task, screenshot, root, dan task switch.",
+                foreground="gray",
+                wraplength=880,
+            ).pack(anchor=tk.W)
+        else:
+            row = ttk.Frame(security_frame)
+            row.pack(fill=tk.X, pady=3)
+            ttk.Checkbutton(row, text="Enable Kiosk Mode (Lock Screen)",
+                           variable=self.enable_kiosk_var).pack(side=tk.LEFT, padx=(0, 20))
+            ttk.Checkbutton(row, text="Block Screenshot",
+                           variable=self.block_screenshot_var).pack(side=tk.LEFT)
+            row = ttk.Frame(security_frame)
+            row.pack(fill=tk.X, pady=3)
+            ttk.Checkbutton(row, text="Detect Root/Jailbreak",
+                           variable=self.detect_root_var).pack(side=tk.LEFT, padx=(0, 20))
+            ttk.Checkbutton(row, text="Block Task Switching (Alt+Tab)",
+                           variable=self.block_task_switch_var).pack(side=tk.LEFT)
 
         # ========== BUILD TOKEN (VERSION CONTROL) ==========
         token_frame = ttk.LabelFrame(main_frame, text="Build Token (Version Control)", padding="12")
@@ -504,79 +520,89 @@ class APKBuilderGUI:
 
         ttk.Checkbutton(options_frame, text="Clean build (hapus cache sebelum build - lebih lama tapi lebih bersih)",
                        variable=self.clean_build_var).pack(anchor=tk.W)
-        ttk.Checkbutton(
-            options_frame,
-            text="Pre-build check: flutter analyze (errors only, tidak fail karena lint info/warning)",
-            variable=self.preflight_analyze_var,
-        ).pack(anchor=tk.W, pady=(4, 0))
-        ttk.Checkbutton(
-            options_frame,
-            text="Pre-build check: flutter test (smoke test sebelum artifact build)",
-            variable=self.preflight_test_var,
-        ).pack(anchor=tk.W, pady=(2, 0))
-
-        mode_row = ttk.Frame(options_frame)
-        mode_row.pack(fill=tk.X, pady=(8, 0))
-        ttk.Label(mode_row, text="Build Mode:", width=18).pack(side=tk.LEFT)
-        ttk.Radiobutton(
-            mode_row,
-            text="Universal APK (Recommended)",
-            value="universal_apk",
-            variable=self.build_mode_var,
-        ).pack(side=tk.LEFT, padx=(4, 12))
-        ttk.Radiobutton(
-            mode_row,
-            text="Split APK (ABI)",
-            value="split_apk",
-            variable=self.build_mode_var,
-        ).pack(side=tk.LEFT, padx=(0, 12))
-        ttk.Radiobutton(
-            mode_row,
-            text="AAB (Play Store)",
-            value="app_bundle",
-            variable=self.build_mode_var,
-        ).pack(side=tk.LEFT)
-
-        profile_row = ttk.Frame(options_frame)
-        profile_row.pack(fill=tk.X, pady=(8, 0))
-        ttk.Label(profile_row, text="Resilience Profile:", width=18).pack(side=tk.LEFT)
-        ttk.Radiobutton(
-            profile_row,
-            text="UX Offline-First",
-            value="ux_offline_first",
-            variable=self.resilience_profile_var,
-        ).pack(side=tk.LEFT, padx=(4, 12))
-        ttk.Radiobutton(
-            profile_row,
-            text="Balanced",
-            value="balanced",
-            variable=self.resilience_profile_var,
-        ).pack(side=tk.LEFT, padx=(0, 12))
-        ttk.Radiobutton(
-            profile_row,
-            text="Strict Security",
-            value="strict_security",
-            variable=self.resilience_profile_var,
-        ).pack(side=tk.LEFT)
-
-        ttk.Label(
-            options_frame,
-            text=(
-                "Universal APK cocok untuk semua HP Android. "
-                "Split APK lebih kecil tapi harus pilih arsitektur yang tepat."
-            ),
-            foreground="gray",
-            wraplength=880,
-        ).pack(anchor=tk.W, pady=(6, 0))
-        ttk.Label(
-            options_frame,
-            text=(
-                "Profile menentukan tuning reconnect, ambang auto-submit adaptif, "
-                "dan policy emergency exit saat server outage."
-            ),
-            foreground="gray",
-            wraplength=880,
-        ).pack(anchor=tk.W, pady=(2, 0))
+        if self._uses_native_kiosk():
+            ttk.Checkbutton(
+                options_frame,
+                text="Pre-build check: tes kontrak native kiosk",
+                variable=self.preflight_test_var,
+            ).pack(anchor=tk.W, pady=(4, 0))
+            ttk.Label(
+                options_frame,
+                text="Build Artifact = assembleRelease android-kiosk. Sideload saja, bukan Play Store.",
+                foreground="gray",
+                wraplength=880,
+            ).pack(anchor=tk.W, pady=(6, 0))
+        else:
+            ttk.Checkbutton(
+                options_frame,
+                text="Pre-build check: flutter analyze (errors only, tidak fail karena lint info/warning)",
+                variable=self.preflight_analyze_var,
+            ).pack(anchor=tk.W, pady=(4, 0))
+            ttk.Checkbutton(
+                options_frame,
+                text="Pre-build check: flutter test (smoke test sebelum artifact build)",
+                variable=self.preflight_test_var,
+            ).pack(anchor=tk.W, pady=(2, 0))
+            mode_row = ttk.Frame(options_frame)
+            mode_row.pack(fill=tk.X, pady=(8, 0))
+            ttk.Label(mode_row, text="Build Mode:", width=18).pack(side=tk.LEFT)
+            ttk.Radiobutton(
+                mode_row,
+                text="Universal APK (Recommended)",
+                value="universal_apk",
+                variable=self.build_mode_var,
+            ).pack(side=tk.LEFT, padx=(4, 12))
+            ttk.Radiobutton(
+                mode_row,
+                text="Split APK (ABI)",
+                value="split_apk",
+                variable=self.build_mode_var,
+            ).pack(side=tk.LEFT, padx=(0, 12))
+            ttk.Radiobutton(
+                mode_row,
+                text="AAB (Play Store)",
+                value="app_bundle",
+                variable=self.build_mode_var,
+            ).pack(side=tk.LEFT)
+            profile_row = ttk.Frame(options_frame)
+            profile_row.pack(fill=tk.X, pady=(8, 0))
+            ttk.Label(profile_row, text="Resilience Profile:", width=18).pack(side=tk.LEFT)
+            ttk.Radiobutton(
+                profile_row,
+                text="UX Offline-First",
+                value="ux_offline_first",
+                variable=self.resilience_profile_var,
+            ).pack(side=tk.LEFT, padx=(4, 12))
+            ttk.Radiobutton(
+                profile_row,
+                text="Balanced",
+                value="balanced",
+                variable=self.resilience_profile_var,
+            ).pack(side=tk.LEFT, padx=(0, 12))
+            ttk.Radiobutton(
+                profile_row,
+                text="Strict Security",
+                value="strict_security",
+                variable=self.resilience_profile_var,
+            ).pack(side=tk.LEFT)
+            ttk.Label(
+                options_frame,
+                text=(
+                    "Universal APK cocok untuk semua HP Android. "
+                    "Split APK lebih kecil tapi harus pilih arsitektur yang tepat."
+                ),
+                foreground="gray",
+                wraplength=880,
+            ).pack(anchor=tk.W, pady=(6, 0))
+            ttk.Label(
+                options_frame,
+                text=(
+                    "Profile menentukan tuning reconnect, ambang auto-submit adaptif, "
+                    "dan policy emergency exit saat server outage."
+                ),
+                foreground="gray",
+                wraplength=880,
+            ).pack(anchor=tk.W, pady=(2, 0))
 
         # Environment status
         env_frame = ttk.Frame(options_frame)
@@ -584,14 +610,28 @@ class APKBuilderGUI:
 
         jdk_status = "✅" if self.jdk_path else "❌"
         sdk_status = "✅" if self.android_sdk else "❌"
+        kiosk_ready = self._uses_native_kiosk()
+        kiosk_status = "✅" if kiosk_ready else "❌"
         flutter_status = "✅" if self.flutter_bin else "❌"
 
         ttk.Label(env_frame, text=f"JDK: {jdk_status} {self.jdk_path or 'Not found'}",
                  foreground="green" if self.jdk_path else "red").pack(anchor=tk.W)
         ttk.Label(env_frame, text=f"Android SDK: {sdk_status} {self.android_sdk or 'Not found'}",
                  foreground="green" if self.android_sdk else "red").pack(anchor=tk.W)
-        ttk.Label(env_frame, text=f"Flutter: {flutter_status} {self.flutter_bin or 'Not found'}",
-                 foreground="green" if self.flutter_bin else "red").pack(anchor=tk.W)
+        ttk.Label(
+            env_frame,
+            text=f"Native Kiosk: {kiosk_status} {self.kiosk_project if kiosk_ready else 'android-kiosk not found'}",
+            foreground="green" if kiosk_ready else "red",
+        ).pack(anchor=tk.W)
+        signing = load_release_signing_env()
+        ttk.Label(
+            env_frame,
+            text=signing_status_text(signing),
+            foreground="green" if signing_env_ready(signing) else "red",
+        ).pack(anchor=tk.W)
+        if not kiosk_ready:
+            ttk.Label(env_frame, text=f"Flutter: {flutter_status} {self.flutter_bin or 'Not found'}",
+                     foreground="green" if self.flutter_bin else "red").pack(anchor=tk.W)
 
         # ========== ACTION BUTTONS ==========
         button_frame = ttk.Frame(main_frame)
@@ -650,7 +690,7 @@ class APKBuilderGUI:
                 (
                     "Package name tidak valid.\n\n"
                     "Contoh valid:\n"
-                    "  id.siab1.flutter\n"
+                    f"  {NATIVE_KIOSK_PACKAGE}\n"
                     "  id.sekolah.ujian.mobile"
                 ),
             )
@@ -714,6 +754,15 @@ class APKBuilderGUI:
             )
             return False
 
+        if is_placeholder_server_url(url):
+            messagebox.showerror(
+                "Invalid URL",
+                "Jangan build dengan placeholder siab1.invalid.\n"
+                "Isi Server URL production, contoh:\n"
+                f"  {DEFAULT_PRODUCTION_URL}",
+            )
+            return False
+
         return True
 
     def browse_icon(self):
@@ -758,8 +807,11 @@ class APKBuilderGUI:
                 self.log(f"❌ Path error: {e}")
 
     def load_current_config(self):
-        """Load current configuration from config.dart, build.gradle, and local.properties"""
+        """Load current configuration from kiosk gradle or Flutter config."""
         try:
+            if self._uses_native_kiosk():
+                self._load_native_kiosk_config()
+                return
             # 1. Load from config.dart
             if self.config_dart_path.exists():
                 with open(self.config_dart_path, 'r', encoding='utf-8') as f:
@@ -951,7 +1003,75 @@ class APKBuilderGUI:
         self.log(f"   Build Token: {current_token}")
         self.log(f"   Kiosk: {self.enable_kiosk_var.get()}, Screenshot Block: {self.block_screenshot_var.get()}")
 
-    def save_config(self):
+    def _load_native_kiosk_config(self):
+        if not (self.kiosk_project / "app" / "build.gradle.kts").is_file():
+            self.log("android-kiosk build.gradle.kts not found")
+            return
+        cfg = read_native_kiosk_config(self.kiosk_project)
+        self.package_var.set(cfg.package_name or NATIVE_KIOSK_PACKAGE)
+        if cfg.version_name:
+            self.version_name_var.set(cfg.version_name)
+        if cfg.version_code:
+            self.version_code_var.set(cfg.version_code)
+        if cfg.app_name:
+            self.app_name_var.set(cfg.app_name)
+        if cfg.build_token:
+            self.build_token_var.set(cfg.build_token)
+            self.last_build_token = cfg.build_token
+        optional_url = load_optional_server_url()
+        if optional_url and not is_placeholder_server_url(optional_url):
+            self.server_url_var.set(self._normalize_server_url(optional_url))
+        elif is_placeholder_server_url(self.server_url_var.get()):
+            self.server_url_var.set(DEFAULT_PRODUCTION_URL)
+        self.use_https_var.set(True)
+        self.log("Configuration loaded from android-kiosk")
+
+    def _save_native_kiosk_config(self, show_success: bool = True) -> bool:
+        package_name = self.package_var.get().strip()
+        if package_name != NATIVE_KIOSK_PACKAGE:
+            messagebox.showerror(
+                "Invalid Package Name",
+                f"Native kiosk wajib package {NATIVE_KIOSK_PACKAGE}",
+            )
+            return False
+        version_name = self.version_name_var.get().strip()
+        version_code = self.version_code_var.get().strip()
+        app_name = normalize_apk_display_name(self.app_name_var.get())
+        self.app_name_var.set(app_name)
+        if self.auto_token_var.get():
+            self._generate_new_token()
+        token = self.build_token_var.get()
+        self.last_build_token = token
+        apply_native_kiosk_config(
+            self.kiosk_project,
+            version_name=version_name,
+            version_code=version_code,
+            app_name=app_name,
+            build_token=token,
+        )
+        if self.icon_path_var.get():
+            if not PIL_AVAILABLE:
+                messagebox.showerror(
+                    "Icon Processing Required",
+                    "Python ini tidak bisa import PIL.Image.\n\n"
+                    "Jalankan GUI lewat .venv:\n"
+                    "  .venv/bin/python tools/apk_builder_gui.py\n"
+                    "atau:\n"
+                    "  bash bin/run_apk_builder.sh",
+                )
+                return False
+            self.process_icon(self.icon_path_var.get())
+        self.update_security_signature()
+        self.log("Native kiosk configuration saved")
+        self.log(f"   Server URL: {self.server_url_var.get()}")
+        self.log(f"   Package: {package_name}")
+        self.log(f"   Version: {version_name}+{version_code}")
+        self.log(f"   Build Token: {token}")
+        if show_success:
+            messagebox.showinfo("Success", "Konfigurasi kiosk berhasil disimpan!")
+        return True
+
+    def save_config(self, show_success: bool = True):
         """Save all configuration"""
         try:
             # Validate server URL first
@@ -961,6 +1081,8 @@ class APKBuilderGUI:
                 return False
             if not self.validate_version_fields():
                 return False
+            if self._uses_native_kiosk():
+                return self._save_native_kiosk_config(show_success=show_success)
 
             version_name = self.version_name_var.get().strip()
             version_code = self.version_code_var.get().strip()
@@ -1076,9 +1198,11 @@ class APKBuilderGUI:
             if self.icon_path_var.get():
                 if not PIL_AVAILABLE:
                     message = (
-                        "Pillow/PIL belum terinstall, jadi icon APK tidak bisa diproses.\n\n"
-                        "Install dependency terlebih dahulu:\n"
-                        "  python -m pip install -r tools/requirements-gui.txt\n\n"
+                        "Python ini tidak bisa import PIL.Image, jadi icon APK tidak diproses.\n\n"
+                        "Jalankan GUI lewat .venv:\n"
+                        "  .venv/bin/python tools/apk_builder_gui.py\n"
+                        "atau:\n"
+                        "  bash bin/run_apk_builder.sh\n\n"
                         "Build dibatalkan agar APK tidak memakai icon lama tanpa disadari."
                     )
                     self.log("❌ Icon tidak diproses: Pillow/PIL belum terinstall")
@@ -1094,7 +1218,8 @@ class APKBuilderGUI:
                     self._update_signature_from_artifact(latest_artifact)
 
             self.log("\n✅ All configuration saved!")
-            messagebox.showinfo("Success", "Konfigurasi berhasil disimpan!")
+            if show_success:
+                messagebox.showinfo("Success", "Konfigurasi berhasil disimpan!")
             return True
 
         except Exception as e:
@@ -1102,9 +1227,55 @@ class APKBuilderGUI:
             messagebox.showerror("Error", f"Gagal menyimpan konfigurasi:\n{str(e)}")
             return False
 
+    def _update_native_kiosk_signature(self):
+        signing = load_release_signing_env()
+        if not signing_env_ready(signing):
+            self.log("Keystore rilis belum siap, skip signature extract")
+            self.last_signature_error = "SIAB1_RELEASE_* belum lengkap"
+            return
+        keytool = self._resolve_keytool()
+        if not keytool:
+            self.last_signature_error = "keytool tidak ditemukan"
+            self.log("keytool tidak ditemukan")
+            return
+        keystore_path = Path(signing["SIAB1_RELEASE_KEYSTORE"]).expanduser()
+        key_alias = signing["SIAB1_RELEASE_KEY_ALIAS"]
+        store_pass = signing["SIAB1_RELEASE_STORE_PASSWORD"]
+        cmd = [
+            keytool,
+            "-list",
+            "-v",
+            "-keystore",
+            str(keystore_path),
+            "-alias",
+            key_alias,
+        ]
+        process = subprocess.run(
+            cmd,
+            input=f"{store_pass}\n",
+            capture_output=True,
+            text=True,
+            env=self._tool_env(),
+        )
+        if process.returncode != 0:
+            self.last_signature_error = "keytool list gagal"
+            self.log("Gagal membaca keystore rilis")
+            return
+        match = re.search(r"SHA256:\s+([0-9A-Fa-f:]+)", process.stdout)
+        if not match:
+            self.last_signature_error = "SHA-256 tidak ditemukan di output keytool"
+            return
+        server_hash = match.group(1).replace(":", "").lower()
+        self._set_app_signature(server_hash, wait=True)
+        self.last_signature_error = ""
+        self.log("Signature hash siap. Daftarkan di Admin Panel.")
+
     def update_security_signature(self):
         """Extract keystore signature and update source code automatically"""
         try:
+            if self._uses_native_kiosk():
+                self._update_native_kiosk_signature()
+                return
             self.log("🔐 Updating security signatures...")
 
             # 1. Find keystore and password
@@ -1321,7 +1492,11 @@ class APKBuilderGUI:
         return resolve_apksigner(self.android_sdk)
 
     def _find_latest_artifact(self) -> Path | None:
-        return find_latest_artifact(self.project_root, self.flutter_project)
+        return find_latest_artifact(
+            self.project_root,
+            self.flutter_project,
+            self.kiosk_project,
+        )
 
     def _update_signature_from_artifact(self, artifact_path: Path) -> bool:
         """Extract signing SHA-256 from APK/AAB output as fallback when keystore path is missing."""
@@ -1405,9 +1580,15 @@ class APKBuilderGUI:
                 "mipmap-xxxhdpi": 192
             }
 
+            if Image is None:
+                raise RuntimeError("PIL.Image tidak tersedia")
             img = Image.open(icon_path).convert("RGBA")
-            resample = Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS
-            android_res = self.flutter_project / "android" / "app" / "src" / "main" / "res"
+            resample = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+            android_res = (
+                self.kiosk_project / "app" / "src" / "main" / "res"
+                if self._uses_native_kiosk()
+                else self.flutter_project / "android" / "app" / "src" / "main" / "res"
+            )
 
             for folder, size in sizes.items():
                 resized = img.resize((size, size), resample)
@@ -1430,23 +1611,34 @@ class APKBuilderGUI:
             messagebox.showerror("Error", "Android SDK tidak ditemukan!")
             return
 
-        # Re-scan in case local.properties or PATH changed while GUI is open.
-        self.flutter_bin = find_flutter(self.flutter_project, self.project_root)
-        if not self.flutter_bin:
-            messagebox.showerror(
-                "Error",
-                "Flutter SDK tidak ditemukan.\n\n"
-                "Install Flutter atau set salah satu:\n"
-                "• PATH berisi flutter\n"
-                "• FLUTTER_ROOT / FLUTTER_HOME\n"
-                "• flutter_client_code/android/local.properties: flutter.sdk=/path/to/flutter\n\n"
-                "Build belum dijalankan agar tidak gagal di flutter clean."
-            )
-            return
+        if self._uses_native_kiosk():
+            signing = load_release_signing_env()
+            if not signing_env_ready(signing):
+                messagebox.showerror(
+                    "Error",
+                    "Signing rilis belum siap.\n\n"
+                    "Set SIAB1_RELEASE_KEYSTORE, SIAB1_RELEASE_STORE_PASSWORD,\n"
+                    "SIAB1_RELEASE_KEY_ALIAS, SIAB1_RELEASE_KEY_PASSWORD\n"
+                    "atau isi ~/.android/siab1-release.env",
+                )
+                return
+        else:
+            # Re-scan in case local.properties or PATH changed while GUI is open.
+            self.flutter_bin = find_flutter(self.flutter_project, self.project_root)
+            if not self.flutter_bin:
+                messagebox.showerror(
+                    "Error",
+                    "Flutter SDK tidak ditemukan.\n\n"
+                    "Install Flutter atau set salah satu:\n"
+                    "• PATH berisi flutter\n"
+                    "• FLUTTER_ROOT / FLUTTER_HOME\n"
+                    "• flutter_client_code/android/local.properties: flutter.sdk=/path/to/flutter\n\n"
+                    "Build belum dijalankan agar tidak gagal di flutter clean."
+                )
+                return
 
-        # Save config first
-        if not self.save_config():
-            self.log("❌ Build dibatalkan karena konfigurasi belum valid")
+        if not self.save_config(show_success=False):
+            self.log("Build dibatalkan karena konfigurasi belum valid")
             return
 
         # Disable buttons
@@ -1471,9 +1663,107 @@ class APKBuilderGUI:
                 self.log(f"⚠️ Unexpected error during termination: {e}")
         self.reset_ui()
 
+    def _build_native_kiosk(self):
+        """Build signed android-kiosk release APK."""
+        try:
+            self.log("\n" + "=" * 60)
+            self.log("Starting native kiosk release build")
+            self.log("=" * 60 + "\n")
+            signing = load_release_signing_env()
+            if not signing_env_ready(signing):
+                raise Exception("Signing rilis belum siap")
+            env = build_tool_env(self.jdk_path, self.android_sdk, None)
+            env.update(signing)
+            env["SIAB1_SERVER_URL"] = self._normalize_server_url(self.server_url_var.get())
+            ensure_gradle_memory_config(
+                gradle_properties=self.kiosk_project / "gradle.properties",
+                env=env,
+                log=self.log,
+            )
+            if self.preflight_test_var.get():
+                self.update_status("Pre-build: tes kontrak kiosk...")
+                self.log("Pre-build: pytest tests/test_native_kiosk_contract.py")
+                pytest_bin = self.project_root / ".venv" / "bin" / "pytest"
+                cmd = (
+                    [str(pytest_bin), "tests/test_native_kiosk_contract.py", "-q"]
+                    if pytest_bin.is_file()
+                    else [sys.executable, "-m", "pytest", "tests/test_native_kiosk_contract.py", "-q"]
+                )
+                result = self.run_command(cmd, cwd=self.project_root, env=env)
+                if not result or result.returncode != 0:
+                    raise Exception("Pre-build gagal: tes kontrak kiosk")
+            if self.clean_build_var.get():
+                self.update_status("Cleaning native kiosk...")
+                gradlew = self.kiosk_project / "gradlew"
+                clean_cmd = (
+                    [str(gradlew), "clean"]
+                    if gradlew.is_file()
+                    else ["gradle", "clean"]
+                )
+                clean_result = self.run_command(clean_cmd, cwd=self.kiosk_project, env=env)
+                if not clean_result or clean_result.returncode != 0:
+                    raise Exception("gradle clean failed")
+            self.update_status("Building native kiosk release APK...")
+            self.log(f"   Server URL: {env['SIAB1_SERVER_URL']}")
+            self.log(f"   Package: {NATIVE_KIOSK_PACKAGE}")
+            gradlew = self.kiosk_project / "gradlew"
+            build_cmd = (
+                [str(gradlew), ":app:assembleRelease", "--no-daemon"]
+                if gradlew.is_file()
+                else ["gradle", ":app:assembleRelease", "--no-daemon"]
+            )
+            result = self.run_command(build_cmd, cwd=self.kiosk_project, env=env)
+            if result and result.returncode != 0 and self._command_output_contains("java heap space"):
+                self.log("Java heap space. Retry with higher Gradle heap...")
+                ensure_gradle_memory_config(
+                    gradle_properties=self.kiosk_project / "gradle.properties",
+                    env=env,
+                    log=self.log,
+                    force_high=True,
+                )
+                result = self.run_command(build_cmd, cwd=self.kiosk_project, env=env)
+            if not result or result.returncode != 0:
+                raise Exception("assembleRelease failed")
+            artifact = kiosk_release_apk_path(self.kiosk_project)
+            if not artifact.is_file():
+                raise FileNotFoundError(f"APK tidak ditemukan: {artifact}")
+            output_dir = self.project_root / "apk_builds"
+            output_dir.mkdir(exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            app_name = normalize_apk_display_name(self.app_name_var.get())
+            safe_name = re.sub(r"[^a-z0-9_]", "", app_name.replace(" ", "_").lower()) or "siab1"
+            output_file = output_dir / f"{safe_name}_kiosk_{timestamp}.apk"
+            shutil.copy2(artifact, output_file)
+            size_mb = output_file.stat().st_size / (1024 * 1024)
+            sha256_hex = self._sha256_file(output_file)
+            checksum_path = output_file.with_suffix(output_file.suffix + ".sha256")
+            checksum_path.write_text(f"{sha256_hex}  {output_file.name}\n", encoding="utf-8")
+            self._update_signature_from_artifact(output_file)
+            self.log(f"APK: {output_file}")
+            self.log(f"Size: {size_mb:.2f} MB")
+            self.log(f"Build Token: {self.last_build_token}")
+            self.update_status("Build complete! Artifact saved to apk_builds/")
+            self._copy_to_clipboard(self.last_build_token)
+            self._show_info(
+                "Build Successful!",
+                f"APK kiosk rilis berhasil.\n\n"
+                f"  {output_file.name} ({size_mb:.1f} MB)\n\n"
+                f"Token (sudah di-copy):\n{self.last_build_token}\n\n"
+                f"Daftarkan token dan signature hash di Admin Panel.",
+            )
+        except Exception as exc:
+            self.log(f"\nBUILD FAILED: {exc}")
+            self.update_status("Build failed!")
+            self._show_error("Build Failed", f"Build gagal:\n{exc}")
+        finally:
+            self.reset_ui()
+
     def build_apk(self):
         """Build APK (runs in background thread)"""
         try:
+            if self._uses_native_kiosk():
+                self._build_native_kiosk()
+                return
             self.log("\n" + "="*60)
             self.log("🚀 Starting Android Build Process")
             self.log("="*60 + "\n")
@@ -1775,7 +2065,7 @@ def _reexec_with_project_venv_if_icon_deps_missing():
         return
 
     probe = subprocess.run(
-        [str(venv_python), "-c", "import PIL"],
+        [str(venv_python), "-c", "from PIL import Image"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,

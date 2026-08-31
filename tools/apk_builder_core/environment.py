@@ -183,13 +183,18 @@ def build_tool_env(
 
 def ensure_gradle_memory_config(
     *,
-    flutter_project: Path,
+    flutter_project: Path | None = None,
+    gradle_properties: Path | None = None,
     env: Mapping[str, str] | None = None,
     log: Callable[[str], None] | None = None,
     force_high: bool = False,
 ) -> None:
-    """Ensure android/gradle.properties has a safe org.gradle.jvmargs value."""
-    gradle_props = Path(flutter_project) / "android" / "gradle.properties"
+    """Ensure gradle.properties has a safe org.gradle.jvmargs value."""
+    if gradle_properties is None:
+        if flutter_project is None:
+            raise ValueError("flutter_project or gradle_properties is required")
+        gradle_properties = Path(flutter_project) / "android" / "gradle.properties"
+    gradle_props = Path(gradle_properties)
     gradle_props.parent.mkdir(parents=True, exist_ok=True)
     jvmargs, heap_label = recommend_gradle_memory(force_high=force_high)
     line = f"org.gradle.jvmargs={jvmargs}"

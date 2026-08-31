@@ -37,6 +37,7 @@ def test_kiosk_webview_and_headers_are_limited_to_the_server_origin() -> None:
     assert "fun isTrustedUrl" in config
     assert "setOf(AppConfig.trustedOrigin())" in activity
     assert 'setOf("*")' not in activity
+    assert "if (!request.isForMainFrame) return false" in activity
     assert "if (!AppConfig.isTrustedUrl(url)) return true" in activity
     assert "AppConfig.isTrustedUrl(original.url.toString())" in api
     assert "if (!AppConfig.isTrustedUrl(url)) return null" in api

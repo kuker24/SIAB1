@@ -1,16 +1,15 @@
 #!/bin/bash
 # Linux/macOS launcher for APK Builder GUI
 
-# Ensure we are in the correct directory
-cd "$(dirname "$0")"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
-# Check if python3 is available
-if command -v python3 &> /dev/null; then
+if [ -x "$ROOT/.venv/bin/python" ]; then
+    PYTHON_CMD="$ROOT/.venv/bin/python"
+elif command -v python3 &> /dev/null; then
     PYTHON_CMD=python3
 else
     PYTHON_CMD=python
 fi
 
-# Run the script
-echo "🚀 Launching APK Builder GUI..."
-$PYTHON_CMD apk_builder_gui.py
+exec "$PYTHON_CMD" tools/apk_builder_gui.py

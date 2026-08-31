@@ -1,7 +1,7 @@
 {
   "app_name": "SIAB1",
-  "package_name": "id.siab1.flutter",
-  "server_url": "https://siab1.invalid/",
+  "package_name": "id.siab1.kiosk",
+  "server_url": "https://siab.man1rokanhulu.cloud/",
   "force_https": true,
   "allow_cleartext_traffic": false,
   "enable_kiosk": true,
@@ -9,5 +9,6 @@
   "detect_root": true,
   "block_task_switch": true,
   "icon_path": "",
+  "kiosk_project_path": "android-kiosk",
   "flutter_project_path": "flutter_client_code"
 }
