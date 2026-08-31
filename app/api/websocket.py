@@ -22,9 +22,10 @@ from app.core.security import (
     AuthenticatedUser,
     decode_token,
     is_freeze_exempt_identity,
+    is_pengawas_user,
     is_teacher_scope_restricted,
 )
-from app.core.roles import is_admin_scope_role, is_teacher_scope_role
+from app.core.roles import is_admin_scope_role, is_monitor_scope_role
 
 router = APIRouter(tags=["WebSocket"])
 logger = logging.getLogger(__name__)
@@ -199,6 +200,19 @@ async def _authenticate_ws_user(websocket: WebSocket) -> AuthenticatedUser | Non
     return user
 
 
+def monitor_websocket_deny_reason(current_user: AuthenticatedUser, exam: Exam | None) -> tuple[int, str] | None:
+    """Return a websocket close code/reason when monitor access must be denied."""
+    if not is_monitor_scope_role(current_user.role):
+        return 4403, "Only teacher/admin/developer/pengawas can access monitor websocket"
+    if exam is None or bool(getattr(exam, "is_deleted", False)):
+        return 4404, "Exam not found"
+    if is_pengawas_user(current_user) and not bool(getattr(exam, "is_published", False)):
+        return 4403, "Not authorized to monitor this exam"
+    if is_teacher_scope_restricted(current_user) and exam.creator_id != current_user.id:
+        return 4403, "Not authorized to monitor this exam"
+    return None
+
+
 @router.websocket("/ws/exam/{exam_id}/{user_id}")
 async def exam_websocket(
     websocket: WebSocket,
@@ -305,7 +319,7 @@ async def monitor_websocket(
     exam_id: int
 ):
     """
-    WebSocket endpoint for admin/teacher exam monitoring.
+    WebSocket endpoint for exam monitoring (teacher, pengawas, admin).
 
     Receives all student activities for the exam in real-time:
     - Student starts/ends exam
@@ -317,17 +331,12 @@ async def monitor_websocket(
         current_user = await _authenticate_ws_user(websocket)
         if not current_user:
             return
-        if not is_teacher_scope_role(current_user.role):
-            await _ws_close(websocket, 4403, "Only teacher/admin/developer can access monitor websocket")
-            return
 
         exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
         exam = exam_result.scalar_one_or_none()
-        if not exam:
-            await _ws_close(websocket, 4404, "Exam not found")
-            return
-        if is_teacher_scope_restricted(current_user) and exam.creator_id != current_user.id:
-            await _ws_close(websocket, 4403, "Not authorized to monitor this exam")
+        denied = monitor_websocket_deny_reason(current_user, exam)
+        if denied:
+            await _ws_close(websocket, denied[0], denied[1])
             return
 
     connection_id = f"monitor_{exam_id}_{current_user.id}_{id(websocket)}"

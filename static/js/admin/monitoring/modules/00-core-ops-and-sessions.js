@@ -17,6 +17,8 @@
 
         let currentUser = auth.getUser();
         const isTeacher = currentUser && currentUser.role === 'teacher';
+        const isPengawas = currentUser && currentUser.role === 'gurupengawas';
+        const hideOpsSummary = isTeacher || isPengawas;
         const monitorQueryParams = new URLSearchParams(window.location.search || '');
         const requestedMonitorExamId = Number.parseInt(
             String(monitorQueryParams.get('exam_id') || ''),
@@ -40,7 +42,7 @@
         function applyRoleScopedVisibility() {
             const opsCardEl = document.getElementById('ops-summary-card');
             if (!opsCardEl) return;
-            if (isTeacher) {
+            if (hideOpsSummary) {
                 opsCardEl.remove();
                 return;
             }
@@ -522,13 +524,13 @@
             }
 
             if (autoRestartToggleBtn) {
-                autoRestartToggleBtn.disabled = isTeacher || opsAutoRestartToggleInFlight || opsAutoControlInFlight || opsRestartInFlight || opsAutoHealRunInFlight;
+                autoRestartToggleBtn.disabled = hideOpsSummary || opsAutoRestartToggleInFlight || opsAutoControlInFlight || opsRestartInFlight || opsAutoHealRunInFlight;
                 autoRestartToggleBtn.innerHTML = opsAutoRestartToggleInFlight
                     ? '<i class="fas fa-spinner fa-spin"></i> Menyimpan Jadwal...'
                     : '<i class="fas fa-calendar-plus"></i> Jadwalkan Auto Restart';
             }
             if (autoModeBtn) {
-                autoModeBtn.disabled = isTeacher || opsAutoControlInFlight || opsRestartInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight;
+                autoModeBtn.disabled = hideOpsSummary || opsAutoControlInFlight || opsRestartInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight;
                 autoModeBtn.classList.remove('btn-primary', 'btn-outline-success', 'btn-outline-warning');
                 autoModeBtn.classList.add(autoModeEnabled ? 'btn-primary' : 'btn-outline-success');
                 autoModeBtn.innerHTML = opsAutoControlInFlight
@@ -536,7 +538,7 @@
                     : `<i class="fas fa-brain"></i> Auto Performa: ${autoModeEnabled ? 'ON' : 'OFF'}`;
             }
             if (autoHealBtn) {
-                autoHealBtn.disabled = isTeacher || opsAutoControlInFlight || opsRestartInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight;
+                autoHealBtn.disabled = hideOpsSummary || opsAutoControlInFlight || opsRestartInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight;
                 autoHealBtn.classList.remove('btn-primary', 'btn-outline-info', 'btn-outline-secondary');
                 autoHealBtn.classList.add(autoHealEnabled ? 'btn-primary' : 'btn-outline-info');
                 autoHealBtn.innerHTML = opsAutoControlInFlight
@@ -544,13 +546,13 @@
                     : `<i class="fas fa-heart-pulse"></i> Auto Healing: ${autoHealEnabled ? 'ON' : 'OFF'}`;
             }
             if (autoHealRunBtn) {
-                autoHealRunBtn.disabled = isTeacher || opsAutoControlInFlight || opsRestartInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight || !autoHealEnabled;
+                autoHealRunBtn.disabled = hideOpsSummary || opsAutoControlInFlight || opsRestartInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight || !autoHealEnabled;
                 autoHealRunBtn.innerHTML = opsAutoHealRunInFlight
                     ? '<i class="fas fa-spinner fa-spin"></i> Menjalankan...'
                     : '<i class="fas fa-wand-magic-sparkles"></i> Heal Sekarang';
             }
             if (restartBtn) {
-                restartBtn.disabled = isTeacher || opsRestartInFlight || opsAutoControlInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight;
+                restartBtn.disabled = hideOpsSummary || opsRestartInFlight || opsAutoControlInFlight || opsAutoRestartToggleInFlight || opsAutoHealRunInFlight;
                 restartBtn.classList.remove('btn-danger', 'btn-outline-warning');
                 restartBtn.classList.add(
                     restartBackendVisual.fullRestartAvailable ? 'btn-danger' : 'btn-outline-warning'
@@ -613,7 +615,7 @@
             const autoHealRunBtn = document.getElementById('ops-auto-heal-run-btn');
             const restartBtn = document.getElementById('ops-restart-safe-btn');
 
-            if (isTeacher) {
+            if (hideOpsSummary) {
                 if (cardEl) cardEl.remove();
                 return;
             }
@@ -653,7 +655,7 @@
         }
 
         async function toggleAutoRestartFromOps() {
-            if (isTeacher || opsAutoRestartToggleInFlight) return;
+            if (hideOpsSummary || opsAutoRestartToggleInFlight) return;
             if (!opsSummaryState || !opsSummaryState.policy) {
                 showAlert('Status ops belum siap, coba refresh dulu', 'warning');
                 return;
@@ -662,7 +664,7 @@
         }
 
         async function saveOpsAutoRestartSchedule() {
-            if (isTeacher || opsAutoRestartToggleInFlight) return;
+            if (hideOpsSummary || opsAutoRestartToggleInFlight) return;
             if (!opsSummaryState || !opsSummaryState.policy) {
                 showAlert('Status ops belum siap, coba refresh dulu', 'warning');
                 return;
@@ -715,7 +717,7 @@
         }
 
         async function toggleAutoModeFromOps() {
-            if (isTeacher || opsAutoControlInFlight) return;
+            if (hideOpsSummary || opsAutoControlInFlight) return;
             const controls = opsSummaryState?.auto_intelligence?.controls || {};
             const currentEnabled = !!controls.auto_mode_enabled;
             const nextEnabled = !currentEnabled;
@@ -759,7 +761,7 @@
         }
 
         async function toggleAutoHealingFromOps() {
-            if (isTeacher || opsAutoControlInFlight) return;
+            if (hideOpsSummary || opsAutoControlInFlight) return;
             const controls = opsSummaryState?.auto_intelligence?.controls || {};
             const currentEnabled = !!controls.auto_heal_enabled;
             const nextEnabled = !currentEnabled;
@@ -803,7 +805,7 @@
         }
 
         async function runAutoHealingNowFromOps() {
-            if (isTeacher || opsAutoHealRunInFlight) return;
+            if (hideOpsSummary || opsAutoHealRunInFlight) return;
             const controls = opsSummaryState?.auto_intelligence?.controls || {};
             if (!controls.auto_heal_enabled) {
                 showAlert('Auto Healing masih OFF. Aktifkan dulu.', 'warning');
@@ -850,7 +852,7 @@
         }
 
         async function restartSystemSafelyFromOps() {
-            if (isTeacher || opsRestartInFlight || opsAutoControlInFlight || opsAutoHealRunInFlight) return;
+            if (hideOpsSummary || opsRestartInFlight || opsAutoControlInFlight || opsAutoHealRunInFlight) return;
             const restartBackendVisual = getRestartBackendVisual(opsSummaryState);
 
             const confirmed = await showConfirm(
@@ -1311,7 +1313,7 @@
             if (refreshDataInFlight) return;
             refreshDataInFlight = true;
             try {
-                if (isTeacher) {
+                if (hideOpsSummary) {
                     await loadActiveExams();
                     return;
                 }

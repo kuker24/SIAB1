@@ -132,7 +132,7 @@
                 if (document.hidden) return;
                 await loadRuntimePolicy();
                 startMainRefreshLoop();
-                if (!isTeacher) {
+                if (!hideOpsSummary) {
                     await loadOpsSummary();
                 }
 

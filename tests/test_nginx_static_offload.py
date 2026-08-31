@@ -11,6 +11,7 @@ CRITICAL_JS = (
     "/static/js/api.js",
     "/static/js/auth.js",
     "/static/js/exam-builder.js",
+    "/static/js/admin/monitoring.js",
 )
 
 

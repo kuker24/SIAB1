@@ -22,6 +22,7 @@ from typing import Dict, Optional
 from sqlalchemy import select
 from app.database import async_session_read
 from app.core.apk_profiles import get_token_label, parse_token_profiles
+from app.core.roles import MONITOR_SCOPE_ROLES, PARTICIPANT_ROLES
 from app.core.start_db_admission import start_db_segment
 from app.models.system_settings import SystemSettings
 
@@ -203,7 +204,7 @@ class APKTokenValidator:
 
         Args:
             client_token: Token sent by client (None for web login)
-            user_role: User role (admin, teacher, student, guruplus)
+            user_role: User role (developer, admin, teacher, gurupengawas, student, guruplus)
             username: Username for logging
             user_agent: User Agent string for SEB/Exambro detection
 
@@ -239,17 +240,17 @@ class APKTokenValidator:
                 "reason": "Developer mode active (allow_browser_testing=True)"
             }
 
-        # Developer/Admin/Teacher can login from anywhere (web/mobile)
-        if user_role in {'developer', 'admin', 'teacher'}:
+        # Control-plane staff can login from web without an APK token.
+        if user_role in MONITOR_SCOPE_ROLES:
             logger.debug(f"Role-based bypass for {user_role} user={username}")
             return {
                 "valid": True,
                 "bypass_active": False,
-                "reason": "Role-based bypass (developer/admin/teacher)"
+                "reason": "Role-based bypass (control-plane staff)"
             }
 
         # Student/GuruPlus participants MUST use mobile app with valid token
-        if user_role in {'student', 'guruplus'}:
+        if user_role in PARTICIPANT_ROLES:
             # Get minimum required token and fetch state from short-lived cache
             settings_cached = await _get_settings_cache()
             minimum_token = settings_cached.get("minimum_token")

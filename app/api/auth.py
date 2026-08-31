@@ -31,7 +31,7 @@ from app.core.cache import is_freeze_mode_enabled
 from app.core.client_ip import get_client_ip
 from app.core.rate_limiter import RateLimiters, check_rate_limit
 from app.core.account_lockout import MAX_ATTEMPTS
-from app.core.roles import is_admin_scope_role, is_teacher_scope_role
+from app.core.roles import is_admin_scope_role, is_participant_role, is_teacher_scope_role
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
@@ -576,19 +576,20 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
                 }
             )
 
-    # ✅ APK Token Validation (Students Only)
+    # ✅ APK Token Validation (participants only; staff including pengawas skip this)
     from app.utils.apk_validation import validate_student_apk_token
 
-    # Get token from request body OR header (for WebView apps)
     client_token = login_data.build_token or request.headers.get('X-Build-Token')
     user_agent = request.headers.get('User-Agent', '')
+    token_validation = {"valid": True}
 
-    token_validation = await validate_student_apk_token(
-        client_token=client_token,
-        user_role=user.role,
-        username=user.username,
-        user_agent=user_agent
-    )
+    if is_participant_role(user.role):
+        token_validation = await validate_student_apk_token(
+            client_token=client_token,
+            user_role=user.role,
+            username=user.username,
+            user_agent=user_agent
+        )
 
     if not token_validation['valid']:
         # Log token rejection
