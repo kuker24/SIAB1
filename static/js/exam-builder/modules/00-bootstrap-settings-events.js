@@ -825,6 +825,15 @@ async function loadExam(id) {
                 q.question_type === 'multiple_choice' ||
                 (q.question_type === 'multiple_choice_complex' && resolvedPgkType === 'checkbox')
             );
+            const rawStimulus = q.stimulus ?? settings.stimulus;
+            const persistedStimulus = typeof rawStimulus === 'string' ? rawStimulus : '';
+            const useStimulus = (
+                q.question_type === 'multiple_choice_complex' &&
+                (
+                    settings.use_stimulus === true ||
+                    (settings.use_stimulus !== false && persistedStimulus.trim() !== '')
+                )
+            );
 
             // --- 1. HANDLE OPTIONS & CORRECT ANSWERS ---
             if (Array.isArray(q.options)) {
@@ -912,7 +921,8 @@ async function loadExam(id) {
                 type: q.question_type,
                 pgk_type: resolvedPgkType, // Important for PGK switch
                 text: q.question_text,
-                stimulus: q.stimulus || (q.question_settings && q.question_settings.stimulus) || '', // Important for HOTS
+                stimulus: persistedStimulus,
+                use_stimulus: useStimulus,
                 options: processedOptions,
 
                 // Correct Answers Mapping

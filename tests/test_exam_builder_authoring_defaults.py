@@ -35,4 +35,4 @@ def test_pgk_type_b_keeps_benar_salah_and_shuffle_opt_out() -> None:
 
 
 def test_exam_builder_cache_buster_matches_authoring_fix() -> None:
-    assert "exam-builder.js?v=20260831-pgk-authoring2" in TEMPLATE
+    assert "exam-builder.js?v=20260831-pgk-stimulus1" in TEMPLATE

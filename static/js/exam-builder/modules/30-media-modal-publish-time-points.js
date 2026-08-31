@@ -82,11 +82,9 @@ function validateForPublish() {
             }
         }
         else if (q.type === 'multiple_choice_complex') {
-            if (!q.image_url) {
-                if (!q.stimulus || !q.stimulus.trim()) {
-                    errors.push(`Soal No. ${num} (PGK): Stimulus/bacaan wajib diisi untuk soal HOTS`);
-                    if (firstErrorIndex === -1) firstErrorIndex = index;
-                }
+            if (q.use_stimulus === true && (!q.stimulus || !q.stimulus.trim())) {
+                errors.push(`Soal No. ${num} (PGK): Stimulus aktif tetapi isinya masih kosong`);
+                if (firstErrorIndex === -1) firstErrorIndex = index;
             }
 
             const resolvedPgkType = q.pgk_type || (q.question_settings && q.question_settings.pgk_type) || 'checkbox';
@@ -395,6 +393,7 @@ function getTutorialSteps() {
                 'Default PG: isi teks opsi A-D, lalu pilih 1 kunci.',
                 'PGK Tipe A: isi teks opsi A-E, centang minimal 2 kunci.',
                 'PGK Tipe B: isi pernyataan, lalu pilih Benar/Salah per baris.',
+                'Stimulus/konteks PGK opsional; aktifkan hanya jika soal membutuhkan bacaan atau data pendukung.',
                 'Gunakan poin yang konsisten agar penilaian adil.'
             ],
             action: hasQuestions

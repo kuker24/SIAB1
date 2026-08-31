@@ -338,6 +338,7 @@ function addQuestion(type = 'multiple_choice') {
     // Use configured points from pointsConfig (loaded from localStorage or defaults)
     let points = getPointsForType(type);
     let stimulus = null;
+    let use_stimulus = false;
     let pgk_type = null;
     let statements = null;
     let statement_answers = null;
@@ -351,7 +352,8 @@ function addQuestion(type = 'multiple_choice') {
         console.log('✅ PGK mode activated!');
         options = Array(getDefaultOptionCountByType('multiple_choice_complex', 'checkbox')).fill('');
         correct_answers = [];  // Array for multiple correct answers
-        stimulus = '';  // Wajib untuk PGK
+        stimulus = '';
+        use_stimulus = false;
         pgk_type = 'checkbox';  // Default: checkbox (Tipe A)
         use_key_only_mode = builderDefaults.default_pgk_key_only;
     } else if (type === 'true_false') {
@@ -363,6 +365,7 @@ function addQuestion(type = 'multiple_choice') {
         type: type,
         text: '',
         stimulus: stimulus,  // Tambahan untuk PGK
+        use_stimulus: use_stimulus,
         pgk_type: pgk_type,  // Tambahan untuk PGK (checkbox/table_validation)
         statements: statements,  // Untuk PGK tabel validasi
         statement_answers: statement_answers,  // Untuk PGK tabel validasi
@@ -976,12 +979,11 @@ function generateQuestionCard(question, index) {
         // Multiple Choice Complex - Professional AKM Style
         const currentPgkType = question.pgk_type || 'checkbox';
         const pgkKeyOnlyMode = question.use_key_only_mode === true;
+        const stimulusEnabled = question.use_stimulus === true;
+        const stimulusHasContent = !!(question.stimulus && question.stimulus.trim());
         if (currentPgkType === 'checkbox') {
             ensureOptionSlots(question, getMinimumOptionCount(question));
         }
-        // Stimulus dianggap sudah terisi ("aman") jika teks stimulus ada ATAU jika sudah upload foto soal
-        const needsStimulus = (!question.stimulus || question.stimulus.trim() === '') && !question.image_url;
-
         optionsHtml = `
             <div class="complex-choice-builder">
                 <!-- Header dengan badge HOTS -->
@@ -1012,22 +1014,46 @@ function generateQuestionCard(question, index) {
                 : ''}
                 </div>
 
-                <!-- Stimulus (WAJIB untuk PGK) -->
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">
-                        <i class="fas fa-book-open" style="color: var(--warning);"></i>
-                        <span>Stimulus / Konteks (Wajib)</span>
-                        ${needsStimulus ? '<span style="color: var(--danger); font-size: 0.75rem; font-weight: 500;">⚠ Belum diisi</span>' : '<span style="color: var(--success); font-size: 0.75rem;"><i class="fas fa-check-circle"></i></span>'}
+                <!-- Optional stimulus for PGK Type A and B -->
+                <div class="pgk-stimulus-section"
+                     data-stimulus-question="${index}"
+                     style="margin-bottom: 1rem; padding-block: 0.8rem; border-block: 1px solid var(--border-color);">
+                    <label style="display: flex; align-items: center; gap: 0.7rem; cursor: pointer; margin: 0;">
+                        <input type="checkbox"
+                               aria-label="Gunakan Stimulus atau Konteks"
+                               ${stimulusEnabled ? 'checked' : ''}
+                               onchange="toggleStimulus(${index}, this.checked)"
+                               onclick="event.stopPropagation()"
+                               style="width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0;">
+                        <i class="fas fa-book-open" style="color: ${stimulusEnabled ? 'var(--warning)' : 'var(--text-secondary)'};"></i>
+                        <span style="min-width: 0; flex: 1;">
+                            <strong style="display: block; color: var(--text-primary); font-size: 0.9rem;">Gunakan Stimulus / Konteks</strong>
+                            <small style="display: block; color: var(--text-secondary); margin-top: 0.15rem;">
+                                Opsional untuk PGK Tipe A dan B
+                            </small>
+                        </span>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: ${stimulusEnabled ? 'var(--success)' : 'var(--text-secondary)'};">
+                            ${stimulusEnabled ? 'AKTIF' : 'NONAKTIF'}
+                        </span>
                     </label>
-                    <textarea
-                        class="form-control"
-                        placeholder="Berikan konteks/bacaan/data untuk soal HOTS. Contoh: grafik, tabel, kasus, atau bacaan singkat..."
-                        oninput="updateStimulus(${index}, this.value); autoResize(this)"
-                        onclick="event.stopPropagation()"
-                        rows="3"
-                        style="background: var(--dark-lighter); border: ${needsStimulus ? '2px solid var(--danger)' : '1px solid var(--border-color)'}; font-size: 0.9rem; min-height: 80px; max-height: 200px; overflow-y: auto;"
-                    >${escapeHtml(question.stimulus || '')}</textarea>
-                    ${needsStimulus ? '<small style="color: var(--danger); margin-top: 0.25rem; display: block;"><i class="fas fa-exclamation-triangle"></i> PGK memerlukan stimulus untuk mengukur HOTS</small>' : ''}
+                    ${stimulusEnabled ? `
+                        <textarea
+                            class="form-control"
+                            data-stimulus-input="${index}"
+                            aria-label="Isi Stimulus atau Konteks"
+                            placeholder="Tulis bacaan, kasus, data, tabel, atau konteks pendukung soal..."
+                            oninput="updateStimulus(${index}, this.value); autoResize(this)"
+                            onclick="event.stopPropagation()"
+                            rows="3"
+                            style="margin-top: 0.7rem; background: var(--dark-lighter); border: 1px solid ${stimulusHasContent ? 'var(--border-color)' : 'var(--warning)'}; font-size: 1rem; min-height: 80px; max-height: 200px; overflow-y: auto;"
+                        >${escapeHtml(question.stimulus || '')}</textarea>
+                        <small data-stimulus-help="${index}"
+                               style="display: block; margin-top: 0.35rem; color: ${stimulusHasContent ? 'var(--text-secondary)' : 'var(--warning)'};">
+                            ${stimulusHasContent
+                ? 'Stimulus akan ditampilkan kepada siswa sebelum pertanyaan.'
+                : 'Stimulus aktif. Isi konteks sebelum ujian dipublish.'}
+                        </small>
+                    ` : ''}
                 </div>
 
                 <!-- Content based on PGK Type -->
@@ -1317,6 +1343,7 @@ function changeQuestionType(index, type) {
     question.allow_placeholder_shuffle = false;
     question.placeholder_shuffle_user_set = false;
     question.use_key_only_mode = false;
+    question.use_stimulus = false;
     question.answer_layout_mode = 'model1';
     question.model2_slots = [];
     question.preferred_image_layout_mode = builderDefaults.default_image_layout_mode;
@@ -1349,7 +1376,8 @@ function changeQuestionType(index, type) {
         question.options = Array(getDefaultOptionCountByType('multiple_choice_complex', 'checkbox')).fill('');
         question.correct_answers = [];  // Array of correct option indices
         question.correct_answer = '';   // Not used for this type
-        question.stimulus = '';  // WAJIB untuk PGK
+        question.stimulus = '';
+        question.use_stimulus = false;
         question.pgk_type = 'checkbox';  // Default: Tipe A
         question.use_key_only_mode = builderDefaults.default_pgk_key_only;
     } else if (type === 'multiple_choice_complex') {

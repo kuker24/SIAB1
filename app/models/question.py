@@ -19,8 +19,8 @@ class Question(Base):
     id = Column(Integer, primary_key=True, index=True)
     exam_id = Column(Integer, ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True)
     question_text = Column(Text, nullable=False)
-    # NEW: Stimulus for HOTS/AKM questions (required for PGK)
-    stimulus = Column(Text, nullable=True)  # Context/reading for HOTS questions
+    # Optional context/reading for PGK or HOTS questions.
+    stimulus = Column(Text, nullable=True)
     # Expanded to support 6 types
     question_type = Column(String(50), nullable=False, default="multiple_choice")
     question_subtype = Column(String(50), nullable=True)  # For future variants

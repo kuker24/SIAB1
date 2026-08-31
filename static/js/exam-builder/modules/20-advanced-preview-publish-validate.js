@@ -186,51 +186,41 @@ function deleteComplexOption(questionIndex, optionIndex) {
     triggerAutoSave();
 }
 
-// Update stimulus for PGK
-function updateStimulus(questionIndex, value) {
-    examData.questions[questionIndex].stimulus = value;
+function toggleStimulus(questionIndex, enabled) {
+    const question = examData.questions[questionIndex];
+    if (!question || question.type !== 'multiple_choice_complex') return;
+
+    question.use_stimulus = Boolean(enabled);
+    renderQuestions();
     triggerAutoSave();
 
-    // Update validation indicator WITHOUT full re-render (prevents scroll jump)
-    const card = document.querySelector(`.question-card[data-index="${questionIndex}"]`);
-    if (card) {
-        const stimulusLabel = card.querySelector('.complex-choice-builder label');
-        const stimulusTextarea = card.querySelector('.complex-choice-builder textarea');
-        const warningSmall = card.querySelector('.complex-choice-builder > div:nth-child(2) > small');
+    if (enabled) {
+        requestAnimationFrame(() => {
+            const input = document.querySelector(`[data-stimulus-input="${questionIndex}"]`);
+            if (input) input.focus();
+        });
+    }
+}
 
-        if (value && value.trim() !== '') {
-            // Stimulus filled - show green check
-            if (stimulusLabel) {
-                const indicator = stimulusLabel.querySelector('span:last-child');
-                if (indicator) {
-                    indicator.innerHTML = '<i class="fas fa-check-circle"></i>';
-                    indicator.style.color = 'var(--success)';
-                    indicator.style.fontWeight = 'normal';
-                }
-            }
-            if (stimulusTextarea) {
-                stimulusTextarea.style.border = '1px solid var(--border-color)';
-            }
-            if (warningSmall) {
-                warningSmall.style.display = 'none';
-            }
-        } else {
-            // Stimulus empty - show warning
-            if (stimulusLabel) {
-                const indicator = stimulusLabel.querySelector('span:last-child');
-                if (indicator) {
-                    indicator.innerHTML = '⚠ Belum diisi';
-                    indicator.style.color = 'var(--danger)';
-                    indicator.style.fontWeight = '500';
-                }
-            }
-            if (stimulusTextarea) {
-                stimulusTextarea.style.border = '2px solid var(--danger)';
-            }
-            if (warningSmall) {
-                warningSmall.style.display = 'block';
-            }
-        }
+// Update optional stimulus for PGK
+function updateStimulus(questionIndex, value) {
+    const question = examData.questions[questionIndex];
+    if (!question) return;
+    question.stimulus = value;
+    question.use_stimulus = true;
+    triggerAutoSave();
+
+    const input = document.querySelector(`[data-stimulus-input="${questionIndex}"]`);
+    const helper = document.querySelector(`[data-stimulus-help="${questionIndex}"]`);
+    const hasContent = value.trim() !== '';
+    if (input) {
+        input.style.borderColor = hasContent ? 'var(--border-color)' : 'var(--warning)';
+    }
+    if (helper) {
+        helper.textContent = hasContent
+            ? 'Stimulus akan ditampilkan kepada siswa sebelum pertanyaan.'
+            : 'Stimulus aktif. Isi konteks sebelum ujian dipublish.';
+        helper.style.color = hasContent ? 'var(--text-secondary)' : 'var(--warning)';
     }
 }
 
@@ -501,6 +491,8 @@ function buildQuestionPayloadFromState(q, orderIndex, currentExamId) {
     let allowPlaceholderShuffle = false;
     const useKeyOnlyMode = q.use_key_only_mode === true;
     const currentPgkType = q.type === 'multiple_choice_complex' ? (q.pgk_type || 'checkbox') : null;
+    const useStimulus = q.type === 'multiple_choice_complex' && q.use_stimulus === true;
+    const stimulusValue = useStimulus ? (q.stimulus || '') : null;
 
     if (q.type === 'multiple_choice') {
         const minOptionCount = getMinimumOptionCountByType('multiple_choice');
@@ -626,14 +618,15 @@ function buildQuestionPayloadFromState(q, orderIndex, currentExamId) {
         exam_id: currentExamId,
         question_text: q.text || 'Pertanyaan baru',
         question_type: q.type || 'multiple_choice',
-        stimulus: q.stimulus || null,
+        stimulus: stimulusValue,
         pgk_type: currentPgkType,
         difficulty_level: q.difficulty || 'medium',
         points: q.points || 1,
         order_index: orderIndex,
         options: formattedOptions,
         question_settings: {
-            stimulus: q.stimulus,
+            stimulus: stimulusValue,
+            use_stimulus: useStimulus,
             pgk_type: currentPgkType,
             acceptable_answers: q.type === 'short_answer' && q.correct_answer ? [q.correct_answer.trim()] : [],
             require_manual_grading: q.type === 'short_answer' ? (q.require_manual_grading || false) : undefined,
@@ -1007,7 +1000,7 @@ async function togglePreview(mode = 'builder') {
             html += '<span style="color: #a78bfa; font-size: 0.85rem; font-weight: 600;">' + (q.pgk_type === 'table_validation' ? 'Tabel Validasi (Benar/Salah)' : 'Multiple Response (Pilihan Jamak)') + '</span>';
             html += '</div>';
 
-            if (q.stimulus) {
+            if (q.use_stimulus === true && q.stimulus) {
                 html += '<div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--dark-lighter); border-left: 3px solid #f59e0b; font-style: italic; color: var(--text-primary);">';
                 html += renderBuilderRichText(q.stimulus);
                 html += '</div>';
@@ -1423,7 +1416,7 @@ function renderSimulatedPreview(normalData, simulatedData, focusQuestionId = nul
         if (q.video_url) {
             html += '<div style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fab fa-youtube" style="color: #ff0000;"></i> Video YouTube terlampir</div>';
         }
-        if (q.stimulus) {
+        if (q.use_stimulus === true && q.stimulus) {
             html += '<div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--dark); border-left: 3px solid #f59e0b; font-style: italic;">' + renderBuilderRichText(q.stimulus) + '</div>';
         }
 

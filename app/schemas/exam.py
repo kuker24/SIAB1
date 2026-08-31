@@ -90,7 +90,7 @@ from app.schemas.question_bank import CategoryResponse, TagResponse
 class QuestionCreate(BaseModel):
     """Schema for creating question."""
     question_text: str
-    stimulus: Optional[str] = None  # NEW: Context/reading for HOTS/AKM questions (required for PGK)
+    stimulus: Optional[str] = None  # Optional context/reading for PGK or HOTS questions
     question_type: str = Field(
         default="multiple_choice",
         pattern=QUESTION_TYPE_PATTERN

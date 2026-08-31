@@ -671,9 +671,9 @@ async def _validate_questions_for_publish(exam_id: int, db: AsyncSession) -> Non
                 )
 
         elif q_type == "multiple_choice_complex":
-            if not q.image_url and not (q.stimulus or "").strip():
+            if settings.get("use_stimulus") is True and not (q.stimulus or "").strip():
                 errors.append(
-                    f"Soal No. {idx} (PG Kompleks): Stimulus/bacaan wajib diisi"
+                    f"Soal No. {idx} (PG Kompleks): Stimulus aktif tetapi isinya masih kosong"
                 )
 
             if pgk_type == "table_validation":

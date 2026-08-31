@@ -33,7 +33,7 @@ def test_exam_builder_escape_html_escapes_quotes_for_value_attributes():
 def test_exam_builder_template_uses_quote_fix_cache_buster():
     source = Path("templates/admin/exam-builder.html").read_text()
 
-    assert "exam-builder.js?v=20260831-pgk-authoring2" in source
+    assert "exam-builder.js?v=20260831-pgk-stimulus1" in source
 
 
 def test_html_attribute_encoded_quotes_round_trip_to_editor_value():
